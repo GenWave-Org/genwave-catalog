@@ -1,0 +1,6 @@
+{
+  "author": "Test Fixture",
+  "description": "Red-variant fixture for tools/run_selftest.sh — rule: audience is required. Not a real catalog entry.",
+  "samplePatter": ["Line one.", "Line two."],
+  "added": "2026-07-26"
+}

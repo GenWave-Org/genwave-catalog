@@ -1,0 +1,53 @@
+name: Catalog CI
+
+permissions: {contents: read}
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  validate:
+    name: Validate catalog entries and index.json
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install jsonschema==4.19.2
+
+      - name: Validate entries and index.json
+        run: python3 tools/validate.py
+
+      - name: Verify index.json matches entries/
+        # Runs on every PR and every push to main — not just main — so a PR
+        # that edits entries/ without regenerating index.json (or deletes
+        # index.json outright) fails here instead of only after merge.
+        run: |
+          python3 tools/build_index.py --out /tmp/index.rebuilt.json
+          diff -u index.json /tmp/index.rebuilt.json
+
+  selftest:
+    name: Run tools/run_selftest.sh
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install jsonschema==4.19.2
+
+      - name: Run selftest
+        run: tools/run_selftest.sh

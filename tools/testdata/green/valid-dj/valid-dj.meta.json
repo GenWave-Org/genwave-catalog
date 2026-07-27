@@ -1,0 +1,7 @@
+{
+  "author": "Test Fixture",
+  "description": "Green-variant fixture for tools/run_selftest.sh — a schema-valid card+meta pair, copied into a temporary entries/ tree at test time to exercise the shape of tools/build_index.py's output. Not a real catalog entry, and NOT itself under entries/.",
+  "samplePatter": ["Line one.", "Line two."],
+  "audience": "everyone",
+  "added": "2026-07-26"
+}

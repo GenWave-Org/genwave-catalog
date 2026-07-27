@@ -1,0 +1,7 @@
+{
+  "author": "Test Fixture",
+  "description": "Red-variant fixture for tools/run_selftest.sh — rule: card must be <= 256 KiB. Not a real catalog entry.",
+  "samplePatter": ["Line one.", "Line two."],
+  "audience": "everyone",
+  "added": "2026-07-26"
+}

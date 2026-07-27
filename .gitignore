@@ -1,0 +1,7 @@
+# Generated at tools/run_selftest.sh runtime to exercise the size-cap rule
+# without committing a 256KB+ fixture to the repo — see tools/run_selftest.sh.
+/tools/testdata/red/oversize-card/entries/oversize-card/oversize-card.persona.json
+
+# Python bytecode cache from running the tools/ scripts.
+__pycache__/
+*.pyc
