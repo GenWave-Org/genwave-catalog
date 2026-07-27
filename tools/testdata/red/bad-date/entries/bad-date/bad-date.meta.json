@@ -1,0 +1,7 @@
+{
+  "author": "Test Fixture",
+  "description": "Red-variant fixture for tools/run_selftest.sh — rule: `added` must be a real calendar date, not just YYYY-MM-DD shaped. Not a real catalog entry.",
+  "samplePatter": ["Line one.", "Line two."],
+  "audience": "everyone",
+  "added": "9999-99-99"
+}

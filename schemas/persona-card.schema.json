@@ -1,0 +1,130 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/GenWave-Org/genwave-catalog/main/schemas/persona-card.schema.json",
+  "title": "GenWave Persona Card",
+  "description": "The <slug>.persona.json shape a GenWave station exports and imports (app repo SPEC F79.1/F79.2, format owned by GenWave-Org/genwave). additionalProperties is true throughout: readers tolerate unknown fields within the current schemaVersion major (forward-compat), so this schema only pins what the app actually reads — it never rejects a byte-valid export because of a field it doesn't yet know about.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schemaVersion",
+    "name",
+    "tagline",
+    "soul",
+    "quirks",
+    "voice",
+    "energyDisposition",
+    "lore",
+    "corrections"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Card format major version. The app's current major is 1 (PersonaCard.CurrentSchemaVersion); it rejects any card whose major exceeds what it knows, but tolerates unknown fields within a known major."
+    },
+    "name": { "type": "string", "minLength": 1 },
+    "tagline": {
+      "type": "string",
+      "description": "Empty string (\"\") is a legal, byte-valid export — LegacyPersonaCardMapper.BuildCard hard-codes Tagline:\"\" for every reconciled card, so a real app export routinely carries this empty. A non-empty bar for a catalog SUBMISSION is CONTRIBUTING.md's job, not this format schema's."
+    },
+    "soul": {
+      "type": "string",
+      "description": "Empty string (\"\") is a legal, byte-valid export — LegacyPersonaCardMapper.BuildSoul returns \"\" when both backstory and style are empty. A non-empty bar for a catalog SUBMISSION is CONTRIBUTING.md's job, not this format schema's."
+    },
+    "quirks": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "voice": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["engine", "voiceId", "pace", "language"],
+      "properties": {
+        "engine": {
+          "type": "string",
+          "description": "TTS engine role, e.g. \"kokoro\"/\"piper\"; \"\" defers to the station's default engine."
+        },
+        "voiceId": { "type": "string" },
+        "pace": {
+          "type": "number",
+          "description": "Speaking-rate multiplier; 1.0 is engine default."
+        },
+        "language": { "type": "string" }
+      }
+    },
+    "energyDisposition": {
+      "type": "number",
+      "minimum": -1,
+      "maximum": 1,
+      "description": "Station-DJ energy knob, -1..+1. The app itself does NOT bound this at construction (PersonaCard.EnergyDisposition's own remarks) — the -1..+1 range here is a deliberate catalog quality bound, not app-format law."
+    },
+    "lore": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Authored memory only; a station's own accrued memory is never exported."
+    },
+    "corrections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["from", "to"],
+        "properties": {
+          "from": { "type": "string" },
+          "to": { "type": "string" }
+        }
+      }
+    },
+    "taste": {
+      "type": "array",
+      "description": "Authored taste rules only (source='authored'); a station's own operator/accrued rows are never exported. Omitted entirely on cards built before this field existed — never present as an explicit null.",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["predicate", "context", "weight"],
+        "properties": {
+          "predicate": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "AND-matched match criteria; any field left null never constrains the match.",
+            "properties": {
+              "artist": { "type": ["string", "null"] },
+              "genre": { "type": ["string", "null"] },
+              "tag": { "type": ["string", "null"] }
+            }
+          },
+          "context": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Day-of-week/hour gate; empty daysOfWeek = every day, null hour bounds are open.",
+            "properties": {
+              "daysOfWeek": {
+                "type": "array",
+                "description": "System.DayOfWeek values: 0=Sunday .. 6=Saturday.",
+                "items": { "type": "integer", "minimum": 0, "maximum": 6 }
+              },
+              "startHour": {
+                "type": ["integer", "null"],
+                "minimum": 0,
+                "maximum": 23,
+                "description": "The app's TasteContext.StartHour is a plain nullable int with no range check — 0..23 here is a deliberate catalog quality bound, not app-format law."
+              },
+              "endHour": {
+                "type": ["integer", "null"],
+                "minimum": 0,
+                "maximum": 24,
+                "description": "The app's TasteContext.EndHour is a plain nullable int with no range check — 0..24 here (24 = midnight, the exclusive end of a day) is a deliberate catalog quality bound, not app-format law."
+              }
+            }
+          },
+          "weight": {
+            "type": "number",
+            "minimum": -1,
+            "maximum": 1,
+            "description": "Bias strength; negative weights are dislikes, first-class taste."
+          }
+        }
+      }
+    }
+  }
+}

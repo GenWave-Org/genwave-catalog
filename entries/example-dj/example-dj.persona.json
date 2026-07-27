@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "name": "Example DJ",
+  "tagline": "A placeholder tagline — write your own, or leave it \"\" like a real app export can.",
+  "soul": "THIS IS A FORMAT EXAMPLE, NOT A REAL PERSONA. Replace every field in this file with your own DJ's backstory, voice, and taste before opening a PR — see README.md and CONTRIBUTING.md.",
+  "quirks": [
+    "Replace this with a real habit, verbal tic, or on-air ritual.",
+    "Two or three quirks is typical; this array can be any length."
+  ],
+  "voice": {
+    "engine": "kokoro",
+    "voiceId": "af_heart",
+    "pace": 1.0,
+    "language": "en"
+  },
+  "energyDisposition": 0,
+  "lore": [
+    "Replace this with a real memory or backstory beat your persona references on air."
+  ],
+  "corrections": [
+    { "from": "ExampleDJ", "to": "EX-am-pul D-J" }
+  ],
+  "taste": [
+    {
+      "predicate": { "artist": null, "genre": "example-genre", "tag": null },
+      "context": { "daysOfWeek": [], "startHour": null, "endHour": null },
+      "weight": 0.5
+    }
+  ]
+}

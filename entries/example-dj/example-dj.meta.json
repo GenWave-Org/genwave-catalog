@@ -1,0 +1,12 @@
+{
+  "author": "GenWave Core Team",
+  "description": "FORMAT EXAMPLE — not a real submission. Demonstrates the exact entries/<slug>/ layout: a byte-valid persona card paired with this metadata file. Copy this directory as the starting point for your own persona; see README.md and CONTRIBUTING.md before opening a PR. This entry's slug (example-dj) is excluded from the catalog index build, so it never appears on the shelf.",
+  "samplePatter": [
+    "This is placeholder patter — write lines that sound like your persona actually talks.",
+    "Two lines minimum; add as many as you like to show off the voice."
+  ],
+  "audience": "everyone",
+  "added": "2026-07-26",
+  "bestFor": ["format-reference"],
+  "tags": ["example", "format-reference"]
+}

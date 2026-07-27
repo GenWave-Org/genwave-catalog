@@ -1,0 +1,73 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/GenWave-Org/genwave-catalog/main/schemas/index.schema.json",
+  "title": "GenWave Persona Catalog Index",
+  "description": "The committed index.json shape (SPEC F89.2) a GenWave station fetches directly from the repo root — built from entries/ by tools/build_index.py, and re-verified byte-for-byte plus schema-validated on every CI run (PR and push to main). additionalProperties is false throughout: this document is entirely catalog-tooling output, so an unrecognized field is a build regression worth failing CI on, not a forward-compat concern.",
+  "$comment": "Every pattern below ends in (?![\\s\\S]), a lookahead meaning 'no character follows' — a portable absolute-end-of-string anchor that means the same thing in Python re, ECMA-262 (the dialect JSON Schema nominally specifies, and what ajv/most other validators use), and .NET. Plain $ was rejected: in Python's re (which is what actually enforces this schema server-side, via the jsonschema library), $ also matches immediately before a trailing newline, so a value with a stray trailing \\n would slip through. \\Z was also tried and rejected: it's Python-only — under ECMA-262, \\Z is a literal 'Z' character (Annex B identity escape), so a \\Z-anchored pattern would reject every legitimate value and only accept ones ending in a literal Z. (?![\\s\\S]) has neither problem in any of the three dialects.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["generatedAt", "entries"],
+  "properties": {
+    "generatedAt": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}(?![\\s\\S])",
+      "description": "ISO 8601 date (YYYY-MM-DD): the max `added` date across included entries' meta.json, or 1970-01-01 when the catalog has zero included entries (tools/build_index.py). Derived entirely from the tree, never from git history or wall-clock time."
+    },
+    "entries": {
+      "type": "array",
+      "description": "Sorted by slug. Never includes the example-dj documentation entry.",
+      "items": { "$ref": "#/definitions/entry" }
+    }
+  },
+  "definitions": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}(?![\\s\\S])"
+    },
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["slug", "audience", "card", "meta"],
+      "properties": {
+        "slug": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*(?![\\s\\S])"
+        },
+        "audience": {
+          "type": "string",
+          "enum": ["everyone", "mature"]
+        },
+        "bestFor": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "card": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["path", "sha256"],
+          "properties": {
+            "path": {
+              "type": "string",
+              "pattern": "^entries/[a-z0-9]+(-[a-z0-9]+)*/[a-z0-9]+(-[a-z0-9]+)*\\.persona\\.json(?![\\s\\S])",
+              "description": "Repo-root-relative POSIX path under entries/<slug>/ — no leading slash, no .., no URL scheme; the pattern's own shape rules all three out."
+            },
+            "sha256": { "$ref": "#/definitions/sha256" }
+          }
+        },
+        "meta": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["path", "sha256"],
+          "properties": {
+            "path": {
+              "type": "string",
+              "pattern": "^entries/[a-z0-9]+(-[a-z0-9]+)*/[a-z0-9]+(-[a-z0-9]+)*\\.meta\\.json(?![\\s\\S])",
+              "description": "Repo-root-relative POSIX path under entries/<slug>/ — no leading slash, no .., no URL scheme; the pattern's own shape rules all three out."
+            },
+            "sha256": { "$ref": "#/definitions/sha256" }
+          }
+        }
+      }
+    }
+  }
+}

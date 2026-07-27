@@ -1,0 +1,49 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/GenWave-Org/genwave-catalog/main/schemas/persona-meta.schema.json",
+  "title": "GenWave Persona Catalog Entry Metadata",
+  "description": "The <slug>.meta.json shape (app repo SPEC F89.1, catalog-owned). additionalProperties is false: unlike the card, this document belongs entirely to the catalog, so an unrecognized field is a contributor mistake worth failing CI on, not a forward-compat concern.",
+  "$comment": "`added`'s pattern ends in (?![\\s\\S]), a lookahead meaning 'no character follows' — a portable absolute-end-of-string anchor that means the same thing in Python re, ECMA-262 (the dialect JSON Schema nominally specifies, and what ajv/most other validators use), and .NET. Plain $ was rejected: in Python's re (which is what actually enforces this schema server-side, via the jsonschema library), $ also matches immediately before a trailing newline, so a value with a stray trailing \\n would slip through. \\Z was also tried and rejected: it's Python-only — under ECMA-262, \\Z is a literal 'Z' character (Annex B identity escape), so a \\Z-anchored pattern would reject every legitimate value and only accept ones ending in a literal Z. (?![\\s\\S]) has neither problem in any of the three dialects.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["author", "description", "samplePatter", "audience", "added"],
+  "properties": {
+    "author": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Who submitted this persona."
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "description": "A short blurb introducing the DJ."
+    },
+    "samplePatter": {
+      "type": "array",
+      "description": "Illustrative on-air lines shown on the catalog shelf; at least 2 required.",
+      "items": { "type": "string", "minLength": 1 },
+      "minItems": 2
+    },
+    "audience": {
+      "type": "string",
+      "enum": ["everyone", "mature"],
+      "description": "Content self-rating, verified at PR review (SPEC F89.3)."
+    },
+    "added": {
+      "type": "string",
+      "format": "date",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}(?![\\s\\S])",
+      "description": "ISO 8601 date (YYYY-MM-DD) this entry was added to the catalog. `format: date` alone is annotation-only in draft-07 by default (most validators don't enforce it without an assert-format flag), so `pattern` carries the shape enforcement — but pattern alone only checks digit counts, not calendar validity (e.g. '9999-99-99' matches it); tools/validate.py separately parses this value with datetime.date.fromisoformat to reject a shape-valid but non-existent date.",
+      "$comment": "Calendar validity (a real date, e.g. not Feb 30) is enforced by tools/validate.py. Plausibility (a believable date, e.g. not 9999-12-31) is deliberately NOT enforced here or there — that's PR-review judgment, not a schema/tooling rule. No upper bound is added on purpose: it would have to be tied to wall-clock 'today', and this catalog's whole validation gate is deliberately clock-free (see tools/build_index.py's generatedAt, which is tree-derived, never wall-clock)."
+    },
+    "bestFor": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Optional genre-affinity hints, e.g. \"late-night\", \"ambient\"."
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}

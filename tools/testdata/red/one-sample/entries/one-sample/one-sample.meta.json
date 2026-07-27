@@ -1,0 +1,7 @@
+{
+  "author": "Test Fixture",
+  "description": "Red-variant fixture for tools/run_selftest.sh — rule: samplePatter needs >= 2 entries. Not a real catalog entry.",
+  "samplePatter": ["Only one line."],
+  "audience": "everyone",
+  "added": "2026-07-26"
+}
