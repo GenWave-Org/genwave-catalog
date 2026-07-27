@@ -37,6 +37,23 @@
     {
       "audience": "everyone",
       "bestFor": [
+        "doo-wop",
+        "oldies",
+        "afternoon"
+      ],
+      "card": {
+        "path": "entries/granny-static/granny-static.persona.json",
+        "sha256": "6f673d4d473abd159d50cdb50f3c572b80d3ae8715167c19987e2b5a1e5d17a5"
+      },
+      "meta": {
+        "path": "entries/granny-static/granny-static.meta.json",
+        "sha256": "2d0eb38344ab53bcb54a50ddd5966696c98a2e3c856986a92bf681ec245bcf30"
+      },
+      "slug": "granny-static"
+    },
+    {
+      "audience": "everyone",
+      "bestFor": [
         "synthwave",
         "electronic",
         "night drive"
