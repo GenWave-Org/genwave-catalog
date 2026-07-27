@@ -3,6 +3,23 @@
     {
       "audience": "everyone",
       "bestFor": [
+        "punk",
+        "rock",
+        "drive time"
+      ],
+      "card": {
+        "path": "entries/captain-flip/captain-flip.persona.json",
+        "sha256": "2deffa19c1346c774c1dea3e671689ffec5d26609e94d34d10965aed69a02374"
+      },
+      "meta": {
+        "path": "entries/captain-flip/captain-flip.meta.json",
+        "sha256": "a4b9f32d7b22d36bbc223eb146921525e239c34dad0252205e2cebd33a7967cc"
+      },
+      "slug": "captain-flip"
+    },
+    {
+      "audience": "everyone",
+      "bestFor": [
         "ambient",
         "dream pop",
         "late night"
