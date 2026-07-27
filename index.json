@@ -16,6 +16,23 @@
         "sha256": "7269e5099e86339173ac2b877ef8e8202b4c0d0468983ff6f88c385351258dc6"
       },
       "slug": "midnight-mabel"
+    },
+    {
+      "audience": "everyone",
+      "bestFor": [
+        "folk",
+        "indie pop",
+        "morning"
+      ],
+      "card": {
+        "path": "entries/sunrise-sal/sunrise-sal.persona.json",
+        "sha256": "7b48a8b7274d720a61662cbb8926c7ba5a3dce71aa16e140a70cbfe2fc2af637"
+      },
+      "meta": {
+        "path": "entries/sunrise-sal/sunrise-sal.meta.json",
+        "sha256": "51eecdd6930b9e2e14b8c68009f6324d219b11ddc64c0ceb673b085813609f43"
+      },
+      "slug": "sunrise-sal"
     }
   ],
   "generatedAt": "2026-07-26"
