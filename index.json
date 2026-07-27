@@ -105,6 +105,23 @@
     {
       "audience": "everyone",
       "bestFor": [
+        "blues",
+        "country",
+        "evening"
+      ],
+      "card": {
+        "path": "entries/rusty-strings/rusty-strings.persona.json",
+        "sha256": "1de941166e37695e41feadf46d03c830a2829b605db989cdf55e3bfc47429650"
+      },
+      "meta": {
+        "path": "entries/rusty-strings/rusty-strings.meta.json",
+        "sha256": "9b1524d500e729f69b68ad4938382a89399881f20e14822db48e8d7bfed3c99d"
+      },
+      "slug": "rusty-strings"
+    },
+    {
+      "audience": "everyone",
+      "bestFor": [
         "folk",
         "indie pop",
         "morning"
