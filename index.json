@@ -3,6 +3,23 @@
     {
       "audience": "everyone",
       "bestFor": [
+        "swing",
+        "big band",
+        "evening"
+      ],
+      "card": {
+        "path": "entries/big-tony-marconi/big-tony-marconi.persona.json",
+        "sha256": "d4125ed5afc2e2f2e3a0006e8b0a86287f06af362692b19247995373ecf46ced"
+      },
+      "meta": {
+        "path": "entries/big-tony-marconi/big-tony-marconi.meta.json",
+        "sha256": "0a44abf8fd4c744ff535a921e3e12b28ab3dba2277fd686096e987bb66240984"
+      },
+      "slug": "big-tony-marconi"
+    },
+    {
+      "audience": "everyone",
+      "bestFor": [
         "punk",
         "rock",
         "drive time"
