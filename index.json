@@ -37,6 +37,23 @@
     {
       "audience": "everyone",
       "bestFor": [
+        "synthwave",
+        "electronic",
+        "night drive"
+      ],
+      "card": {
+        "path": "entries/luna-vex/luna-vex.persona.json",
+        "sha256": "b69d4301921173e28275a58e6d3c24e106e96428f93e00f96f998676454be0f7"
+      },
+      "meta": {
+        "path": "entries/luna-vex/luna-vex.meta.json",
+        "sha256": "35846e0ba9f7a3713adc8fb5bc66af8fb7bcba6ecf9d27f58ff99b026e79e649"
+      },
+      "slug": "luna-vex"
+    },
+    {
+      "audience": "everyone",
+      "bestFor": [
         "ambient",
         "dream pop",
         "late night"
