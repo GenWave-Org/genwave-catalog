@@ -88,6 +88,23 @@
     {
       "audience": "everyone",
       "bestFor": [
+        "pop",
+        "dance",
+        "weekend"
+      ],
+      "card": {
+        "path": "entries/maxxie-volt/maxxie-volt.persona.json",
+        "sha256": "66ee8d3173f66a00040d478de532f0175ef0524ddcb120640b623031d0cba141"
+      },
+      "meta": {
+        "path": "entries/maxxie-volt/maxxie-volt.meta.json",
+        "sha256": "73e9bcd3691de110d52a013d092727e3bb86ca5a36255252a716fb0612fe950e"
+      },
+      "slug": "maxxie-volt"
+    },
+    {
+      "audience": "everyone",
+      "bestFor": [
         "ambient",
         "dream pop",
         "late night"
