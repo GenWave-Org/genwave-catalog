@@ -37,6 +37,23 @@
     {
       "audience": "everyone",
       "bestFor": [
+        "jazz",
+        "classical",
+        "evening"
+      ],
+      "card": {
+        "path": "entries/professor-b/professor-b.persona.json",
+        "sha256": "140347c4f89553c7f367012dc263ee1c6c80eeaa733495ec6b9c2e887d465ddf"
+      },
+      "meta": {
+        "path": "entries/professor-b/professor-b.meta.json",
+        "sha256": "21dd5e21fb7fa2221e60d65e05b5f4993cef61df9cb519d656a5a980272d6aff"
+      },
+      "slug": "professor-b"
+    },
+    {
+      "audience": "everyone",
+      "bestFor": [
         "folk",
         "indie pop",
         "morning"
