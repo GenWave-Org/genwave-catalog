@@ -169,6 +169,23 @@
         "sha256": "51eecdd6930b9e2e14b8c68009f6324d219b11ddc64c0ceb673b085813609f43"
       },
       "slug": "sunrise-sal"
+    },
+    {
+      "audience": "everyone",
+      "bestFor": [
+        "instrumental",
+        "world",
+        "sunday"
+      ],
+      "card": {
+        "path": "entries/the-archivist/the-archivist.persona.json",
+        "sha256": "d0c783ef6f9c89d8a965d741bee29c3907630c5423fb4c39a1cabdc7290a9de3"
+      },
+      "meta": {
+        "path": "entries/the-archivist/the-archivist.meta.json",
+        "sha256": "997bcf8b4dffbff256c1373907db628925fe445fdbc01ab861163906ea90d6b1"
+      },
+      "slug": "the-archivist"
     }
   ],
   "generatedAt": "2026-07-26"
