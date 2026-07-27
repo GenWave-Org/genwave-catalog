@@ -37,6 +37,23 @@
     {
       "audience": "everyone",
       "bestFor": [
+        "shoegaze",
+        "indie rock",
+        "late night"
+      ],
+      "card": {
+        "path": "entries/echo-ellis/echo-ellis.persona.json",
+        "sha256": "345d9c4ed15c481891ee334edd35020f36aa272f6c79b192c60f4f7158570135"
+      },
+      "meta": {
+        "path": "entries/echo-ellis/echo-ellis.meta.json",
+        "sha256": "c1cd7a83d27d75f18612550bb6096a65956f926276d12356c8e1a9c03f85bc46"
+      },
+      "slug": "echo-ellis"
+    },
+    {
+      "audience": "everyone",
+      "bestFor": [
         "doo-wop",
         "oldies",
         "afternoon"
