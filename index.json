@@ -1,4 +1,22 @@
 {
-  "entries": [],
-  "generatedAt": "1970-01-01"
+  "entries": [
+    {
+      "audience": "everyone",
+      "bestFor": [
+        "ambient",
+        "dream pop",
+        "late night"
+      ],
+      "card": {
+        "path": "entries/midnight-mabel/midnight-mabel.persona.json",
+        "sha256": "9054f87ed678d66905948612f914d24722f08156e9a132882da0807fc8a65da1"
+      },
+      "meta": {
+        "path": "entries/midnight-mabel/midnight-mabel.meta.json",
+        "sha256": "7269e5099e86339173ac2b877ef8e8202b4c0d0468983ff6f88c385351258dc6"
+      },
+      "slug": "midnight-mabel"
+    }
+  ],
+  "generatedAt": "2026-07-26"
 }
