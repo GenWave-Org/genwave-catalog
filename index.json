@@ -20,6 +20,23 @@
     {
       "audience": "everyone",
       "bestFor": [
+        "funk",
+        "soul",
+        "deep cuts"
+      ],
+      "card": {
+        "path": "entries/dusty-groves/dusty-groves.persona.json",
+        "sha256": "214b035c14e04aa2a5571cd1f65aaff9c07c6f2ceb2f213a50d39f4c42a14893"
+      },
+      "meta": {
+        "path": "entries/dusty-groves/dusty-groves.meta.json",
+        "sha256": "3961197ed1886f92a94b67e7c8c9a9ff9481ad62ee0c351b6b69ba4f697e0b05"
+      },
+      "slug": "dusty-groves"
+    },
+    {
+      "audience": "everyone",
+      "bestFor": [
         "ambient",
         "dream pop",
         "late night"
