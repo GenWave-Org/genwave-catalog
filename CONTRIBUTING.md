@@ -90,8 +90,9 @@ to match the content.
 
 ### 📜 CC0: what checking that box means
 
-Everything in this repo is released under **CC0 1.0 Universal** — see [`LICENSE`](./LICENSE).
-By opening a PR here and checking the CC0 box in the template, you are dedicating your entry
+Catalog metadata and infrastructure are released under **CC0 1.0 Universal** unless otherwise
+noted — see [`LICENSE`](./LICENSE); individual packs may carry their own licenses, so check each
+entry. By opening a PR here and checking the CC0 box in the template, you are dedicating your entry
 to the public domain, irrevocably. That means anyone — including for-profit use — can copy,
 modify, remix, or redistribute your persona with no attribution required and no way for you
 to take it back later. Only submit a persona you actually own the rights to and are genuinely

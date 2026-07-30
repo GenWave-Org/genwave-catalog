@@ -9,8 +9,10 @@ This repo holds content — data files, schemas, and docs — plus the small set
 `tools/` (and the CI that runs them) that keep it valid. There is no build and no runtime service;
 the code here only validates and indexes the data files that live alongside it.
 
-Everything in this repo is dedicated to the public domain under **CC0 1.0 Universal** — see
-[`LICENSE`](./LICENSE). By contributing, you agree your submission is released the same way.
+Catalog metadata and infrastructure — schemas, tools, docs, the index — are dedicated to the
+public domain under **CC0 1.0 Universal** unless otherwise noted — see [`LICENSE`](./LICENSE);
+by contributing, you agree your submission is released the same way. Individual packs may carry
+their own licenses — check each entry before assuming CC0.
 
 ## 🗂️ Layout
 
