@@ -34,6 +34,33 @@ jobs:
           python3 tools/build_index.py --out /tmp/index.rebuilt.json
           diff -u index.json /tmp/index.rebuilt.json
 
+  diff-scope:
+    name: Diff scope guard
+    # Entry PRs may touch only entries/<slug>/ + index.json. A PR that pairs
+    # an entries/ change with an edit to schemas/, tools/, fixtures/,
+    # .github/, README.md, CONTRIBUTING.md, LICENSE, or .gitattributes fails
+    # here, naming the out-of-scope file. Infra-only PRs (no entries/
+    # changes) pass. One entry directory per PR. Fail-closed: any error in
+    # computing the diff (set -euo pipefail) fails the job.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          fetch-depth: 0
+
+      - name: Enforce entry PR diff scope
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          set -euo pipefail
+          base="$(git merge-base "origin/${BASE_REF}" HEAD)"
+          git diff --name-only "$base" HEAD > /tmp/changed-paths.txt
+          echo "Changed paths (vs merge-base $base):"
+          cat /tmp/changed-paths.txt
+          bash .github/diff_scope_guard.sh /tmp/changed-paths.txt
+
   selftest:
     name: Run tools/run_selftest.sh
     runs-on: ubuntu-latest

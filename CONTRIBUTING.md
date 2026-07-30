@@ -56,6 +56,11 @@ CI enforces shape. A human enforces character. Both matter, and both are law her
    `everyone` is a revision request, not a judgment call.
 5. **CC0 dedication checkbox**, checked.
 6. **English-first for v1** — cards must be written in English.
+7. **Scoped diff, one entry per PR** — CI-enforced (diff-scope guard): an entry PR touches
+   only its own `entries/<slug>/` directory plus the regenerated `index.json` — never a
+   second entry, and never `schemas/`, `tools/`, `fixtures/`, `.github/`, `README.md`,
+   `CONTRIBUTING.md`, `LICENSE`, or `.gitattributes`. Infra changes go in their own PR
+   (with no `entries/` edits), where they get reviewed as infra.
 
 **Hard bans, regardless of rating, no exceptions:** hate/harassment content, sexualized minors,
 real-person impersonation, trademarks/branding.
