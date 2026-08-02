@@ -53,6 +53,70 @@ else
 fi
 echo
 
+echo "== schema + fixture: pronunciations[] is declared and the green fixture exercises its shapes (SPEC F89.5 / T151) =="
+tmp_pron_check="$(mktemp)"
+cat >"$tmp_pron_check" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+SCHEMA_PATH = Path("schemas/persona-card.schema.json")
+green_fixture = Path(sys.argv[1])
+card_path = green_fixture / "valid-dj.persona.json"
+
+schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
+card = json.loads(card_path.read_text(encoding="utf-8"))
+
+errors = []
+if "pronunciations" not in schema.get("properties", {}):
+    errors.append(f"{SCHEMA_PATH}: properties: 'pronunciations' is not declared — the schema does not know the field yet")
+
+pronunciations = card.get("pronunciations")
+if not isinstance(pronunciations, list) or not pronunciations:
+    errors.append(f"{card_path}: pronunciations is missing or empty — the fixture no longer exercises the field")
+else:
+    has_nonblank_word = any(
+        isinstance(r, dict) and isinstance(r.get("word"), str) and r.get("word") != "" for r in pronunciations
+    )
+    has_no_word_key = any(isinstance(r, dict) and "word" not in r for r in pronunciations)
+    has_null_word = any(isinstance(r, dict) and "word" in r and r.get("word") is None for r in pronunciations)
+    if not has_nonblank_word:
+        errors.append(f"{card_path}: pronunciations is missing a rule with a non-empty string 'word'")
+    if not has_no_word_key:
+        errors.append(f"{card_path}: pronunciations is missing a rule with no 'word' key at all")
+    if not has_null_word:
+        errors.append(f"{card_path}: pronunciations is missing a rule with 'word' explicitly null")
+
+if errors:
+    for line in errors:
+        print(line)
+    sys.exit(1)
+print("schema declares pronunciations and the green fixture exercises word/no-word/null-word shapes")
+PY
+if python3 "$tmp_pron_check" "$GREEN_FIXTURE"; then
+    pass "schema declares pronunciations[] and the green fixture exercises word/no-word/null-word shapes"
+else
+    fail "schema declares pronunciations[] and the green fixture exercises word/no-word/null-word shapes"
+fi
+rm -f "$tmp_pron_check"
+echo
+
+echo "== validate.py: green fixture pronunciations[] validate against a schema that knows the field (SPEC F89.5 / T151) =="
+TMP_PRON_TREE="$(mktemp -d)"
+mkdir -p "$TMP_PRON_TREE/entries/valid-dj"
+cp "$GREEN_FIXTURE/valid-dj.persona.json" "$TMP_PRON_TREE/entries/valid-dj/valid-dj.persona.json"
+cp "$GREEN_FIXTURE/valid-dj.meta.json" "$TMP_PRON_TREE/entries/valid-dj/valid-dj.meta.json"
+output=$(python3 tools/validate.py --root "$TMP_PRON_TREE" 2>&1)
+status=$?
+echo "$output"
+if [[ $status -eq 0 ]]; then
+    pass "green valid-dj pronunciations[] validate against a schema that knows the field"
+else
+    fail "green valid-dj pronunciations[] validate against a schema that knows the field (expected exit 0, got $status)"
+fi
+rm -rf "$TMP_PRON_TREE"
+echo
+
 echo "== validate.py: red variants (expect the specific failure line) =="
 
 check_red_variant() {
@@ -74,6 +138,7 @@ check_red_variant missing-audience "'audience' is a required property"
 check_red_variant one-sample "samplePatter"
 check_red_variant bad-json "json-parse"
 check_red_variant bad-date "bad-date"
+check_red_variant bad-pronunciations-type "schema: pronunciations/0/"
 
 echo "-- generating oversize-card fixture (not committed; see .gitignore) --"
 if python3 - "$OVERSIZE_CARD" <<'PY'
@@ -243,14 +308,12 @@ fi
 rm -f "$tmp_green_index"
 echo
 
-echo "== pending: catalog submission lint (SPEC F89.5–F89.7 · genwave docs/PLAN.md T151–T155) =="
+echo "== pending: catalog submission lint (SPEC F89.6–F89.7 · genwave docs/PLAN.md T152–T155) =="
 # House pending-spec idiom (the shell analog of genwave's [Fact(Skip = "Pending TNNN")]):
 # each line below is a real check whose fixture data is ALREADY committed under
 # tools/testdata/; the named task deletes its skip_pending line and wires the live check.
 # SKIPs are deliberately not failures — the harness stays green until each task lands.
 skip_pending() { printf 'SKIP  %s (pending %s)\n' "$1" "$2"; }
-skip_pending "green valid-dj pronunciations[] validate against a schema that knows the field" "T151"
-skip_pending "red bad-pronunciations-type fails validate.py naming 'schema' on pronunciations" "T151"
 skip_pending "red oversize-soul fails tools/lint.py naming the soul hard cap"                  "T152"
 skip_pending "warn heavy-card: lint.py warns (soul, quirk band, verbosity phrase), exits 0"    "T152"
 skip_pending "real entries/ come back from lint.py with zero warnings (grandfather clean)"     "T152"

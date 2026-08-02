@@ -125,6 +125,23 @@
           }
         }
       }
+    },
+    "pronunciations": {
+      "type": "array",
+      "description": "Pronunciation-guidance rules (SPEC F89.5; app-side F97.1/F97.3, PersonaCard.Pronunciations). Same forward-compat law as taste: omitted entirely on cards built before this field existed — never present as an explicit null at the card level. This schema pins types only and never rejects a byte-valid export for carrying a dead or unknown-shaped rule: the app's compile (PronunciationRuleSet.Create) provably drops a rule whose ipa contains ')', '[', or ']'; whose effective word (word if non-blank, else pattern) is not contained in pattern case-insensitively; or whose pattern, ipa, or effective word is blank — dead-rule detection is F89.7's lint, not this schema's.",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["pattern", "ipa"],
+        "properties": {
+          "pattern": { "type": "string" },
+          "word": {
+            "type": ["string", "null"],
+            "description": "The app defaults a blank word to pattern at compile; a re-serialized import that omitted word carries an explicit null (the C# record's Word has no WhenWritingNull)."
+          },
+          "ipa": { "type": "string" }
+        }
+      }
     }
   }
 }
