@@ -197,7 +197,40 @@ check_red_lint() {
 
 check_red_lint oversize-soul "soul-budget"
 
-echo "-- warn heavy-card: lint.py warns (soul, quirk band, verbosity phrase), exits 0 --"
+echo "-- red dead-pronunciation-rule: lint.py names every dropped rule (SPEC F89.7 · T154) --"
+output=$(python3 tools/lint.py --root "$RED_DIR/dead-pronunciation-rule" 2>&1)
+status=$?
+echo "$output"
+if [[ $status -ne 0 ]]; then
+    pass "dead-pronunciation-rule lint.py exits non-zero"
+else
+    fail "dead-pronunciation-rule lint.py exited 0, expected non-zero"
+fi
+# HARD dead-rule lines never carry the "WARN " prefix (see format_finding).
+# Capture first, THEN test/count — a prior review found the tier-aware grep
+# above can false-FAIL via pipefail/SIGPIPE on huge outputs; irrelevant at 3
+# lines, but capture-first avoids the pattern entirely for any new chain.
+dead_rule_lines=$(grep -F 'dead-rule:' <<<"$output" | grep -v '^WARN ')
+dead_rule_count=0
+if [[ -n "$dead_rule_lines" ]]; then
+    dead_rule_count=$(grep -c . <<<"$dead_rule_lines")
+fi
+if [[ "$dead_rule_count" -eq 3 ]]; then
+    pass "dead-pronunciation-rule lint.py reports exactly 3 HARD dead-rule lines"
+else
+    fail "dead-pronunciation-rule lint.py reported $dead_rule_count HARD dead-rule lines, expected 3"
+fi
+for expect in "pronunciations[0]" "pronunciations[1]" "pronunciations[2]"; do
+    matching=$(grep -F "$expect" <<<"$dead_rule_lines")
+    if [[ -n "$matching" ]]; then
+        pass "dead-pronunciation-rule lint.py names '$expect'"
+    else
+        fail "dead-pronunciation-rule lint.py did not name '$expect'"
+    fi
+done
+echo
+
+echo "-- warn heavy-card: lint.py warns (soul, quirk band, verbosity phrase, word-repeat), exits 0, never HARD on dead-rule (SPEC F89.7 · T154) --"
 output=$(python3 tools/lint.py --root "$HEAVY_CARD_DIR" 2>&1)
 status=$?
 echo "$output"
@@ -206,13 +239,18 @@ if [[ $status -eq 0 ]]; then
 else
     fail "heavy-card lint.py exited $status, expected 0"
 fi
-for expect in "soul-budget" "quirk-count" "verbosity-phrase"; do
+for expect in "soul-budget" "quirk-count" "verbosity-phrase" "word-repeat"; do
     if grep -qF "$expect" <<<"$output"; then
         pass "heavy-card lint.py warns naming '$expect'"
     else
         fail "heavy-card lint.py did not warn naming '$expect'"
     fi
 done
+if grep -qF "dead-rule" <<<"$output"; then
+    fail "heavy-card lint.py produced a dead-rule line (word-twice-in-pattern must only ever warn)"
+else
+    pass "heavy-card lint.py produced no dead-rule line"
+fi
 echo
 
 echo "-- real entries/ come back from lint.py with zero warnings (grandfather clean) --"
@@ -376,8 +414,6 @@ echo "== pending: catalog submission lint (SPEC F89.6–F89.7 · genwave docs/PL
 # tools/testdata/; the named task deletes its skip_pending line and wires the live check.
 # SKIPs are deliberately not failures — the harness stays green until each task lands.
 skip_pending() { printf 'SKIP  %s (pending %s)\n' "$1" "$2"; }
-skip_pending "red dead-pronunciation-rule fails lint.py naming each dropped rule"              "T154"
-skip_pending "warn heavy-card word-twice-in-pattern rule warns, never red"                     "T154"
 skip_pending "ci.yml runs lint.py and this selftest carries zero SKIP lines"                   "T155"
 echo
 

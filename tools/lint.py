@@ -16,6 +16,21 @@ Rules enforced, each a two-tier check (WARN, then HARD if far enough over):
     and each quirk, for a fixed phrase list ("ramble", "at length", "in
     great detail", "always describe", "go on about") — text that instructs
     the model to run long defeats the length budgets above from the inside.
+  - dead-rule: for each well-typed rule in pronunciations[], mirrors the
+    app's GenWave.Tts.PronunciationRuleSet.Create drop predicate EXACTLY
+    (genwave src/GenWave.Tts/PronunciationRuleSet.cs) so a card author is
+    told at submission time which rules the render path will silently drop
+    (SPEC F89.7). A rule is dead if ANY of: pattern blank; effective word
+    (word if non-blank, else pattern — mirrors PronunciationRule.Parse's
+    default; a missing or null word is blank the same as an empty string)
+    blank; ipa blank; ipa contains ')', '[', or ']'; effective word not
+    contained in pattern case-insensitively. HARD ONLY — one line per dead
+    rule naming every failed condition, so an author fixes all of them in
+    one round.
+  - word-repeat: WARN ONLY, for rules that are NOT already dead. Effective
+    word occurs more than once in pattern (case-insensitive) — only the
+    first occurrence binds (same rule the app's Create documents), later
+    occurrences are unreachable.
 
 A hard finding implies its warn threshold was also crossed; only the HARD
 line is printed for that field+check, never both.
@@ -28,7 +43,13 @@ example-dj (it's the template people copy, and must stay within budget too).
 A card that fails to parse as JSON, or whose soul/name/quirks/lore fields are
 missing or not the expected type, is SKIPPED SILENTLY — malformed JSON/shape
 is tools/validate.py's law, not this lint's, and this tool must never crash
-on garbage input (every field is read with .get() plus a type check).
+on garbage input (every field is read with .get() plus a type check). The
+same silent-skip contract applies to pronunciations independently of the
+rest of the card: missing, null, or not a list skips dead-rule/word-repeat
+entirely; a non-dict list item, or a rule whose pattern/ipa/word is present
+but wrong-typed, skips that one rule — wrong types are schema law
+(tools/validate.py + the bad-pronunciations-type red fixture), not this
+lint's.
 
 Output: WARN findings print as `::warning file=<repo-relative
 path>::<rule>: <message>` when the GITHUB_ACTIONS environment variable is
@@ -97,11 +118,16 @@ HARD = "HARD"
 Finding = tuple[str, str, str]
 
 
-def load_card_fields(card_path: Path) -> tuple[str, list[str], list[str], str] | None:
+def load_card_fields(card_path: Path) -> tuple[str, list[str], list[str], str, object] | None:
     """Read and shape-check a persona card. Returns (soul, quirks, lore,
-    name) when every field is present and correctly typed, else None — a
-    silent skip, per this tool's contract (shape law belongs to validate.py,
-    not here)."""
+    name, pronunciations) when soul/name/quirks/lore are present and
+    correctly typed, else None — a silent skip, per this tool's contract
+    (shape law belongs to validate.py, not here). pronunciations is handed
+    back RAW and unchecked — unlike the other four fields it is optional on
+    a card (SPEC F89.5), so its own shape law (missing/null/not-a-list, or a
+    malformed item within it) is check_pronunciation_rules' silent-skip
+    contract to enforce, not a reason to drop the rest of the card's
+    findings."""
     try:
         raw = card_path.read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError):
@@ -117,6 +143,7 @@ def load_card_fields(card_path: Path) -> tuple[str, list[str], list[str], str] |
     name = card.get("name")
     quirks = card.get("quirks")
     lore = card.get("lore")
+    pronunciations = card.get("pronunciations")
 
     if not isinstance(soul, str) or not isinstance(name, str):
         return None
@@ -125,7 +152,7 @@ def load_card_fields(card_path: Path) -> tuple[str, list[str], list[str], str] |
     if not isinstance(lore, list) or not all(isinstance(entry, str) for entry in lore):
         return None
 
-    return soul, quirks, lore, name
+    return soul, quirks, lore, name, pronunciations
 
 
 def check_soul_budget(soul: str) -> list[Finding]:
@@ -197,7 +224,75 @@ def check_verbosity_phrases(soul: str, quirks: list[str]) -> list[Finding]:
     return findings
 
 
-def lint_card(soul: str, quirks: list[str], lore: list[str], name: str) -> list[Finding]:
+def check_pronunciation_rules(pronunciations: object) -> list[Finding]:
+    """dead-rule (HARD) + word-repeat (WARN) — SPEC F89.7. Mirrors the app's
+    GenWave.Tts.PronunciationRuleSet.Create drop predicate EXACTLY (genwave
+    src/GenWave.Tts/PronunciationRuleSet.cs, Create method) so a card author
+    is told at submission time which rules the render path will silently
+    drop, instead of finding out only when a pronunciation never takes
+    effect on air.
+
+    Silent-skip lane (this lint's standing contract, not validate.py's):
+    pronunciations missing, null, or not a list skips this check entirely;
+    a list item that isn't a dict, or a well-formed dict whose pattern/ipa/
+    word is present but wrong-typed, skips that one rule — wrong types are
+    schema law (tools/validate.py + the bad-pronunciations-type red
+    fixture), not this lint's. Only well-typed rules (pattern: str, ipa:
+    str, word: str or None) reach the dead-rule/word-repeat analysis below.
+    """
+    findings: list[Finding] = []
+    if not isinstance(pronunciations, list):
+        return findings
+
+    for i, rule in enumerate(pronunciations):
+        if not isinstance(rule, dict):
+            continue
+        pattern = rule.get("pattern")
+        ipa = rule.get("ipa")
+        word = rule.get("word")
+        if not isinstance(pattern, str) or not isinstance(ipa, str):
+            continue
+        if word is not None and not isinstance(word, str):
+            continue
+
+        # A missing/null/whitespace-only word defaults to pattern, mirroring
+        # PronunciationRule.Parse's IsNullOrWhiteSpace default.
+        effective_word = word if isinstance(word, str) and word.strip() else pattern
+
+        conditions: list[str] = []
+        if not pattern.strip():
+            conditions.append("pattern is blank")
+        if not effective_word.strip():
+            conditions.append("word is blank")
+        if not ipa.strip():
+            conditions.append("ipa is blank")
+        for bad_char in (")", "[", "]"):
+            if bad_char in ipa:
+                conditions.append(f"ipa contains '{bad_char}' (breaks [word](ipa)/[pause] markup)")
+        # .lower() on both sides is the closest Python analog of the app's
+        # StringComparison.OrdinalIgnoreCase Contains check (parity target).
+        if effective_word.lower() not in pattern.lower():
+            conditions.append(f"word '{effective_word}' does not occur in pattern '{pattern}'")
+
+        if conditions:
+            findings.append((HARD, "dead-rule", f"pronunciations[{i}]: " + "; ".join(conditions)))
+            continue
+
+        occurrences = pattern.lower().count(effective_word.lower())
+        if occurrences > 1:
+            findings.append(
+                (
+                    WARN,
+                    "word-repeat",
+                    f"pronunciations[{i}]: word '{effective_word}' occurs {occurrences} times in pattern "
+                    f"'{pattern}' — only the first occurrence binds, later ones are unreachable",
+                )
+            )
+
+    return findings
+
+
+def lint_card(soul: str, quirks: list[str], lore: list[str], name: str, pronunciations: object) -> list[Finding]:
     findings: list[Finding] = []
     findings.extend(check_soul_budget(soul))
     findings.extend(check_quirk_budget(quirks))
@@ -205,6 +300,7 @@ def lint_card(soul: str, quirks: list[str], lore: list[str], name: str) -> list[
     findings.extend(check_lore_budget(lore))
     findings.extend(check_prompt_weight(soul, quirks, name))
     findings.extend(check_verbosity_phrases(soul, quirks))
+    findings.extend(check_pronunciation_rules(pronunciations))
     return findings
 
 
@@ -234,9 +330,9 @@ def lint_entries(entries_dir: Path) -> list[tuple[str, str, str, str]]:
         fields = load_card_fields(card_path)
         if fields is None:
             continue
-        soul, quirks, lore, name = fields
+        soul, quirks, lore, name, pronunciations = fields
         label = rel(REPO_ROOT, card_path)
-        for tier, rule, message in lint_card(soul, quirks, lore, name):
+        for tier, rule, message in lint_card(soul, quirks, lore, name, pronunciations):
             results.append((tier, label, rule, message))
     return results
 
