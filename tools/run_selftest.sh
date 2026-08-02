@@ -29,11 +29,41 @@ cd "$REPO_ROOT"
 
 RED_DIR="tools/testdata/red"
 GREEN_FIXTURE="tools/testdata/green/valid-dj"
+HEAVY_CARD_DIR="tools/testdata/warn/heavy-card"
 OVERSIZE_CARD="$RED_DIR/oversize-card/entries/oversize-card/oversize-card.persona.json"
 
 FAILURES=0
 pass() { printf 'PASS  %s\n' "$1"; }
 fail() { printf 'FAIL  %s\n' "$1"; FAILURES=$((FAILURES + 1)); }
+
+# Shared by check_red_variant (tools/validate.py reds) and check_red_lint
+# (tools/lint.py reds): run `tool --root RED_DIR/variant`, expect a non-zero
+# exit whose output names `expect`. validate.py has no WARN tier, so
+# tier_aware=false there keeps the plain substring-match semantics it always
+# had. lint.py's WARN/HARD split means a substring match alone would let a
+# mutant that only crossed the WARN threshold satisfy a HARD-tier
+# expectation, so tier_aware=true additionally requires the matching line
+# not be WARN-prefixed — HARD lines never carry the "WARN " prefix in either
+# of lint.py's output branches (see format_finding).
+check_red() {
+    local tool="$1" tier_aware="$2" msg_infix="$3" variant="$4" expect="$5"
+    local output status
+    output=$(python3 "$tool" --root "$RED_DIR/$variant" 2>&1)
+    status=$?
+    echo "$output"
+    local matched=1
+    if [[ "$tier_aware" == "true" ]]; then
+        grep -F "$expect" <<<"$output" | grep -qv '^WARN ' && matched=0
+    else
+        grep -qF "$expect" <<<"$output" && matched=0
+    fi
+    if [[ $status -ne 0 && $matched -eq 0 ]]; then
+        pass "$variant fails ${msg_infix}naming '$expect'"
+    else
+        fail "$variant did not fail ${msg_infix}naming '$expect' (exit=$status)"
+    fi
+    echo
+}
 
 TMP_GREEN_TREE=""
 cleanup() {
@@ -120,17 +150,7 @@ echo
 echo "== validate.py: red variants (expect the specific failure line) =="
 
 check_red_variant() {
-    local variant="$1" expect="$2"
-    local output status
-    output=$(python3 tools/validate.py --root "$RED_DIR/$variant" 2>&1)
-    status=$?
-    echo "$output"
-    if [[ $status -ne 0 ]] && grep -qF "$expect" <<<"$output"; then
-        pass "$variant fails naming '$expect'"
-    else
-        fail "$variant did not fail naming '$expect' (exit=$status)"
-    fi
-    echo
+    check_red tools/validate.py false "" "$1" "$2"
 }
 
 check_red_variant bad-slug-mismatch "slug-mismatch"
@@ -168,6 +188,48 @@ else
     fail "failed to generate the oversize-card fixture"
 fi
 rm -f "$OVERSIZE_CARD"
+
+echo "== lint.py: submission length budgets (SPEC F89.6 · T152) =="
+
+check_red_lint() {
+    check_red tools/lint.py true "tools/lint.py " "$1" "$2"
+}
+
+check_red_lint oversize-soul "soul-budget"
+
+echo "-- warn heavy-card: lint.py warns (soul, quirk band, verbosity phrase), exits 0 --"
+output=$(python3 tools/lint.py --root "$HEAVY_CARD_DIR" 2>&1)
+status=$?
+echo "$output"
+if [[ $status -eq 0 ]]; then
+    pass "heavy-card lint.py exits 0"
+else
+    fail "heavy-card lint.py exited $status, expected 0"
+fi
+for expect in "soul-budget" "quirk-count" "verbosity-phrase"; do
+    if grep -qF "$expect" <<<"$output"; then
+        pass "heavy-card lint.py warns naming '$expect'"
+    else
+        fail "heavy-card lint.py did not warn naming '$expect'"
+    fi
+done
+echo
+
+echo "-- real entries/ come back from lint.py with zero warnings (grandfather clean) --"
+output=$(python3 tools/lint.py 2>&1)
+status=$?
+echo "$output"
+if [[ $status -eq 0 ]]; then
+    pass "real entries/ lint.py exits 0"
+else
+    fail "real entries/ lint.py exited $status, expected 0"
+fi
+if grep -qE '^WARN |::warning' <<<"$output"; then
+    fail "real entries/ lint.py produced warning output (grandfather clause broken)"
+else
+    pass "real entries/ lint.py produced zero warnings"
+fi
+echo
 
 echo "== build_index.py: determinism (same tree in -> byte-identical index out) =="
 tmp1="$(mktemp)"
@@ -314,9 +376,6 @@ echo "== pending: catalog submission lint (SPEC F89.6–F89.7 · genwave docs/PL
 # tools/testdata/; the named task deletes its skip_pending line and wires the live check.
 # SKIPs are deliberately not failures — the harness stays green until each task lands.
 skip_pending() { printf 'SKIP  %s (pending %s)\n' "$1" "$2"; }
-skip_pending "red oversize-soul fails tools/lint.py naming the soul hard cap"                  "T152"
-skip_pending "warn heavy-card: lint.py warns (soul, quirk band, verbosity phrase), exits 0"    "T152"
-skip_pending "real entries/ come back from lint.py with zero warnings (grandfather clean)"     "T152"
 skip_pending "red dead-pronunciation-rule fails lint.py naming each dropped rule"              "T154"
 skip_pending "warn heavy-card word-twice-in-pattern rule warns, never red"                     "T154"
 skip_pending "ci.yml runs lint.py and this selftest carries zero SKIP lines"                   "T155"
