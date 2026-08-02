@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "name": "Oversize Soul",
+  "tagline": "",
+  "soul": "This soul goes on and on far past any budget a one-or-two-sentence break could ever spend, padding the prompt with backstory no small local model will keep straight. This soul goes on and on far past any budget a one-or-two-sentence break could ever spend, padding the prompt with backstory no small local model will keep straight. This soul goes on and on far past any budget a one-or-two-sentence break could ever spend, padding the prompt with backstory no small local model will keep straight. This soul goes on and on far past any budget a one-or-two-sentence break could ever spend, padding the prompt with backstory no small local model will keep straight. This soul goes on and on far past any budget a one-or-two-sentence break could ever spend, padding the prompt with backstory no small local model will keep straight. This soul goes on and on far past any budget a one-or-two-sentence break could ever spend, padding the prompt with backstory no small local model will keep straight. This soul goes on and on far past any budget a one-or-two-sentence break could ever spend, padding the prompt with backstory no small local model will keep straight. This soul goes on and on far past any budget a one-or-two-sentence break could ever spend, padding the prompt with backstory no small local",
+  "quirks": [
+    "Keeps it brief.",
+    "Counts the seconds."
+  ],
+  "voice": {
+    "engine": "kokoro",
+    "voiceId": "af_heart",
+    "pace": 1.0,
+    "language": "en"
+  },
+  "energyDisposition": 0,
+  "lore": [],
+  "corrections": []
+}

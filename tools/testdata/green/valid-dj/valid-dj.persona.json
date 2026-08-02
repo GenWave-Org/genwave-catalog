@@ -7,5 +7,10 @@
   "voice": { "engine": "kokoro", "voiceId": "af_heart", "pace": 1.0, "language": "en" },
   "energyDisposition": 0,
   "lore": [],
-  "corrections": []
+  "corrections": [],
+  "pronunciations": [
+    { "pattern": "wind down", "word": "wind", "ipa": "/wˈaɪnd/" },
+    { "pattern": "MacLeod", "ipa": "/məˈklaʊd/" },
+    { "pattern": "bass line", "word": null, "ipa": "/bˈeɪs/" }
+  ]
 }

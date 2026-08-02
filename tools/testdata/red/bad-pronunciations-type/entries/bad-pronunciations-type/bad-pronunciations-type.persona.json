@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "name": "Bad Pronunciations Type",
+  "tagline": "",
+  "soul": "A test soul.",
+  "quirks": [],
+  "voice": {
+    "engine": "kokoro",
+    "voiceId": "af_heart",
+    "pace": 1.0,
+    "language": "en"
+  },
+  "energyDisposition": 0,
+  "lore": [],
+  "corrections": [],
+  "pronunciations": [
+    {
+      "pattern": 42,
+      "word": true,
+      "ipa": [
+        "not",
+        "a",
+        "string"
+      ]
+    }
+  ]
+}

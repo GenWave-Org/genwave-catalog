@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "name": "Dead Pronunciation Rule",
+  "tagline": "",
+  "soul": "A test soul.",
+  "quirks": [],
+  "voice": {
+    "engine": "kokoro",
+    "voiceId": "af_heart",
+    "pace": 1.0,
+    "language": "en"
+  },
+  "energyDisposition": 0,
+  "lore": [],
+  "corrections": [],
+  "pronunciations": [
+    {
+      "pattern": "MacLeod",
+      "ipa": "/mə[pause:600s]klaʊd/"
+    },
+    {
+      "pattern": "wind down",
+      "word": "gust",
+      "ipa": "/wˈaɪnd/"
+    },
+    {
+      "pattern": "tear",
+      "word": "tear",
+      "ipa": "   "
+    }
+  ]
+}

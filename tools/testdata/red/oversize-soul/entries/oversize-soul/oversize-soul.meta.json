@@ -1,0 +1,10 @@
+{
+  "author": "Test Fixture",
+  "description": "Red-variant fixture: soul past the hard length cap — must fail tools/lint.py (T152).",
+  "samplePatter": [
+    "Line one.",
+    "Line two."
+  ],
+  "audience": "everyone",
+  "added": "2026-08-02"
+}

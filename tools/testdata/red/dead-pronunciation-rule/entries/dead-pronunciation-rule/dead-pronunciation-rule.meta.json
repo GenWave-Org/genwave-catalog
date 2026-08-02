@@ -1,0 +1,10 @@
+{
+  "author": "Test Fixture",
+  "description": "Red-variant fixture: three pronunciation rules PronunciationRuleSet.Create silently drops (markup chars in ipa, word outside pattern, blank ipa) — must fail tools/lint.py (T154).",
+  "samplePatter": [
+    "Line one.",
+    "Line two."
+  ],
+  "audience": "everyone",
+  "added": "2026-08-02"
+}

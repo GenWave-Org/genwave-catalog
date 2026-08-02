@@ -243,6 +243,22 @@ fi
 rm -f "$tmp_green_index"
 echo
 
+echo "== pending: catalog submission lint (SPEC F89.5–F89.7 · genwave docs/PLAN.md T151–T155) =="
+# House pending-spec idiom (the shell analog of genwave's [Fact(Skip = "Pending TNNN")]):
+# each line below is a real check whose fixture data is ALREADY committed under
+# tools/testdata/; the named task deletes its skip_pending line and wires the live check.
+# SKIPs are deliberately not failures — the harness stays green until each task lands.
+skip_pending() { printf 'SKIP  %s (pending %s)\n' "$1" "$2"; }
+skip_pending "green valid-dj pronunciations[] validate against a schema that knows the field" "T151"
+skip_pending "red bad-pronunciations-type fails validate.py naming 'schema' on pronunciations" "T151"
+skip_pending "red oversize-soul fails tools/lint.py naming the soul hard cap"                  "T152"
+skip_pending "warn heavy-card: lint.py warns (soul, quirk band, verbosity phrase), exits 0"    "T152"
+skip_pending "real entries/ come back from lint.py with zero warnings (grandfather clean)"     "T152"
+skip_pending "red dead-pronunciation-rule fails lint.py naming each dropped rule"              "T154"
+skip_pending "warn heavy-card word-twice-in-pattern rule warns, never red"                     "T154"
+skip_pending "ci.yml runs lint.py and this selftest carries zero SKIP lines"                   "T155"
+echo
+
 echo "=========================================="
 if [[ $FAILURES -eq 0 ]]; then
     echo "SELFTEST PASS"
