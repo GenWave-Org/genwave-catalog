@@ -49,7 +49,11 @@ rest of the card: missing, null, or not a list skips dead-rule/word-repeat
 entirely; a non-dict list item, or a rule whose pattern/ipa/word is present
 but wrong-typed, skips that one rule — wrong types are schema law
 (tools/validate.py + the bad-pronunciations-type red fixture), not this
-lint's.
+lint's. An entries/<slug> directory that is itself a symlink (or a symlink
+anywhere under it) is SKIPPED SILENTLY too, before any file inside it is
+opened (tools/catalog_lib.py: find_symlinks) — trusting a symlinked entry
+could make this lint read bytes from outside the tree being checked, and
+validate.py already owns the loud violation for that case.
 
 Output: WARN findings print as `::warning file=<repo-relative
 path>::<rule>: <message>` when the GITHUB_ACTIONS environment variable is
@@ -271,6 +275,11 @@ def check_pronunciation_rules(pronunciations: object) -> list[Finding]:
                 conditions.append(f"ipa contains '{bad_char}' (breaks [word](ipa)/[pause] markup)")
         # .lower() on both sides is the closest Python analog of the app's
         # StringComparison.OrdinalIgnoreCase Contains check (parity target).
+        # Known exotic gap: a handful of compatibility codepoints (the
+        # Kelvin sign, long s "ſ", micro sign "µ") case-fold differently
+        # under .NET's OrdinalIgnoreCase than under Python's str.lower() —
+        # no realistic card's pattern/word touches these, so it's accepted
+        # rather than chased with a custom fold table.
         if effective_word.lower() not in pattern.lower():
             conditions.append(f"word '{effective_word}' does not occur in pattern '{pattern}'")
 

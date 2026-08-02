@@ -11,7 +11,8 @@
     "Collects call signs.",
     "Whistles the outro.",
     "Reads the weather twice.",
-    "Salutes the moon."
+    "Salutes the moon.",
+    "Insists on narrating the entire station history before every single request, working through call letters, tower height, and old ratings feuds."
   ],
   "voice": {
     "engine": "kokoro",
@@ -20,7 +21,9 @@
     "language": "en"
   },
   "energyDisposition": 0,
-  "lore": [],
+  "lore": [
+    "Once filled an entire overnight shift talking about a broken turntable belt, describing every failed splice attempt in numbing mechanical detail before finally swapping it for a spare part found in a drawer nobody had opened since the tower was built."
+  ],
   "corrections": [],
   "pronunciations": [
     {

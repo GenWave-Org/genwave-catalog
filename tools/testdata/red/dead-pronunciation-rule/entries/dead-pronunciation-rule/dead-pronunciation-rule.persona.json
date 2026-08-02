@@ -27,6 +27,16 @@
       "pattern": "tear",
       "word": "tear",
       "ipa": "   "
+    },
+    {
+      "pattern": "the wind in the wind",
+      "word": "wind",
+      "ipa": "/w[/"
+    },
+    {
+      "pattern": "Wind down",
+      "word": "wind",
+      "ipa": "/wˈaɪnd/"
     }
   ]
 }

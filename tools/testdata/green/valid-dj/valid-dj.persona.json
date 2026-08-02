@@ -9,7 +9,7 @@
   "lore": [],
   "corrections": [],
   "pronunciations": [
-    { "pattern": "wind down", "word": "wind", "ipa": "/wˈaɪnd/" },
+    { "pattern": "wind down", "word": "wind", "ipa": "/wˈaɪnd/", "note": "kept for a future field" },
     { "pattern": "MacLeod", "ipa": "/məˈklaʊd/" },
     { "pattern": "bass line", "word": null, "ipa": "/bˈeɪs/" }
   ]
