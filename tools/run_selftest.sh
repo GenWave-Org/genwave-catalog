@@ -11,8 +11,12 @@
 #   6. tools/build_index.py against a green fixture tree: per-file sha256
 #      (recomputed and compared), the audience field, relative-only paths,
 #      sorted slugs, and example-dj excluded when present
-#   7. tools/lint.py against the real (good) entries/                -> zero
-#      warnings (grandfather clean)
+#   7. tools/lint.py against the real (good) entries/                -> exit 0
+#      (hard-clean: no HARD violations on the shelf). WARN-tier findings on
+#      real entries are allowed and never fail this check — warn-first is
+#      the ratified posture (SPEC F89.6; CONTRIBUTING: "Warnings alone won't
+#      block your PR") — the shelf also happens to be warning-free as of
+#      2026-08-02, but that fact is not what the harness asserts
 #   8. tools/lint.py against tools/testdata/red/<variant>/ (oversize-soul,
 #      dead-pronunciation-rule) -> the specific HARD failure line(s), exact
 #      dead-rule count, and no dead-rule/word-repeat stacking
@@ -381,20 +385,24 @@ else
 fi
 echo
 
-echo "-- real entries/ come back from lint.py with zero warnings (grandfather clean) --"
+echo "-- real entries/ come back from lint.py with no hard violations (shelf is hard-clean) --"
+# WARN-tier findings are allowed here and must never fail this check — warn
+# tolerance on real entries is the ratified posture (SPEC F89.6; CONTRIBUTING:
+# "Warnings alone won't block your PR"). Only a HARD violation (exit != 0)
+# fails the shelf.
 output=$(python3 tools/lint.py 2>&1)
 status=$?
 echo "$output"
 if [[ $status -eq 0 ]]; then
-    pass "real entries/ lint.py exits 0"
+    pass "real entries/ lint.py exits 0 (no hard violations on the shelf)"
 else
-    fail "real entries/ lint.py exited $status, expected 0"
+    fail "real entries/ lint.py exited $status, expected 0 (a hard violation landed on the shelf)"
 fi
-if grep -qE '^WARN |::warning' <<<"$output"; then
-    fail "real entries/ lint.py produced warning output (grandfather clause broken)"
-else
-    pass "real entries/ lint.py produced zero warnings"
-fi
+# Swallow-everything mutants (a broken discovery or symlink guard) can't hide
+# here — a lint that reads nothing exits 0 silently. They are caught by the
+# red/warn fixture checks above, which require specific findings from specific
+# cards; the symlink-guard scratch tree proves symlinked entries are excluded
+# for the right reason. This check owns one thing only: the shelf is hard-clean.
 echo
 
 echo "== build_index.py: determinism (same tree in -> byte-identical index out) =="
