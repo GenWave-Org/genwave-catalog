@@ -1,0 +1,10 @@
+{
+  "author": "Test Fixture",
+  "description": "Warn-variant fixture: soul past warn (under hard), 9 quirks (past the 2-6 band) including one past the quirk-budget warn, a lore entry past the lore-budget warn, a prompt-weight warn (soul + 3 longest quirks + name > 900), a verbosity-instructing quirk, and a word-twice-in-pattern rule — tools/lint.py must warn on each (7 total) and still exit 0 (T152/T154).",
+  "samplePatter": [
+    "Line one.",
+    "Line two."
+  ],
+  "audience": "everyone",
+  "added": "2026-08-02"
+}

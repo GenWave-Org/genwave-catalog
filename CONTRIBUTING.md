@@ -24,7 +24,13 @@ what a human reviews.
    ```
    python3 tools/validate.py
    ```
-   Fix every violation it prints — each one names the offending file and rule.
+   Fix every violation it prints — each one names the offending file and rule. Then run the
+   submission-length lint too, before you open a PR:
+   ```
+   python3 tools/lint.py
+   ```
+   Warnings alone won't block a PR, but read them — see the "Keep the card tight" section below
+   for why they're there. Red always needs fixing.
 6. **Regenerate the index**:
    ```
    python3 tools/build_index.py
@@ -56,7 +62,9 @@ CI enforces shape. A human enforces character. Both matter, and both are law her
    `everyone` is a revision request, not a judgment call.
 5. **CC0 dedication checkbox**, checked.
 6. **English-first for v1** — cards must be written in English.
-7. **Scoped diff, one entry per PR** — CI-enforced (diff-scope guard): an entry PR touches
+7. **Keep the card's prompt weight tight** — CI-checked by `tools/lint.py`, warnings first, red
+   only for the absurd.
+8. **Scoped diff, one entry per PR** — CI-enforced (diff-scope guard): an entry PR touches
    only its own `entries/<slug>/` directory plus the regenerated `index.json` — never a
    second entry, and never `schemas/`, `tools/`, `fixtures/`, `.github/`, `README.md`,
    `CONTRIBUTING.md`, `LICENSE`, or `.gitattributes`. Infra changes go in their own PR
@@ -65,7 +73,7 @@ CI enforces shape. A human enforces character. Both matter, and both are law her
 **Hard bans, regardless of rating, no exceptions:** hate/harassment content, sexualized minors,
 real-person impersonation, trademarks/branding.
 
-The rest of this doc walks through items 3–6 one at a time.
+The rest of this doc walks through items 3–7 one at a time.
 
 ### 🎭 The distinctness statement
 
@@ -103,7 +111,33 @@ you open the PR, not after it's merged.
 
 For v1, entries must be written in English — `soul`, `lore`, `quirks`, `samplePatter`,
 `description`, all of it. This isn't a judgment on other languages; it's a scope limit on what
-a small volunteer review team (ie. just me right now) can evaluate for the other five bar items right now.
+a small volunteer review team (ie. just me right now) can evaluate for the other seven bar items right now.
+
+### 🎤 Keep the card tight
+
+A persona's `soul`, a sampled handful of its `quirks`, and its name line don't just sit in the
+JSON — at runtime they ride into the system prompt of a small local model (`llama3.2:3b` on the
+reference station) that has to answer in a sentence or two. It doesn't see the whole card every
+break, either: it gets `soul`, two or three quirks sampled from the list, and, on some breaks,
+its name line. Load those fields up and you don't get a richer-sounding DJ — you get a model
+that overshoots its own answer budget. When that happens, the app throws the generated line away
+and airs template patter instead. Extra card weight doesn't buy depth; it buys silence-shaped
+fallbacks.
+
+Length isn't the only way to blow the budget. A quirk that *instructs* the model to run long
+("go on about," "in great detail," that flavor of phrasing) costs more than the same amount of
+plain descriptive text would, because it's telling the model to keep generating past where a
+tighter card would already have stopped.
+
+Run `python3 tools/lint.py` before you open a PR. Its warnings name every budget it checks,
+measured value against allowed, for the field that's over. That output is the source of truth
+for the exact numbers, not this doc — we don't restate them here so there's only one place for
+them to be right. Warnings alone won't block your PR; only the absurd goes red.
+
+One more thing the lint holds the line on: a pronunciation rule the app would silently drop —
+one whose `word` never actually matches inside `pattern`, or that's otherwise dead on arrival —
+fails CI outright, not just a warning. A rule like that would never fire at runtime anyway, so
+there's no soft version of it: fix what the lint names rather than arguing with it.
 
 ## 🔍 What review looks like
 

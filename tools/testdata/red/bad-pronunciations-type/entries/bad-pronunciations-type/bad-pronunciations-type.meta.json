@@ -1,0 +1,10 @@
+{
+  "author": "Test Fixture",
+  "description": "Red-variant fixture: pronunciations[] entry with wrong-typed pattern/word/ipa — must fail schema validation once persona-card.schema.json learns the field (T151).",
+  "samplePatter": [
+    "Line one.",
+    "Line two."
+  ],
+  "audience": "everyone",
+  "added": "2026-08-02"
+}

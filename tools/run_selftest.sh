@@ -11,6 +11,25 @@
 #   6. tools/build_index.py against a green fixture tree: per-file sha256
 #      (recomputed and compared), the audience field, relative-only paths,
 #      sorted slugs, and example-dj excluded when present
+#   7. tools/lint.py against the real (good) entries/                -> exit 0
+#      (hard-clean: no HARD violations on the shelf). WARN-tier findings on
+#      real entries are allowed and never fail this check — warn-first is
+#      the ratified posture (SPEC F89.6; CONTRIBUTING: "Warnings alone won't
+#      block your PR") — the shelf also happens to be warning-free as of
+#      2026-08-02, but that fact is not what the harness asserts
+#   8. tools/lint.py against tools/testdata/red/<variant>/ (oversize-soul,
+#      dead-pronunciation-rule) -> the specific HARD failure line(s), exact
+#      dead-rule count, and no dead-rule/word-repeat stacking
+#   9. tools/lint.py against tools/testdata/warn/heavy-card/          -> every
+#      WARN-tier rule fires exactly once and exit stays 0; the prompt-weight
+#      number is cross-checked against an independent soul+3-longest-quirks
+#      computation; GITHUB_ACTIONS=1 emits ::warning annotations only, never
+#      plain WARN lines
+#  10. tools/lint.py's symlink guard: a symlinked entry directory is never
+#      read, even when its target would otherwise produce warnings
+#  11. .github/workflows/ci.yml wires tools/lint.py into the validate job —
+#      same drift-check spirit as item 5, so a CI edit that drops the lint
+#      step fails here too, not just after merge
 #
 # Every python3/build_index.py invocation below has its exit status checked
 # explicitly (`set -uo pipefail`, not `set -e`, since several steps below —
@@ -29,16 +48,50 @@ cd "$REPO_ROOT"
 
 RED_DIR="tools/testdata/red"
 GREEN_FIXTURE="tools/testdata/green/valid-dj"
+HEAVY_CARD_DIR="tools/testdata/warn/heavy-card"
 OVERSIZE_CARD="$RED_DIR/oversize-card/entries/oversize-card/oversize-card.persona.json"
 
 FAILURES=0
 pass() { printf 'PASS  %s\n' "$1"; }
 fail() { printf 'FAIL  %s\n' "$1"; FAILURES=$((FAILURES + 1)); }
 
+# Shared by check_red_variant (tools/validate.py reds) and check_red_lint
+# (tools/lint.py reds): run `tool --root RED_DIR/variant`, expect a non-zero
+# exit whose output names `expect`. validate.py has no WARN tier, so
+# tier_aware=false there keeps the plain substring-match semantics it always
+# had. lint.py's WARN/HARD split means a substring match alone would let a
+# mutant that only crossed the WARN threshold satisfy a HARD-tier
+# expectation, so tier_aware=true additionally requires the matching line
+# not be WARN-prefixed — HARD lines never carry the "WARN " prefix in either
+# of lint.py's output branches (see format_finding).
+check_red() {
+    local tool="$1" tier_aware="$2" msg_infix="$3" variant="$4" expect="$5"
+    local output status
+    output=$(python3 "$tool" --root "$RED_DIR/$variant" 2>&1)
+    status=$?
+    echo "$output"
+    local matched=1
+    if [[ "$tier_aware" == "true" ]]; then
+        grep -F "$expect" <<<"$output" | grep -qv '^WARN ' && matched=0
+    else
+        grep -qF "$expect" <<<"$output" && matched=0
+    fi
+    if [[ $status -ne 0 && $matched -eq 0 ]]; then
+        pass "$variant fails ${msg_infix}naming '$expect'"
+    else
+        fail "$variant did not fail ${msg_infix}naming '$expect' (exit=$status)"
+    fi
+    echo
+}
+
 TMP_GREEN_TREE=""
+TMP_PRON_TREE=""
+TMP_SYMLINK_TREE=""
 cleanup() {
     rm -f "$OVERSIZE_CARD"
     [[ -n "$TMP_GREEN_TREE" ]] && rm -rf "$TMP_GREEN_TREE"
+    [[ -n "$TMP_PRON_TREE" ]] && rm -rf "$TMP_PRON_TREE"
+    [[ -n "$TMP_SYMLINK_TREE" ]] && rm -rf "$TMP_SYMLINK_TREE"
 }
 trap cleanup EXIT
 
@@ -53,20 +106,73 @@ else
 fi
 echo
 
+echo "== schema + fixture: pronunciations[] is declared and the green fixture exercises its shapes (SPEC F89.5 / T151) =="
+tmp_pron_check="$(mktemp)"
+cat >"$tmp_pron_check" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+SCHEMA_PATH = Path("schemas/persona-card.schema.json")
+green_fixture = Path(sys.argv[1])
+card_path = green_fixture / "valid-dj.persona.json"
+
+schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
+card = json.loads(card_path.read_text(encoding="utf-8"))
+
+errors = []
+if "pronunciations" not in schema.get("properties", {}):
+    errors.append(f"{SCHEMA_PATH}: properties: 'pronunciations' is not declared — the schema does not know the field yet")
+
+pronunciations = card.get("pronunciations")
+if not isinstance(pronunciations, list) or not pronunciations:
+    errors.append(f"{card_path}: pronunciations is missing or empty — the fixture no longer exercises the field")
+else:
+    has_nonblank_word = any(
+        isinstance(r, dict) and isinstance(r.get("word"), str) and r.get("word") != "" for r in pronunciations
+    )
+    has_no_word_key = any(isinstance(r, dict) and "word" not in r for r in pronunciations)
+    has_null_word = any(isinstance(r, dict) and "word" in r and r.get("word") is None for r in pronunciations)
+    if not has_nonblank_word:
+        errors.append(f"{card_path}: pronunciations is missing a rule with a non-empty string 'word'")
+    if not has_no_word_key:
+        errors.append(f"{card_path}: pronunciations is missing a rule with no 'word' key at all")
+    if not has_null_word:
+        errors.append(f"{card_path}: pronunciations is missing a rule with 'word' explicitly null")
+
+if errors:
+    for line in errors:
+        print(line)
+    sys.exit(1)
+print("schema declares pronunciations and the green fixture exercises word/no-word/null-word shapes")
+PY
+if python3 "$tmp_pron_check" "$GREEN_FIXTURE"; then
+    pass "schema declares pronunciations[] and the green fixture exercises word/no-word/null-word shapes"
+else
+    fail "schema declares pronunciations[] and the green fixture exercises word/no-word/null-word shapes"
+fi
+rm -f "$tmp_pron_check"
+echo
+
+echo "== validate.py: green fixture pronunciations[] validate against a schema that knows the field (SPEC F89.5 / T151) =="
+TMP_PRON_TREE="$(mktemp -d)"
+mkdir -p "$TMP_PRON_TREE/entries/valid-dj"
+cp "$GREEN_FIXTURE/valid-dj.persona.json" "$TMP_PRON_TREE/entries/valid-dj/valid-dj.persona.json"
+cp "$GREEN_FIXTURE/valid-dj.meta.json" "$TMP_PRON_TREE/entries/valid-dj/valid-dj.meta.json"
+output=$(python3 tools/validate.py --root "$TMP_PRON_TREE" 2>&1)
+status=$?
+echo "$output"
+if [[ $status -eq 0 ]]; then
+    pass "green valid-dj pronunciations[] validate against a schema that knows the field"
+else
+    fail "green valid-dj pronunciations[] validate against a schema that knows the field (expected exit 0, got $status)"
+fi
+echo
+
 echo "== validate.py: red variants (expect the specific failure line) =="
 
 check_red_variant() {
-    local variant="$1" expect="$2"
-    local output status
-    output=$(python3 tools/validate.py --root "$RED_DIR/$variant" 2>&1)
-    status=$?
-    echo "$output"
-    if [[ $status -ne 0 ]] && grep -qF "$expect" <<<"$output"; then
-        pass "$variant fails naming '$expect'"
-    else
-        fail "$variant did not fail naming '$expect' (exit=$status)"
-    fi
-    echo
+    check_red tools/validate.py false "" "$1" "$2"
 }
 
 check_red_variant bad-slug-mismatch "slug-mismatch"
@@ -74,6 +180,7 @@ check_red_variant missing-audience "'audience' is a required property"
 check_red_variant one-sample "samplePatter"
 check_red_variant bad-json "json-parse"
 check_red_variant bad-date "bad-date"
+check_red_variant bad-pronunciations-type "schema: pronunciations/0/"
 
 echo "-- generating oversize-card fixture (not committed; see .gitignore) --"
 if python3 - "$OVERSIZE_CARD" <<'PY'
@@ -103,6 +210,200 @@ else
     fail "failed to generate the oversize-card fixture"
 fi
 rm -f "$OVERSIZE_CARD"
+
+echo "== ci.yml wires tools/lint.py into CI (drift check, same spirit as the index.json rebuild check) =="
+# Anchored on an actual `run: python3 tools/lint.py` line (allowing leading
+# whitespace and trailing whitespace only) — a bare substring match would
+# also PASS on a commented-out step, or on the string appearing in a step
+# name/echo anywhere in the file, neither of which means the lint runs.
+if grep -qE '^[[:space:]]*run:[[:space:]]*python3 tools/lint\.py[[:space:]]*$' .github/workflows/ci.yml; then
+    pass "ci.yml runs tools/lint.py (an uncommented 'run: python3 tools/lint.py' step exists)"
+else
+    fail "ci.yml has no uncommented 'run: python3 tools/lint.py' step — the lint step is missing, removed, or commented out"
+fi
+echo
+
+echo "== lint.py: submission length budgets (SPEC F89.6 · T152) =="
+
+check_red_lint() {
+    check_red tools/lint.py true "tools/lint.py " "$1" "$2"
+}
+
+check_red_lint oversize-soul "soul-budget"
+
+echo "-- red dead-pronunciation-rule: lint.py names every dropped rule (SPEC F89.7 · T154) --"
+output=$(python3 tools/lint.py --root "$RED_DIR/dead-pronunciation-rule" 2>&1)
+status=$?
+echo "$output"
+if [[ $status -ne 0 ]]; then
+    pass "dead-pronunciation-rule lint.py exits non-zero"
+else
+    fail "dead-pronunciation-rule lint.py exited 0, expected non-zero"
+fi
+# HARD dead-rule lines never carry the "WARN " prefix (see format_finding).
+# Capture first, THEN test/count — a prior review found the tier-aware grep
+# above can false-FAIL via pipefail/SIGPIPE on huge outputs; irrelevant at 3
+# lines, but capture-first avoids the pattern entirely for any new chain.
+dead_rule_lines=$(grep -F 'dead-rule:' <<<"$output" | grep -v '^WARN ')
+dead_rule_count=0
+if [[ -n "$dead_rule_lines" ]]; then
+    dead_rule_count=$(grep -c . <<<"$dead_rule_lines")
+fi
+if [[ "$dead_rule_count" -eq 4 ]]; then
+    pass "dead-pronunciation-rule lint.py reports exactly 4 HARD dead-rule lines"
+else
+    fail "dead-pronunciation-rule lint.py reported $dead_rule_count HARD dead-rule lines, expected 4"
+fi
+for expect in "pronunciations[0]" "pronunciations[1]" "pronunciations[2]" "pronunciations[3]"; do
+    matching=$(grep -F "$expect" <<<"$dead_rule_lines")
+    if [[ -n "$matching" ]]; then
+        pass "dead-pronunciation-rule lint.py names '$expect'"
+    else
+        fail "dead-pronunciation-rule lint.py did not name '$expect'"
+    fi
+done
+# pronunciations[3] is dead (ipa contains '[') AND its pattern repeats the
+# word ("the wind in the wind") — dead-rule and word-repeat must never
+# stack (check_pronunciation_rules `continue`s past word-repeat once a rule
+# is already dead).
+if grep -F 'pronunciations[3]' <<<"$output" | grep -q 'word-repeat'; then
+    fail "dead-pronunciation-rule lint.py stacked a word-repeat warn onto already-dead pronunciations[3]"
+else
+    pass "dead-pronunciation-rule lint.py did not stack word-repeat onto dead pronunciations[3]"
+fi
+# pronunciations[4] ('Wind down' / word 'wind') is alive only under
+# case-insensitive containment — must never be named as dead (kills a
+# mutant that drops the .lower() calls in the word-in-pattern check).
+if grep -F 'pronunciations[4]' <<<"$dead_rule_lines" >/dev/null; then
+    fail "dead-pronunciation-rule lint.py named pronunciations[4] as dead (case-insensitive containment mutant)"
+else
+    pass "dead-pronunciation-rule lint.py did not name pronunciations[4] as dead"
+fi
+echo
+
+echo "-- warn heavy-card: lint.py warns exactly once each on soul-budget, quirk-budget, quirk-count, lore-budget, prompt-weight, verbosity-phrase, word-repeat, exits 0, never HARD on dead-rule (SPEC F89.6/F89.7 · T152/T154) --"
+output=$(python3 tools/lint.py --root "$HEAVY_CARD_DIR" 2>&1)
+status=$?
+echo "$output"
+if [[ $status -eq 0 ]]; then
+    pass "heavy-card lint.py exits 0"
+else
+    fail "heavy-card lint.py exited $status, expected 0"
+fi
+for expect in "soul-budget" "quirk-count" "quirk-budget" "lore-budget" "verbosity-phrase" "word-repeat" "prompt-weight"; do
+    if grep -qF "$expect" <<<"$output"; then
+        pass "heavy-card lint.py warns naming '$expect'"
+    else
+        fail "heavy-card lint.py did not warn naming '$expect'"
+    fi
+done
+# The 7 checks above only prove each rule id appears at least once. Pinning
+# the summary line's total to exactly 7 — combined with 7 distinct ids each
+# already confirmed present — is what actually proves each fires exactly
+# once (a spurious 8th warning, e.g. a rule double-firing, would push the
+# summary count past 7 without necessarily failing any single `grep -qF`
+# above).
+if grep -qF "(7 warnings)" <<<"$output"; then
+    pass "heavy-card lint.py reports exactly 7 warnings total (each WARN-tier rule fires exactly once)"
+else
+    fail "heavy-card lint.py did not report exactly 7 total warnings (a rule fired more than once, or an unexpected extra warning appeared)"
+fi
+if grep -qF "dead-rule" <<<"$output"; then
+    fail "heavy-card lint.py produced a dead-rule line (word-twice-in-pattern must only ever warn)"
+else
+    pass "heavy-card lint.py produced no dead-rule line"
+fi
+echo
+
+echo "-- warn heavy-card: prompt-weight is measured from soul + the 3 LONGEST quirks + name, not sum-all or first-3 (SPEC F89.6 · T152) --"
+# Computed independently from the fixture (not hard-coded) so a future edit
+# to heavy-card.persona.json can't silently desync this assertion from the
+# number lint.py actually reports.
+measured_weight=$(grep -F 'prompt-weight:' <<<"$output" | grep -oE 'worst-case prompt weight is [0-9]+' | grep -oE '[0-9]+')
+computed_weight=$(python3 - "$HEAVY_CARD_DIR" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+card = json.loads((Path(sys.argv[1]) / "entries/heavy-card/heavy-card.persona.json").read_text(encoding="utf-8"))
+longest3 = sorted((len(q) for q in card["quirks"]), reverse=True)[:3]
+print(len(card["soul"]) + sum(longest3) + len(card["name"]))
+PY
+)
+if [[ -n "$measured_weight" && "$measured_weight" == "$computed_weight" ]]; then
+    pass "heavy-card prompt-weight ($measured_weight) matches soul + 3 longest quirks + name computed independently from the fixture"
+else
+    fail "heavy-card prompt-weight measured '$measured_weight' but soul + 3 longest quirks + name computed '$computed_weight' from the fixture"
+fi
+echo
+
+echo "-- warn heavy-card: GITHUB_ACTIONS=1 emits ::warning annotations only, never mixed with plain WARN lines (SPEC F89.6) --"
+ga_output=$(GITHUB_ACTIONS=1 python3 tools/lint.py --root "$HEAVY_CARD_DIR" 2>&1)
+ga_status=$?
+echo "$ga_output"
+if [[ $ga_status -eq 0 ]]; then
+    pass "heavy-card lint.py (GITHUB_ACTIONS=1) exits 0"
+else
+    fail "heavy-card lint.py (GITHUB_ACTIONS=1) exited $ga_status, expected 0"
+fi
+if grep -qE '^::warning file=.*::' <<<"$ga_output"; then
+    pass "heavy-card lint.py (GITHUB_ACTIONS=1) emits ::warning annotation lines"
+else
+    fail "heavy-card lint.py (GITHUB_ACTIONS=1) did not emit any ::warning annotation line"
+fi
+if grep -qE '^WARN ' <<<"$ga_output"; then
+    fail "heavy-card lint.py (GITHUB_ACTIONS=1) mixed a plain 'WARN ' line in with ::warning annotations"
+else
+    pass "heavy-card lint.py (GITHUB_ACTIONS=1) produced no plain 'WARN ' lines"
+fi
+echo
+
+echo "== lint.py: symlinked entries are never read, even when their target would otherwise warn (SPEC F89.6 guard · mutant M15) =="
+TMP_SYMLINK_TREE="$(mktemp -d)"
+mkdir -p "$TMP_SYMLINK_TREE/entries/good-entry" "$TMP_SYMLINK_TREE/real/symlinked-heavy"
+cp "$GREEN_FIXTURE/valid-dj.persona.json" "$TMP_SYMLINK_TREE/entries/good-entry/good-entry.persona.json"
+cp "$GREEN_FIXTURE/valid-dj.meta.json" "$TMP_SYMLINK_TREE/entries/good-entry/good-entry.meta.json"
+# The symlink target is a COPY of heavy-card's entry (not valid-dj) — a
+# guard-less lint would emit warnings naming this slug, so a missing guard
+# is actually observable here rather than indistinguishable from a clean run.
+cp "$HEAVY_CARD_DIR/entries/heavy-card/heavy-card.persona.json" "$TMP_SYMLINK_TREE/real/symlinked-heavy/symlinked-heavy.persona.json"
+cp "$HEAVY_CARD_DIR/entries/heavy-card/heavy-card.meta.json" "$TMP_SYMLINK_TREE/real/symlinked-heavy/symlinked-heavy.meta.json"
+ln -s "$TMP_SYMLINK_TREE/real/symlinked-heavy" "$TMP_SYMLINK_TREE/entries/symlinked-heavy"
+
+output=$(python3 tools/lint.py --root "$TMP_SYMLINK_TREE" 2>&1)
+status=$?
+echo "$output"
+if [[ $status -eq 0 ]]; then
+    pass "symlink-guard scratch tree lint.py exits 0"
+else
+    fail "symlink-guard scratch tree lint.py exited $status, expected 0"
+fi
+if grep -qF "symlinked-heavy" <<<"$output"; then
+    fail "symlink-guard scratch tree lint.py output named the symlinked slug (guard not applied)"
+else
+    pass "symlink-guard scratch tree lint.py produced no output naming the symlinked slug"
+fi
+echo
+
+echo "-- real entries/ come back from lint.py with no hard violations (shelf is hard-clean) --"
+# WARN-tier findings are allowed here and must never fail this check — warn
+# tolerance on real entries is the ratified posture (SPEC F89.6; CONTRIBUTING:
+# "Warnings alone won't block your PR"). Only a HARD violation (exit != 0)
+# fails the shelf.
+output=$(python3 tools/lint.py 2>&1)
+status=$?
+echo "$output"
+if [[ $status -eq 0 ]]; then
+    pass "real entries/ lint.py exits 0 (no hard violations on the shelf)"
+else
+    fail "real entries/ lint.py exited $status, expected 0 (a hard violation landed on the shelf)"
+fi
+# Swallow-everything mutants (a broken discovery or symlink guard) can't hide
+# here — a lint that reads nothing exits 0 silently. They are caught by the
+# red/warn fixture checks above, which require specific findings from specific
+# cards; the symlink-guard scratch tree proves symlinked entries are excluded
+# for the right reason. This check owns one thing only: the shelf is hard-clean.
+echo
 
 echo "== build_index.py: determinism (same tree in -> byte-identical index out) =="
 tmp1="$(mktemp)"

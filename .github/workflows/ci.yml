@@ -26,6 +26,9 @@ jobs:
       - name: Validate entries and index.json
         run: python3 tools/validate.py
 
+      - name: Lint submission budgets and pronunciation rules
+        run: python3 tools/lint.py
+
       - name: Verify index.json matches entries/
         # Runs on every PR and every push to main — not just main — so a PR
         # that edits entries/ without regenerating index.json (or deletes
