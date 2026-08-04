@@ -19,6 +19,15 @@ per SPEC F103.2 / T179):
     this is where required fields (`audience`, persona's >=2 `samplePatter`,
     theme's `preview` swatches) are enforced; the schema violation always
     names the offending file.
+  - A theme's manifest clears the WCAG AA contrast gate (SPEC F102.8 / T158,
+    ported to the catalog at T180): the 11 token pairs
+    `admin-ui/__specs__/theme-shelf-contrast.spec.ts` asserts against every
+    shipped theme (ink on each ground, accent-ink on accent, danger-ink on
+    danger, mute/accent-2 on each ground) each measure >= 4.5:1 in both
+    `light` and `dark` modes (tools/contrast.py). This is a HARD gate, same
+    as the schema check above it — a failing pair, or a pair missing either
+    of its two tokens, rejects the entry before it ever reaches
+    tools/build_index.py.
   - `added` is a real calendar date, not just YYYY-MM-DD shaped (the schema
     pattern lets '9999-99-99' through; datetime.date.fromisoformat doesn't).
   - slug == entry directory name == both filenames' stems.
@@ -68,6 +77,7 @@ from pathlib import Path
 import jsonschema
 
 from catalog_lib import REPO_ROOT, SCHEMAS_DIR, discover_entry_dirs, find_symlinks, rel
+from contrast import check_theme_aa
 
 SLUG_PATTERN = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*\Z")  # \Z, not $: $ matches before a trailing \n
 CARD_SIZE_CAP = 256 * 1024  # bytes; mirrors the app's own import cap (SPEC F79.6)
@@ -115,6 +125,21 @@ def validate_json_against(path: Path, schema: dict) -> list[str]:
     if instance is None:
         return violations
     return violations + validate_schema(path, instance, schema)
+
+
+def validate_theme_aa(manifest_path: Path, slug: str, manifest: object) -> list[str]:
+    """AA contrast gate (SPEC F102.8 / T158, ported to the catalog at T180):
+    checks a theme manifest's `modes` against tools/contrast.py's 11 asserted
+    pairs in both light and dark. A HARD gate, same posture as the schema
+    check next to it — a failing (or token-missing) pair rejects the entry,
+    it does not merely warn. Only ever called for kind:"theme" entries;
+    personas have no `modes` to check and are unaffected."""
+    if not isinstance(manifest, dict):
+        return []
+    return [
+        f"{rel(REPO_ROOT, manifest_path)}: aa-contrast: theme '{slug}': {finding}"
+        for finding in check_theme_aa(manifest.get("modes"))
+    ]
 
 
 def validate_added_date(meta_path: Path, meta: object) -> list[str]:
@@ -219,7 +244,12 @@ def validate_entry(
             )
         if manifest_size_cap is not None:
             violations.extend(check_size_cap(manifest_path, manifest_size_cap, manifest_kind_label))
-        violations.extend(validate_json_against(manifest_path, manifest_schema))
+        manifest_instance, manifest_parse_violations = parse_json(manifest_path)
+        violations.extend(manifest_parse_violations)
+        if manifest_instance is not None:
+            violations.extend(validate_schema(manifest_path, manifest_instance, manifest_schema))
+            if kind == "theme":
+                violations.extend(validate_theme_aa(manifest_path, slug, manifest_instance))
 
     if len(meta_candidates) == 1:
         meta_path = meta_candidates[0]
@@ -281,7 +311,19 @@ def validate_golden_fixture(fixtures_dir: Path, card_schema: dict, theme_manifes
     serializer) against the card schema, and golden.theme.json (the app
     manifest serializer) against the theme-manifest schema — either one
     silently drifting from what it's supposed to validate against would mean
-    this repo's copy of the app's format has rotted out from under it."""
+    this repo's copy of the app's format has rotted out from under it.
+
+    Deliberately shape-only, not AA-checked (T180 scoping decision):
+    golden.theme.json is a byte-for-byte round-trip parity fixture pinned
+    against the app's own tests/GenWave.Host.Tests/Fixtures/golden.theme.json
+    (Story269_CatalogKindSeam.cs) — its job is proving the manifest SHAPE
+    serializes/deserializes without loss, not modelling a shelf-quality
+    palette, and it is in fact not AA-clean as authored (three light-mode
+    pairs measure below 4.5:1). Making it AA-clean would mean re-picking its
+    colours, which would change its bytes and require a synced edit on the
+    app side purely to satisfy a gate this fixture was never meant to
+    exercise. The AA gate itself (validate_theme_aa) is scoped to actual
+    catalog theme ENTRIES under entries/, where T180's task is aimed."""
     if not fixtures_dir.is_dir():
         return [f"{rel(REPO_ROOT, fixtures_dir)}: missing-file: fixtures/ directory not found"]
 

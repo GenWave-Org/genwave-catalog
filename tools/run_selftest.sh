@@ -209,6 +209,24 @@ echo
 check_red_variant bad-theme-mode "'dark' is a required property"
 check_red_variant missing-theme-preview "'preview' is a required property"
 
+echo "-- red bad-theme-contrast: AA contrast gate rejects a theme entry with a sub-4.5:1 asserted pair (SPEC F102.8 / T158, ported to the catalog at T180) --"
+output=$(python3 tools/validate.py --root "$KIND_RED_DIR/bad-theme-contrast" 2>&1)
+status=$?
+echo "$output"
+if [[ $status -ne 0 ]]; then
+    pass "bad-theme-contrast validate.py exits non-zero"
+else
+    fail "bad-theme-contrast validate.py exited 0, expected non-zero"
+fi
+for expect in "aa-contrast" "pair 'mute' on 'bg'" "measured 1.00:1"; do
+    if grep -qF "$expect" <<<"$output"; then
+        pass "bad-theme-contrast validate.py names '$expect'"
+    else
+        fail "bad-theme-contrast validate.py did not name '$expect'"
+    fi
+done
+echo
+
 echo "-- fixtures/golden.theme.json (the app-manifest-serializer parity fixture) validates against schemas/theme-manifest.schema.json --"
 tmp_golden_theme_check="$(mktemp)"
 cat >"$tmp_golden_theme_check" <<'PY'

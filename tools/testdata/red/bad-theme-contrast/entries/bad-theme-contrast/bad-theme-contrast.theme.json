@@ -1,7 +1,7 @@
 {
-  "slug": "valid-theme",
-  "name": "Valid Theme Fixture",
-  "author": "Test Fixture",
+  "slug": "bad-theme-contrast",
+  "name": "Bad Theme Contrast",
+  "author": "Red Fixture",
   "fonts": {
     "display": {
       "family": "Fraunces",
@@ -22,7 +22,7 @@
       "surface": "#fff8e6",
       "surface-2": "#f0e2b4",
       "ink": "#2c2410",
-      "mute": "#5c4d24",
+      "mute": "#f7ecd2",
       "accent": "#b8860b",
       "accent-ink": "#2c2410",
       "accent-2": "#4f6b52",
