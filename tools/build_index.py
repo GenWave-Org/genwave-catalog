@@ -1,11 +1,24 @@
 #!/usr/bin/env python3
-"""Build index.json at the repo root from entries/ (SPEC F89.2).
+"""Build index.json at the repo root from entries/ (SPEC F89.2, kind-aware
+per SPEC F103.2 / T178).
 
     { "generatedAt": <ISO date>, "entries": [
         { "slug", "audience", "bestFor" (when present),
           "card": {"path", "sha256"}, "meta": {"path", "sha256"} },
+        { "slug", "audience", "kind": "theme", "bestFor" (when present),
+          "manifest": {"path", "sha256"}, "meta": {"path", "sha256"} },
         ...
     ] }
+
+`kind` is derived from which manifest filename an entry directory actually
+carries — <slug>.persona.json means kind="persona", <slug>.theme.json means
+kind="theme" (resolve_manifest below) — never from a field inside
+meta.json, so it can't drift from the file that's really on disk. A persona
+entry gets no `kind` key at all (rather than an explicit "persona"): the app
+already defaults a missing `kind` to persona (GenWave.Host, T176), so every
+entry that existed before T178 keeps its exact pre-existing shape and
+rebuilds byte-identical; only a theme entry gains both the new `kind` and
+`manifest` keys.
 
 Deterministic by construction: entries are sorted by slug, sha256 is computed
 over each file's raw bytes, paths are repo-root-relative (never absolute —
@@ -45,6 +58,32 @@ def sha256_of(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def resolve_manifest(entry_dir: Path, slug: str) -> tuple[Path | None, str]:
+    """Which manifest file this entry carries, and the `kind` that implies.
+
+    `kind` is read off the filesystem, not off a field inside meta.json:
+    <slug>.persona.json present means kind="persona" (the default,
+    pre-F103.2 shape), <slug>.theme.json present means kind="theme". This
+    is the single source of truth for kind — the same filename-per-kind
+    convention the app itself gates entry file-refs on (GenWave.Host, T176:
+    persona -> entries/<slug>/<slug>.persona.json, theme ->
+    entries/<slug>/<slug>.theme.json) — rather than a second, parallel
+    `kind` value recorded in meta.json that could drift from the manifest
+    file actually on disk.
+
+    Returns (None, "persona") when neither file is present; the caller
+    skips the directory in that case (tools/validate.py is the source of
+    truth for that shape error, not this function).
+    """
+    persona_path = entry_dir / f"{slug}.persona.json"
+    if persona_path.is_file():
+        return persona_path, "persona"
+    theme_path = entry_dir / f"{slug}.theme.json"
+    if theme_path.is_file():
+        return theme_path, "theme"
+    return None, "persona"
+
+
 def discover_entries(root: Path) -> tuple[list[dict], list[str]]:
     """Every entries/<slug>/ under root except EXCLUDED_SLUGS, sorted by
     slug, plus the `added` date of each included entry's meta.json (the
@@ -63,9 +102,9 @@ def discover_entries(root: Path) -> tuple[list[dict], list[str]]:
         slug = entry_dir.name
         if slug in EXCLUDED_SLUGS:
             continue
-        card_path = entry_dir / f"{slug}.persona.json"
+        manifest_path, kind = resolve_manifest(entry_dir, slug)
         meta_path = entry_dir / f"{slug}.meta.json"
-        if not card_path.is_file() or not meta_path.is_file():
+        if manifest_path is None or not meta_path.is_file():
             # tools/validate.py is the source of truth for shape errors; the
             # index build only ever runs on a tree that already passed it.
             continue
@@ -86,9 +125,18 @@ def discover_entries(root: Path) -> tuple[list[dict], list[str]]:
         record = {
             "slug": slug,
             "audience": meta["audience"],
-            "card": {"path": rel(root, card_path), "sha256": sha256_of(card_path)},
             "meta": {"path": rel(root, meta_path), "sha256": sha256_of(meta_path)},
         }
+        manifest_ref = {"path": rel(root, manifest_path), "sha256": sha256_of(manifest_path)}
+        if kind == "persona":
+            # No `kind` key on a persona entry — the app already defaults a
+            # missing `kind` to persona, so this keeps every pre-T178 entry
+            # byte-identical rather than gratuitously stamping "persona"
+            # onto all of them.
+            record["card"] = manifest_ref
+        else:
+            record["kind"] = kind
+            record["manifest"] = manifest_ref
         if "bestFor" in meta:
             record["bestFor"] = meta["bestFor"]
         records.append(record)

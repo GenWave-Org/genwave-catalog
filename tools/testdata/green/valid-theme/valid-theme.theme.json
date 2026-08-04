@@ -1,0 +1,5 @@
+{
+  "slug": "valid-theme",
+  "name": "Valid Theme Fixture",
+  "description": "Placeholder theme manifest content for tools/run_selftest.sh (T178) — proves tools/build_index.py picks a .theme.json (not a .persona.json) as the manifest for a kind:\"theme\" entry. The theme manifest's own content schema (theme-manifest.schema.json) is SPEC F103.2 / T179, not defined yet; this fixture is deliberately minimal and untyped."
+}
