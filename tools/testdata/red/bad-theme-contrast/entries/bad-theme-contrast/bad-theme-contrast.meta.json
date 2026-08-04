@@ -1,0 +1,22 @@
+{
+  "author": "Red Fixture",
+  "description": "Red-variant kind:\"theme\" fixture (SPEC F102.8 / T158, ported to the catalog at T180) — its .theme.json's light mode sets `mute` equal to `bg` (1:1), proving tools/validate.py's AA contrast gate rejects a theme entry with a sub-4.5:1 asserted pair before it ever reaches index.json.",
+  "audience": "everyone",
+  "added": "2026-08-04",
+  "preview": {
+    "light": {
+      "bg": "#f7ecd2",
+      "surface": "#fff8e6",
+      "ink": "#2c2410",
+      "accent": "#b8860b",
+      "accent-2": "#4f6b52"
+    },
+    "dark": {
+      "bg": "#171205",
+      "surface": "#241c09",
+      "ink": "#f4ecce",
+      "accent": "#e0a52c",
+      "accent-2": "#7fa382"
+    }
+  }
+}

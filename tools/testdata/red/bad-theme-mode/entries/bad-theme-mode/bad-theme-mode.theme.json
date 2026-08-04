@@ -1,0 +1,28 @@
+{
+  "slug": "bad-theme-mode",
+  "name": "Bad Theme Mode",
+  "author": "Red Fixture",
+  "fonts": {
+    "display": {
+      "family": "Fraunces",
+      "assets": [
+        { "src": "/fonts/fraunces-variable-latin.woff2", "weight": "400 600", "style": "normal" }
+      ]
+    },
+    "sans": {
+      "family": "Source Sans 3",
+      "assets": [
+        { "src": "/fonts/source-sans-3-variable-latin.woff2", "weight": "400 600", "style": "normal" }
+      ]
+    }
+  },
+  "modes": {
+    "light": {
+      "bg": "#f7ecd2",
+      "surface": "#fff8e6",
+      "ink": "#2c2410",
+      "accent": "#b8860b",
+      "accent-2": "#4f6b52"
+    }
+  }
+}

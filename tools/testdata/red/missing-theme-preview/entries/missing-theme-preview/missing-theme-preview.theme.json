@@ -1,0 +1,35 @@
+{
+  "slug": "missing-theme-preview",
+  "name": "Missing Theme Preview",
+  "author": "Red Fixture",
+  "fonts": {
+    "display": {
+      "family": "Fraunces",
+      "assets": [
+        { "src": "/fonts/fraunces-variable-latin.woff2", "weight": "400 600", "style": "normal" }
+      ]
+    },
+    "sans": {
+      "family": "Source Sans 3",
+      "assets": [
+        { "src": "/fonts/source-sans-3-variable-latin.woff2", "weight": "400 600", "style": "normal" }
+      ]
+    }
+  },
+  "modes": {
+    "light": {
+      "bg": "#f7ecd2",
+      "surface": "#fff8e6",
+      "ink": "#2c2410",
+      "accent": "#b8860b",
+      "accent-2": "#4f6b52"
+    },
+    "dark": {
+      "bg": "#171205",
+      "surface": "#241c09",
+      "ink": "#f4ecce",
+      "accent": "#e0a52c",
+      "accent-2": "#7fa382"
+    }
+  }
+}

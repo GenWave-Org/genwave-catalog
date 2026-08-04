@@ -1,13 +1,33 @@
 #!/usr/bin/env python3
 """Validate genwave-catalog entries against the repo's schemas and format rules.
 
-Rules enforced (all documented as LAW in README.md / SPEC F89.2):
+Rules enforced (all documented as LAW in README.md / SPEC F89.2, kind-aware
+per SPEC F103.2 / T179):
 
-  - <slug>.persona.json and <slug>.meta.json are each valid JSON.
-  - The card validates against schemas/persona-card.schema.json.
-  - The meta file validates against schemas/persona-meta.schema.json — this is
-    where the required `audience` field and the >=2 `samplePatter` minimum are
-    enforced; the schema violation always names the offending file.
+  - An entry's `kind` is read off which manifest filename its directory
+    carries — <slug>.persona.json means a persona entry, <slug>.theme.json
+    means a theme entry — the same filename-per-kind convention
+    tools/build_index.py derives `kind` from (persona wins if, bizarrely,
+    both are present). An entry with neither is reported as a missing
+    persona card, the pre-T179 default.
+  - <slug>.persona.json (or <slug>.theme.json) and <slug>.meta.json are each
+    valid JSON.
+  - A persona's card validates against schemas/persona-card.schema.json; a
+    theme's manifest validates against schemas/theme-manifest.schema.json.
+  - A persona's meta file validates against schemas/persona-meta.schema.json;
+    a theme's meta file validates against schemas/theme-meta.schema.json —
+    this is where required fields (`audience`, persona's >=2 `samplePatter`,
+    theme's `preview` swatches) are enforced; the schema violation always
+    names the offending file.
+  - A theme's manifest clears the WCAG AA contrast gate (SPEC F102.8 / T158,
+    ported to the catalog at T180): the 11 token pairs
+    `admin-ui/__specs__/theme-shelf-contrast.spec.ts` asserts against every
+    shipped theme (ink on each ground, accent-ink on accent, danger-ink on
+    danger, mute/accent-2 on each ground) each measure >= 4.5:1 in both
+    `light` and `dark` modes (tools/contrast.py). This is a HARD gate, same
+    as the schema check above it — a failing pair, or a pair missing either
+    of its two tokens, rejects the entry before it ever reaches
+    tools/build_index.py.
   - `added` is a real calendar date, not just YYYY-MM-DD shaped (the schema
     pattern lets '9999-99-99' through; datetime.date.fromisoformat doesn't).
   - slug == entry directory name == both filenames' stems.
@@ -15,13 +35,17 @@ Rules enforced (all documented as LAW in README.md / SPEC F89.2):
     the absolute end of the string — a trailing newline in the name fails
     this, unlike a bare `$` in Python's re would let through.
   - entries/ contains only <slug>/ directories — no loose files.
-  - An entry directory contains only <slug>.persona.json and <slug>.meta.json
-    — any other file is a violation.
+  - An entry directory contains only its manifest file (<slug>.persona.json
+    or <slug>.theme.json) and <slug>.meta.json — any other file is a
+    violation.
   - Nothing under entries/ is a symlink, at any depth (checked before any
     file is read).
-  - <slug>.persona.json is <= 256 KiB and <slug>.meta.json is <= 64 KiB.
+  - <slug>.persona.json is <= 256 KiB and <slug>.meta.json is <= 64 KiB. No
+    size cap is enforced on <slug>.theme.json — SPEC F103.2 doesn't define
+    one and the app itself imposes none on a loaded manifest.
   - fixtures/golden.persona.json (the app-serializer parity artifact) still
-    validates against the card schema, so it can never silently rot.
+    validates against the card schema, and fixtures/golden.theme.json still
+    validates against the theme-manifest schema, so neither can silently rot.
   - index.json exists at the repo root and validates against
     schemas/index.schema.json — this and the fixtures/ check above only ever
     run against the real repo (see --root below), never a testdata root.
@@ -53,6 +77,7 @@ from pathlib import Path
 import jsonschema
 
 from catalog_lib import REPO_ROOT, SCHEMAS_DIR, discover_entry_dirs, find_symlinks, rel
+from contrast import check_theme_aa
 
 SLUG_PATTERN = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*\Z")  # \Z, not $: $ matches before a trailing \n
 CARD_SIZE_CAP = 256 * 1024  # bytes; mirrors the app's own import cap (SPEC F79.6)
@@ -102,6 +127,21 @@ def validate_json_against(path: Path, schema: dict) -> list[str]:
     return violations + validate_schema(path, instance, schema)
 
 
+def validate_theme_aa(manifest_path: Path, slug: str, manifest: object) -> list[str]:
+    """AA contrast gate (SPEC F102.8 / T158, ported to the catalog at T180):
+    checks a theme manifest's `modes` against tools/contrast.py's 11 asserted
+    pairs in both light and dark. A HARD gate, same posture as the schema
+    check next to it — a failing (or token-missing) pair rejects the entry,
+    it does not merely warn. Only ever called for kind:"theme" entries;
+    personas have no `modes` to check and are unaffected."""
+    if not isinstance(manifest, dict):
+        return []
+    return [
+        f"{rel(REPO_ROOT, manifest_path)}: aa-contrast: theme '{slug}': {finding}"
+        for finding in check_theme_aa(manifest.get("modes"))
+    ]
+
+
 def validate_added_date(meta_path: Path, meta: object) -> list[str]:
     """`added` passing the meta schema's pattern only proves it's shaped like
     YYYY-MM-DD — '9999-99-99' matches that pattern but isn't a real calendar
@@ -119,7 +159,30 @@ def validate_added_date(meta_path: Path, meta: object) -> list[str]:
     return []
 
 
-def validate_entry(entry_dir: Path, card_schema: dict, meta_schema: dict) -> list[str]:
+def resolve_kind(entry_dir: Path) -> str:
+    """"persona" or "theme" — which manifest filename this entry directory
+    carries. Mirrors tools/build_index.py's own resolve_manifest precedence:
+    a *.persona.json file means "persona" (persona wins if, bizarrely, both
+    are present), a *.theme.json file with no *.persona.json means "theme",
+    and neither present defaults to "persona" (the pre-T179 shape, so the
+    caller reports a familiar missing-card violation rather than a new
+    missing-kind one). Glob-matched rather than an exact <slug>.* filename so
+    a slug-mismatched manifest file is still classified — and then reported
+    as a slug-mismatch below, not silently treated as missing."""
+    if any(entry_dir.glob("*.persona.json")):
+        return "persona"
+    if any(entry_dir.glob("*.theme.json")):
+        return "theme"
+    return "persona"
+
+
+def validate_entry(
+    entry_dir: Path,
+    card_schema: dict,
+    persona_meta_schema: dict,
+    theme_manifest_schema: dict,
+    theme_meta_schema: dict,
+) -> list[str]:
     slug = entry_dir.name
     label = rel(REPO_ROOT, entry_dir)
 
@@ -138,35 +201,55 @@ def validate_entry(entry_dir: Path, card_schema: dict, meta_schema: dict) -> lis
             "newline fails this too)"
         )
 
-    allowed_names = {f"{slug}.persona.json", f"{slug}.meta.json"}
+    kind = resolve_kind(entry_dir)
+    if kind == "theme":
+        manifest_suffix = ".theme.json"
+        manifest_schema = theme_manifest_schema
+        manifest_kind_label = "theme manifest"
+        meta_schema = theme_meta_schema
+        manifest_size_cap = None  # SPEC F103.2 defines none; the app imposes none on a loaded manifest
+    else:
+        manifest_suffix = ".persona.json"
+        manifest_schema = card_schema
+        manifest_kind_label = "card"
+        meta_schema = persona_meta_schema
+        manifest_size_cap = CARD_SIZE_CAP
+
+    allowed_names = {f"{slug}{manifest_suffix}", f"{slug}.meta.json"}
     unexpected = sorted(p.name for p in entry_dir.iterdir() if p.name not in allowed_names)
     for name in unexpected:
         violations.append(
-            f"{rel(REPO_ROOT, entry_dir / name)}: unexpected-file: only <slug>.persona.json and "
+            f"{rel(REPO_ROOT, entry_dir / name)}: unexpected-file: only <slug>{manifest_suffix} and "
             "<slug>.meta.json are allowed in an entry directory"
         )
 
-    card_candidates = sorted(entry_dir.glob("*.persona.json"))
+    manifest_candidates = sorted(entry_dir.glob(f"*{manifest_suffix}"))
     meta_candidates = sorted(entry_dir.glob("*.meta.json"))
 
-    if len(card_candidates) != 1:
+    if len(manifest_candidates) != 1:
         violations.append(
-            f"{label}: missing-file: expected exactly one <slug>.persona.json, found {len(card_candidates)}"
+            f"{label}: missing-file: expected exactly one <slug>{manifest_suffix}, found {len(manifest_candidates)}"
         )
     if len(meta_candidates) != 1:
         violations.append(
             f"{label}: missing-file: expected exactly one <slug>.meta.json, found {len(meta_candidates)}"
         )
 
-    if len(card_candidates) == 1:
-        card_path = card_candidates[0]
-        card_stem = card_path.name[: -len(".persona.json")]
-        if card_stem != slug:
+    if len(manifest_candidates) == 1:
+        manifest_path = manifest_candidates[0]
+        manifest_stem = manifest_path.name[: -len(manifest_suffix)]
+        if manifest_stem != slug:
             violations.append(
-                f"{rel(REPO_ROOT, card_path)}: slug-mismatch: filename slug '{card_stem}' does not match directory '{slug}'"
+                f"{rel(REPO_ROOT, manifest_path)}: slug-mismatch: filename slug '{manifest_stem}' does not match directory '{slug}'"
             )
-        violations.extend(check_size_cap(card_path, CARD_SIZE_CAP, "card"))
-        violations.extend(validate_json_against(card_path, card_schema))
+        if manifest_size_cap is not None:
+            violations.extend(check_size_cap(manifest_path, manifest_size_cap, manifest_kind_label))
+        manifest_instance, manifest_parse_violations = parse_json(manifest_path)
+        violations.extend(manifest_parse_violations)
+        if manifest_instance is not None:
+            violations.extend(validate_schema(manifest_path, manifest_instance, manifest_schema))
+            if kind == "theme":
+                violations.extend(validate_theme_aa(manifest_path, slug, manifest_instance))
 
     if len(meta_candidates) == 1:
         meta_path = meta_candidates[0]
@@ -204,24 +287,61 @@ def validate_entries_top_level(entries_dir: Path) -> list[str]:
     return violations
 
 
-def validate_entries(entries_dir: Path, card_schema: dict, meta_schema: dict) -> list[str]:
+def validate_entries(
+    entries_dir: Path,
+    card_schema: dict,
+    persona_meta_schema: dict,
+    theme_manifest_schema: dict,
+    theme_meta_schema: dict,
+) -> list[str]:
     if not entries_dir.is_dir():
         return [f"{rel(REPO_ROOT, entries_dir)}: missing-file: entries/ directory not found"]
     violations: list[str] = validate_entries_top_level(entries_dir)
     for entry_dir in discover_entry_dirs(entries_dir):
-        violations.extend(validate_entry(entry_dir, card_schema, meta_schema))
+        violations.extend(
+            validate_entry(entry_dir, card_schema, persona_meta_schema, theme_manifest_schema, theme_meta_schema)
+        )
     return violations
 
 
-def validate_golden_fixture(fixtures_dir: Path, card_schema: dict) -> list[str]:
+def validate_golden_fixture(fixtures_dir: Path, card_schema: dict, theme_manifest_schema: dict) -> list[str]:
     """Only called for the real repo (see main()) — fixtures/ must exist
-    there; a testdata root never carries a copy and is never routed here."""
+    there; a testdata root never carries a copy and is never routed here.
+    Checks both parity artifacts: golden.persona.json (the app card
+    serializer) against the card schema, and golden.theme.json (the app
+    manifest serializer) against the theme-manifest schema — either one
+    silently drifting from what it's supposed to validate against would mean
+    this repo's copy of the app's format has rotted out from under it.
+
+    Deliberately shape-only, not AA-checked (T180 scoping decision):
+    golden.theme.json is a byte-for-byte round-trip parity fixture pinned
+    against the app's own tests/GenWave.Host.Tests/Fixtures/golden.theme.json
+    (Story269_CatalogKindSeam.cs) — its job is proving the manifest SHAPE
+    serializes/deserializes without loss, not modelling a shelf-quality
+    palette, and it is in fact not AA-clean as authored (three light-mode
+    pairs measure below 4.5:1). Making it AA-clean would mean re-picking its
+    colours, which would change its bytes and require a synced edit on the
+    app side purely to satisfy a gate this fixture was never meant to
+    exercise. The AA gate itself (validate_theme_aa) is scoped to actual
+    catalog theme ENTRIES under entries/, where T180's task is aimed."""
     if not fixtures_dir.is_dir():
         return [f"{rel(REPO_ROOT, fixtures_dir)}: missing-file: fixtures/ directory not found"]
-    golden_path = fixtures_dir / "golden.persona.json"
-    if not golden_path.is_file():
-        return [f"{rel(REPO_ROOT, golden_path)}: missing-file: golden fixture not found"]
-    return validate_json_against(golden_path, card_schema)
+
+    violations: list[str] = []
+
+    golden_persona_path = fixtures_dir / "golden.persona.json"
+    if not golden_persona_path.is_file():
+        violations.append(f"{rel(REPO_ROOT, golden_persona_path)}: missing-file: golden fixture not found")
+    else:
+        violations.extend(validate_json_against(golden_persona_path, card_schema))
+
+    golden_theme_path = fixtures_dir / "golden.theme.json"
+    if not golden_theme_path.is_file():
+        violations.append(f"{rel(REPO_ROOT, golden_theme_path)}: missing-file: golden theme fixture not found")
+    else:
+        violations.extend(validate_json_against(golden_theme_path, theme_manifest_schema))
+
+    return violations
 
 
 def validate_index(index_path: Path) -> list[str]:
@@ -244,12 +364,16 @@ def main() -> int:
     root = args.root.resolve()
 
     card_schema = load_schema("persona-card.schema.json")
-    meta_schema = load_schema("persona-meta.schema.json")
+    persona_meta_schema = load_schema("persona-meta.schema.json")
+    theme_manifest_schema = load_schema("theme-manifest.schema.json")
+    theme_meta_schema = load_schema("theme-meta.schema.json")
 
-    violations = validate_entries(root / "entries", card_schema, meta_schema)
+    violations = validate_entries(
+        root / "entries", card_schema, persona_meta_schema, theme_manifest_schema, theme_meta_schema
+    )
 
     if root == REPO_ROOT:
-        violations.extend(validate_golden_fixture(root / "fixtures", card_schema))
+        violations.extend(validate_golden_fixture(root / "fixtures", card_schema, theme_manifest_schema))
         violations.extend(validate_index(root / "index.json"))
 
     for line in violations:

@@ -1,0 +1,22 @@
+{
+  "author": "Test Fixture",
+  "description": "Green-variant kind:\"theme\" fixture for tools/run_selftest.sh (SPEC F103.2 / T178) and tools/validate.py (T179) — copied into a temporary entries/ tree at test time to exercise kind-aware validation and index building end to end (theme-manifest.schema.json, theme-meta.schema.json, build_index.py's kind-aware output shape). Not a real catalog entry, and NOT itself under entries/.",
+  "audience": "everyone",
+  "added": "2026-07-26",
+  "preview": {
+    "light": {
+      "bg": "#f7ecd2",
+      "surface": "#fff8e6",
+      "ink": "#2c2410",
+      "accent": "#b8860b",
+      "accent-2": "#4f6b52"
+    },
+    "dark": {
+      "bg": "#171205",
+      "surface": "#241c09",
+      "ink": "#f4ecce",
+      "accent": "#e0a52c",
+      "accent-2": "#7fa382"
+    }
+  }
+}

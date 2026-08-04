@@ -1,0 +1,22 @@
+{
+  "author": "Red Fixture",
+  "description": "Red-variant kind:\"theme\" fixture (SPEC F103.2 / T179) — its .theme.json's `modes` object omits the required `dark` key entirely, proving theme-manifest.schema.json rejects a manifest missing a mode.",
+  "audience": "everyone",
+  "added": "2026-08-04",
+  "preview": {
+    "light": {
+      "bg": "#f7ecd2",
+      "surface": "#fff8e6",
+      "ink": "#2c2410",
+      "accent": "#b8860b",
+      "accent-2": "#4f6b52"
+    },
+    "dark": {
+      "bg": "#171205",
+      "surface": "#241c09",
+      "ink": "#f4ecce",
+      "accent": "#e0a52c",
+      "accent-2": "#7fa382"
+    }
+  }
+}

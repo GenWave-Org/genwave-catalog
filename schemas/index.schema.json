@@ -27,11 +27,17 @@
     "entry": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["slug", "audience", "card", "meta"],
+      "required": ["slug", "audience", "meta"],
+      "description": "`card`/`manifest` are conditionally required, not both listed here — see the `if`/`then`/`else` below, gated on `kind`.",
       "properties": {
         "slug": {
           "type": "string",
           "pattern": "^[a-z0-9]+(-[a-z0-9]+)*(?![\\s\\S])"
+        },
+        "kind": {
+          "type": "string",
+          "enum": ["persona", "theme"],
+          "description": "Entry discriminator (SPEC F103.2 / T178). Optional — an entry with no `kind` is treated as \"persona\", matching every pre-F103.2 entry and the app's own back-compat default (GenWave.Host, T176: a missing `kind` defaults to persona; an unrecognized `kind` value there causes the app to skip just that one entry, not abort the whole index — this schema is stricter than the app and rejects an unrecognized value outright, since here it can only mean a build regression in this repo's own tooling, not a newer app talking to an older catalog). `kind` decides which file-ref property below is required and which path pattern its `path` must match: \"persona\" (or omitted) requires `card` matching `*.persona.json` — the unchanged, pre-F103.2 shape; \"theme\" requires `manifest` matching `*.theme.json` — SPEC F103.2's new key, so a theme entry is never mistaken for using the legacy persona file-ref name."
         },
         "audience": {
           "type": "string",
@@ -54,6 +60,19 @@
             "sha256": { "$ref": "#/definitions/sha256" }
           }
         },
+        "manifest": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["path", "sha256"],
+          "properties": {
+            "path": {
+              "type": "string",
+              "pattern": "^entries/[a-z0-9]+(-[a-z0-9]+)*/[a-z0-9]+(-[a-z0-9]+)*\\.theme\\.json(?![\\s\\S])",
+              "description": "Repo-root-relative POSIX path under entries/<slug>/ to the kind:\"theme\" manifest file (SPEC F103.2) — no leading slash, no .., no URL scheme; the pattern's own shape rules all three out. Only present on kind:\"theme\" entries; persona entries keep using `card` (see the `kind` description above) rather than this key."
+            },
+            "sha256": { "$ref": "#/definitions/sha256" }
+          }
+        },
         "meta": {
           "type": "object",
           "additionalProperties": false,
@@ -67,6 +86,16 @@
             "sha256": { "$ref": "#/definitions/sha256" }
           }
         }
+      },
+      "if": {
+        "required": ["kind"],
+        "properties": { "kind": { "const": "theme" } }
+      },
+      "then": {
+        "required": ["manifest"]
+      },
+      "else": {
+        "required": ["card"]
       }
     }
   }

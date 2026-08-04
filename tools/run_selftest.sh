@@ -84,14 +84,21 @@ check_red() {
     echo
 }
 
+KIND_GREEN_FIXTURE="tools/testdata/green/valid-theme"
+KIND_RED_DIR="tools/testdata/red"
+
 TMP_GREEN_TREE=""
 TMP_PRON_TREE=""
 TMP_SYMLINK_TREE=""
+TMP_KIND_TREE=""
+TMP_THEME_TREE=""
 cleanup() {
     rm -f "$OVERSIZE_CARD"
     [[ -n "$TMP_GREEN_TREE" ]] && rm -rf "$TMP_GREEN_TREE"
     [[ -n "$TMP_PRON_TREE" ]] && rm -rf "$TMP_PRON_TREE"
     [[ -n "$TMP_SYMLINK_TREE" ]] && rm -rf "$TMP_SYMLINK_TREE"
+    [[ -n "$TMP_KIND_TREE" ]] && rm -rf "$TMP_KIND_TREE"
+    [[ -n "$TMP_THEME_TREE" ]] && rm -rf "$TMP_THEME_TREE"
 }
 trap cleanup EXIT
 
@@ -181,6 +188,71 @@ check_red_variant one-sample "samplePatter"
 check_red_variant bad-json "json-parse"
 check_red_variant bad-date "bad-date"
 check_red_variant bad-pronunciations-type "schema: pronunciations/0/"
+
+echo "== validate.py: kind-aware theme-entry validation (schemas/theme-manifest.schema.json + schemas/theme-meta.schema.json, SPEC F103.2 / T179) =="
+
+echo "-- green valid-theme fixture validates clean end-to-end as a kind:\"theme\" entry --"
+TMP_THEME_TREE="$(mktemp -d)"
+mkdir -p "$TMP_THEME_TREE/entries/valid-theme"
+cp "$KIND_GREEN_FIXTURE/valid-theme.theme.json" "$TMP_THEME_TREE/entries/valid-theme/valid-theme.theme.json"
+cp "$KIND_GREEN_FIXTURE/valid-theme.meta.json" "$TMP_THEME_TREE/entries/valid-theme/valid-theme.meta.json"
+output=$(python3 tools/validate.py --root "$TMP_THEME_TREE" 2>&1)
+status=$?
+echo "$output"
+if [[ $status -eq 0 ]]; then
+    pass "green valid-theme fixture validates clean as a kind:\"theme\" entry"
+else
+    fail "green valid-theme fixture did not validate clean as a kind:\"theme\" entry (expected exit 0, got $status)"
+fi
+echo
+
+check_red_variant bad-theme-mode "'dark' is a required property"
+check_red_variant missing-theme-preview "'preview' is a required property"
+
+echo "-- red bad-theme-contrast: AA contrast gate rejects a theme entry with a sub-4.5:1 asserted pair (SPEC F102.8 / T158, ported to the catalog at T180) --"
+output=$(python3 tools/validate.py --root "$KIND_RED_DIR/bad-theme-contrast" 2>&1)
+status=$?
+echo "$output"
+if [[ $status -ne 0 ]]; then
+    pass "bad-theme-contrast validate.py exits non-zero"
+else
+    fail "bad-theme-contrast validate.py exited 0, expected non-zero"
+fi
+for expect in "aa-contrast" "pair 'mute' on 'bg'" "measured 1.00:1"; do
+    if grep -qF "$expect" <<<"$output"; then
+        pass "bad-theme-contrast validate.py names '$expect'"
+    else
+        fail "bad-theme-contrast validate.py did not name '$expect'"
+    fi
+done
+echo
+
+echo "-- fixtures/golden.theme.json (the app-manifest-serializer parity fixture) validates against schemas/theme-manifest.schema.json --"
+tmp_golden_theme_check="$(mktemp)"
+cat >"$tmp_golden_theme_check" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+import jsonschema
+
+schema = json.loads(Path("schemas/theme-manifest.schema.json").read_text(encoding="utf-8"))
+golden = json.loads(Path("fixtures/golden.theme.json").read_text(encoding="utf-8"))
+validator = jsonschema.validators.validator_for(schema)(schema)
+errors = [e.message for e in validator.iter_errors(golden)]
+if errors:
+    for message in errors:
+        print(f"fixtures/golden.theme.json: schema: {message}")
+    sys.exit(1)
+print("fixtures/golden.theme.json validates against schemas/theme-manifest.schema.json")
+PY
+if python3 "$tmp_golden_theme_check"; then
+    pass "fixtures/golden.theme.json validates against schemas/theme-manifest.schema.json"
+else
+    fail "fixtures/golden.theme.json does not validate against schemas/theme-manifest.schema.json"
+fi
+rm -f "$tmp_golden_theme_check"
+echo
 
 echo "-- generating oversize-card fixture (not committed; see .gitignore) --"
 if python3 - "$OVERSIZE_CARD" <<'PY'
@@ -543,6 +615,161 @@ else
 fi
 rm -f "$tmp_green_index"
 echo
+
+echo "== build_index.py + schemas/index.schema.json: kind discriminator (SPEC F103.2 / T178) =="
+# kind is a property of the built INDEX entry, not of anything inside
+# entries/<slug>/*.meta.json — so unlike the red/green fixtures above (which
+# are entries/ trees fed through validate.py or build_index.py), the checks
+# below either (a) build a small mixed persona+theme entries/ tree and
+# inspect build_index.py's output shape, or (b) hand-author a bare index
+# entry object (tools/testdata/red/bad-kind-*/index-entry.json — deliberately
+# NOT an entries/ tree, since build_index.py itself can only ever emit
+# kind "persona" or "theme": it derives kind from which manifest filename is
+# present, so a bogus kind value can only arise from a hand-crafted
+# index.json, never from a real build) and schema-validate it directly
+# against schemas/index.schema.json's entry definition via the jsonschema
+# library, the same way the pronunciations[] schema check above does.
+TMP_KIND_TREE="$(mktemp -d)"
+mkdir -p "$TMP_KIND_TREE/entries/valid-dj" "$TMP_KIND_TREE/entries/valid-theme"
+cp "$GREEN_FIXTURE/valid-dj.persona.json" "$TMP_KIND_TREE/entries/valid-dj/valid-dj.persona.json"
+cp "$GREEN_FIXTURE/valid-dj.meta.json" "$TMP_KIND_TREE/entries/valid-dj/valid-dj.meta.json"
+cp "$KIND_GREEN_FIXTURE/valid-theme.theme.json" "$TMP_KIND_TREE/entries/valid-theme/valid-theme.theme.json"
+cp "$KIND_GREEN_FIXTURE/valid-theme.meta.json" "$TMP_KIND_TREE/entries/valid-theme/valid-theme.meta.json"
+
+tmp_kind_index="$(mktemp)"
+kind_build_ok=1
+if ! python3 tools/build_index.py --root "$TMP_KIND_TREE" --out "$tmp_kind_index"; then
+    fail "build_index.py exited non-zero building the persona+theme kind fixture tree"
+    kind_build_ok=0
+fi
+
+if [[ $kind_build_ok -eq 1 ]]; then
+    tmp_kind_check="$(mktemp)"
+    cat >"$tmp_kind_check" <<'PY'
+import hashlib
+import json
+import sys
+from pathlib import Path
+
+import jsonschema
+
+index_path, tree_root, schema_path = Path(sys.argv[1]), Path(sys.argv[2]), Path(sys.argv[3])
+data = json.loads(index_path.read_text())
+by_slug = {e["slug"]: e for e in data["entries"]}
+
+schema = json.loads(schema_path.read_text(encoding="utf-8"))
+# Embed the sha256 definition directly into the entry subschema so its
+# "#/definitions/sha256" $ref self-resolves without needing a resolver
+# rooted at the full document.
+entry_schema = dict(schema["definitions"]["entry"])
+entry_schema["definitions"] = {"sha256": schema["definitions"]["sha256"]}
+validator = jsonschema.validators.validator_for(entry_schema)(entry_schema)
+
+errors = []
+
+persona = by_slug.get("valid-dj")
+if persona is None:
+    errors.append("valid-dj entry missing from built index")
+else:
+    if "kind" in persona:
+        errors.append(f"valid-dj: unexpected 'kind' key stamped onto a persona entry: {persona['kind']!r}")
+    if "manifest" in persona:
+        errors.append("valid-dj: unexpected 'manifest' key on a persona entry")
+    if "card" not in persona:
+        errors.append("valid-dj: missing 'card' key")
+    persona_errors = [e.message for e in validator.iter_errors(persona)]
+    if persona_errors:
+        errors.append(f"valid-dj entry does not validate against schemas/index.schema.json: {persona_errors}")
+
+theme = by_slug.get("valid-theme")
+if theme is None:
+    errors.append("valid-theme entry missing from built index")
+else:
+    if theme.get("kind") != "theme":
+        errors.append(f"valid-theme: expected kind 'theme', got {theme.get('kind')!r}")
+    if "card" in theme:
+        errors.append("valid-theme: unexpected 'card' key on a theme entry")
+    manifest = theme.get("manifest")
+    if not isinstance(manifest, dict):
+        errors.append("valid-theme: missing 'manifest' key")
+    else:
+        path = manifest.get("path")
+        if not isinstance(path, str) or not path.endswith("valid-theme.theme.json"):
+            errors.append(f"valid-theme.manifest.path unexpected: {path!r}")
+        else:
+            want = hashlib.sha256((tree_root / path).read_bytes()).hexdigest()
+            got = manifest.get("sha256")
+            if want != got:
+                errors.append(f"valid-theme.manifest.sha256 mismatch: recomputed {want}, index has {got}")
+    theme_errors = [e.message for e in validator.iter_errors(theme)]
+    if theme_errors:
+        errors.append(f"valid-theme entry does not validate against schemas/index.schema.json: {theme_errors}")
+
+if errors:
+    for line in errors:
+        print(line)
+    sys.exit(1)
+print(
+    "kind-aware index shape OK: persona entry unchanged (card, no kind/manifest key), "
+    "theme entry carries kind:\"theme\" + manifest (sha256 verified), both entries "
+    "validate against schemas/index.schema.json"
+)
+PY
+    if python3 "$tmp_kind_check" "$tmp_kind_index" "$TMP_KIND_TREE" "schemas/index.schema.json"; then
+        pass "build_index.py is kind-aware: persona entry unchanged, theme entry carries kind+manifest, both schema-valid"
+    else
+        fail "build_index.py kind-aware output shape assertions failed"
+    fi
+    rm -f "$tmp_kind_check"
+else
+    fail "skipped kind-aware shape assertions because build_index.py failed above"
+fi
+rm -f "$tmp_kind_index"
+echo
+
+check_kind_entry_red() {
+    local variant="$1" expect="$2"
+    local output status
+    output=$(python3 - "$KIND_RED_DIR/$variant/index-entry.json" "$expect" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+import jsonschema
+
+schema = json.loads(Path("schemas/index.schema.json").read_text(encoding="utf-8"))
+# Embed the sha256 definition directly into the entry subschema so its
+# "#/definitions/sha256" $ref self-resolves without needing a resolver
+# rooted at the full document.
+entry_schema = dict(schema["definitions"]["entry"])
+entry_schema["definitions"] = {"sha256": schema["definitions"]["sha256"]}
+validator = jsonschema.validators.validator_for(entry_schema)(entry_schema)
+
+fixture_path, expect_substring = Path(sys.argv[1]), sys.argv[2]
+instance = json.loads(fixture_path.read_text(encoding="utf-8"))
+errors = [e.message for e in validator.iter_errors(instance)]
+if not errors:
+    print(f"{fixture_path}: expected schema validation to fail, but it passed")
+    sys.exit(1)
+if not any(expect_substring in msg for msg in errors):
+    print(f"{fixture_path}: none of the violation(s) name {expect_substring!r}: {errors}")
+    sys.exit(1)
+print(f"{fixture_path}: rejected as expected, naming {expect_substring!r}: {errors}")
+PY
+    )
+    status=$?
+    echo "$output"
+    if [[ $status -eq 0 ]]; then
+        pass "$variant: schemas/index.schema.json rejects it, naming '$expect'"
+    else
+        fail "$variant: schemas/index.schema.json did not reject it naming '$expect'"
+    fi
+    echo
+}
+
+echo "== schemas/index.schema.json: kind discriminator rejects bad entries (SPEC F103.2 / T178) =="
+check_kind_entry_red bad-kind-value "'villain' is not one of"
+check_kind_entry_red bad-kind-theme-no-manifest "'manifest' is a required property"
 
 echo "=========================================="
 if [[ $FAILURES -eq 0 ]]; then

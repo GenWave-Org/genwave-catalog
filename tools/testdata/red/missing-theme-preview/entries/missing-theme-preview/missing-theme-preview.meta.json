@@ -1,0 +1,6 @@
+{
+  "author": "Red Fixture",
+  "description": "Red-variant kind:\"theme\" fixture (SPEC F103.2 / T179) — its .meta.json omits the required `preview` swatch payload, proving theme-meta.schema.json rejects a theme entry missing the shelf-card contract (T185).",
+  "audience": "everyone",
+  "added": "2026-08-04"
+}

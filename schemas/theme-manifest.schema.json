@@ -1,0 +1,81 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/GenWave-Org/genwave-catalog/main/schemas/theme-manifest.schema.json",
+  "title": "GenWave Theme Manifest",
+  "description": "The <slug>.theme.json shape a GenWave station loads (app repo SPEC F103.2, ARCHITECTURE \"Theme system\", GenWave.Host.Theming.ThemeManifest/ThemeManifestParser). Mirrors persona-card.schema.json's posture exactly: additionalProperties is true throughout, and this schema pins TYPES ONLY — it never rejects a byte-valid manifest over a field it doesn't yet know about, an unrecognized token name, or a token/font-descriptor value shape. The app's own ThemeManifestParser is the real validator (CSS-safe family/src/weight/style regexes, hex-colour token values, light/dark token-set membership PARITY, and — separately, T158/T180 — the AA contrast gate); this schema only catches gross shape errors (wrong type, missing key) so a malformed catalog submission fails fast in CI rather than only at app load. Never-reject-byte-valid: a manifest this schema accepts is not guaranteed to load in the app (that needs the CSS-safety regexes and parity/contrast checks this schema deliberately leaves to the app and to T180's own lint), but a manifest the app can actually load and render must never be rejected here for a reason the app itself doesn't enforce.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["slug", "name", "author", "fonts", "modes"],
+  "properties": {
+    "slug": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable theme identifier (ThemeManifest.Slug). The catalog's own directory-name/slug rules (tools/validate.py) are enforced separately from this format schema, the same split persona-card.schema.json draws for its own `name`."
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Display name shown wherever a station lists its installed themes (ThemeManifest.Name)."
+    },
+    "author": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Who created this theme (ThemeManifest.Author). Same field whether GenWave shipped it or an owner authored it — no field marks authorship (ThemeManifest's own remarks)."
+    },
+    "fonts": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["display", "sans"],
+      "description": "Both font roles are mandatory (ThemeFonts) — a theme with only one declared face is rejected at app load.",
+      "properties": {
+        "display": { "$ref": "#/definitions/fontFace" },
+        "sans": { "$ref": "#/definitions/fontFace" }
+      }
+    },
+    "modes": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["light", "dark"],
+      "description": "Both modes are mandatory (ThemeModes) — a flat one-look theme is rejected at app load because it regresses automatic prefers-color-scheme dark.",
+      "properties": {
+        "light": { "$ref": "#/definitions/tokenMap" },
+        "dark": { "$ref": "#/definitions/tokenMap" }
+      }
+    }
+  },
+  "definitions": {
+    "fontFace": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["family", "assets"],
+      "description": "One font role (ThemeFontFace) — a family name plus the vendored assets that back it. The app rejects an empty assets list at load; this schema pins the array type only, not a minItems bound, so it never rejects a byte-valid document for a rule the app itself enforces at a different layer.",
+      "properties": {
+        "family": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Font-family name. The app additionally requires a conservative CSS-safe shape (ThemeManifestParser.FontFamilyPattern) since this interpolates into same-origin CSS — that character-set check is the app's job (and T180's contrast/shape lint), not this schema's."
+        },
+        "assets": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/fontAsset" }
+        }
+      }
+    },
+    "fontAsset": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["src", "weight", "style"],
+      "description": "One vendored font file (ThemeFontAsset). The app additionally constrains src to a vendored /fonts/*.woff2 path and weight/style to a CSS-safe descriptor shape (ThemeManifestParser) — this schema pins types only.",
+      "properties": {
+        "src": { "type": "string", "minLength": 1 },
+        "weight": { "type": "string", "minLength": 1 },
+        "style": { "type": "string", "minLength": 1 }
+      }
+    },
+    "tokenMap": {
+      "type": "object",
+      "additionalProperties": { "type": "string" },
+      "description": "Semantic token name -> CSS colour value (ThemeModes.Light/Dark). Deliberately permissive on which keys are present and on value shape beyond \"a string\" — the app's own load-time checks own the CSS-safe token-name shape, the hex-colour token-value shape, and light/dark membership PARITY (ThemeManifestParser), and the fixed 19-name vocabulary + AA contrast are T158/T180's data-driven gate, not this format schema's. A non-string token value is still a gross shape error worth catching here."
+    }
+  }
+}

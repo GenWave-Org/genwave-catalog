@@ -1,0 +1,68 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/GenWave-Org/genwave-catalog/main/schemas/theme-meta.schema.json",
+  "title": "GenWave Theme Catalog Entry Metadata",
+  "description": "The <slug>.meta.json shape for a kind:\"theme\" entry (app repo SPEC F103.2, catalog-owned). Mirrors persona-meta.schema.json's posture: additionalProperties is false — unlike the manifest, this document belongs entirely to the catalog, so an unrecognized field is a contributor mistake worth failing CI on, not a forward-compat concern. There is no samplePatter equivalent (themes have no on-air voice); in its place, `preview` is required — a small swatch payload the catalog shelf card renders without needing to fetch and parse the full manifest (T185's contract, defined here).",
+  "$comment": "`added`'s pattern ends in (?![\\s\\S]), the same portable absolute-end-of-string anchor persona-meta.schema.json uses and documents in full there — repeated verbatim here rather than by reference so this file stands alone.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["author", "description", "audience", "added", "preview"],
+  "properties": {
+    "author": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Who submitted this theme."
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "description": "A short blurb introducing the theme's look and feel."
+    },
+    "audience": {
+      "type": "string",
+      "enum": ["everyone", "mature"],
+      "description": "Content self-rating, verified at PR review (mirrors persona-meta.schema.json's `audience`; a theme's colours/fonts alone are rarely mature, but the field stays uniform across both entry kinds so the shelf's rating logic never branches on `kind`)."
+    },
+    "added": {
+      "type": "string",
+      "format": "date",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}(?![\\s\\S])",
+      "description": "ISO 8601 date (YYYY-MM-DD) this entry was added to the catalog. `format: date` alone is annotation-only in draft-07 by default, so `pattern` carries the shape enforcement — but pattern alone only checks digit counts, not calendar validity; tools/validate.py separately parses this value with datetime.date.fromisoformat to reject a shape-valid but non-existent date."
+    },
+    "preview": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["light", "dark"],
+      "description": "Shelf-card contract (T185): a HANDFUL of key token hex values per mode, enough to paint shelf chips (bg/surface/ink/accent/accent-2) without fetching and parsing the whole manifest. This is not the full token set and is never authoritative once a theme is installed — the manifest (`<slug>.theme.json`) remains the single source of truth for every token the app actually renders with; `preview` may drift from it (a stale swatch is a shelf cosmetic issue, not a broadcast one) and nothing here is re-validated against the manifest's own token values.",
+      "properties": {
+        "light": { "$ref": "#/definitions/swatchSet" },
+        "dark": { "$ref": "#/definitions/swatchSet" }
+      }
+    },
+    "bestFor": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Optional mood/use-case hints, e.g. \"late-night\", \"high-contrast\" — mirrors persona-meta.schema.json's `bestFor`."
+    }
+  },
+  "definitions": {
+    "swatchSet": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bg", "surface", "ink", "accent", "accent-2"],
+      "description": "The five shelf-chip swatches for one mode. Names match a subset of the manifest's own token vocabulary (ThemeModes token names) so a future automated preview-from-manifest generator can populate this object key-for-key.",
+      "properties": {
+        "bg": { "$ref": "#/definitions/hexColor" },
+        "surface": { "$ref": "#/definitions/hexColor" },
+        "ink": { "$ref": "#/definitions/hexColor" },
+        "accent": { "$ref": "#/definitions/hexColor" },
+        "accent-2": { "$ref": "#/definitions/hexColor" }
+      }
+    },
+    "hexColor": {
+      "type": "string",
+      "pattern": "^#[0-9a-fA-F]{3,8}(?![\\s\\S])",
+      "description": "Same hex-colour shape as the app's ThemeManifestParser.TokenValuePattern (# followed by 3-8 hex digits) — kept in sync deliberately so a swatch value is never a shape the manifest itself couldn't carry."
+    }
+  }
+}
