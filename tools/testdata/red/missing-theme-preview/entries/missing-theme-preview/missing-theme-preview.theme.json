@@ -1,7 +1,7 @@
 {
-  "slug": "valid-theme",
-  "name": "Valid Theme Fixture",
-  "author": "Test Fixture",
+  "slug": "missing-theme-preview",
+  "name": "Missing Theme Preview",
+  "author": "Red Fixture",
   "fonts": {
     "display": {
       "family": "Fraunces",

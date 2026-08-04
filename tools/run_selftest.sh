@@ -91,12 +91,14 @@ TMP_GREEN_TREE=""
 TMP_PRON_TREE=""
 TMP_SYMLINK_TREE=""
 TMP_KIND_TREE=""
+TMP_THEME_TREE=""
 cleanup() {
     rm -f "$OVERSIZE_CARD"
     [[ -n "$TMP_GREEN_TREE" ]] && rm -rf "$TMP_GREEN_TREE"
     [[ -n "$TMP_PRON_TREE" ]] && rm -rf "$TMP_PRON_TREE"
     [[ -n "$TMP_SYMLINK_TREE" ]] && rm -rf "$TMP_SYMLINK_TREE"
     [[ -n "$TMP_KIND_TREE" ]] && rm -rf "$TMP_KIND_TREE"
+    [[ -n "$TMP_THEME_TREE" ]] && rm -rf "$TMP_THEME_TREE"
 }
 trap cleanup EXIT
 
@@ -186,6 +188,53 @@ check_red_variant one-sample "samplePatter"
 check_red_variant bad-json "json-parse"
 check_red_variant bad-date "bad-date"
 check_red_variant bad-pronunciations-type "schema: pronunciations/0/"
+
+echo "== validate.py: kind-aware theme-entry validation (schemas/theme-manifest.schema.json + schemas/theme-meta.schema.json, SPEC F103.2 / T179) =="
+
+echo "-- green valid-theme fixture validates clean end-to-end as a kind:\"theme\" entry --"
+TMP_THEME_TREE="$(mktemp -d)"
+mkdir -p "$TMP_THEME_TREE/entries/valid-theme"
+cp "$KIND_GREEN_FIXTURE/valid-theme.theme.json" "$TMP_THEME_TREE/entries/valid-theme/valid-theme.theme.json"
+cp "$KIND_GREEN_FIXTURE/valid-theme.meta.json" "$TMP_THEME_TREE/entries/valid-theme/valid-theme.meta.json"
+output=$(python3 tools/validate.py --root "$TMP_THEME_TREE" 2>&1)
+status=$?
+echo "$output"
+if [[ $status -eq 0 ]]; then
+    pass "green valid-theme fixture validates clean as a kind:\"theme\" entry"
+else
+    fail "green valid-theme fixture did not validate clean as a kind:\"theme\" entry (expected exit 0, got $status)"
+fi
+echo
+
+check_red_variant bad-theme-mode "'dark' is a required property"
+check_red_variant missing-theme-preview "'preview' is a required property"
+
+echo "-- fixtures/golden.theme.json (the app-manifest-serializer parity fixture) validates against schemas/theme-manifest.schema.json --"
+tmp_golden_theme_check="$(mktemp)"
+cat >"$tmp_golden_theme_check" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+import jsonschema
+
+schema = json.loads(Path("schemas/theme-manifest.schema.json").read_text(encoding="utf-8"))
+golden = json.loads(Path("fixtures/golden.theme.json").read_text(encoding="utf-8"))
+validator = jsonschema.validators.validator_for(schema)(schema)
+errors = [e.message for e in validator.iter_errors(golden)]
+if errors:
+    for message in errors:
+        print(f"fixtures/golden.theme.json: schema: {message}")
+    sys.exit(1)
+print("fixtures/golden.theme.json validates against schemas/theme-manifest.schema.json")
+PY
+if python3 "$tmp_golden_theme_check"; then
+    pass "fixtures/golden.theme.json validates against schemas/theme-manifest.schema.json"
+else
+    fail "fixtures/golden.theme.json does not validate against schemas/theme-manifest.schema.json"
+fi
+rm -f "$tmp_golden_theme_check"
+echo
 
 echo "-- generating oversize-card fixture (not committed; see .gitignore) --"
 if python3 - "$OVERSIZE_CARD" <<'PY'
