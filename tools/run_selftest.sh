@@ -658,11 +658,19 @@ data = json.loads(index_path.read_text())
 by_slug = {e["slug"]: e for e in data["entries"]}
 
 schema = json.loads(schema_path.read_text(encoding="utf-8"))
-# Embed the sha256 definition directly into the entry subschema so its
-# "#/definitions/sha256" $ref self-resolves without needing a resolver
-# rooted at the full document.
+# Embed the sha256/swatchSet/hexColor definitions directly into the entry
+# subschema so its "#/definitions/..." $refs self-resolve without needing a
+# resolver rooted at the full document. swatchSet/hexColor back the T191
+# "preview" property added to the entry schema (mirrors theme-meta.schema.json's
+# own swatchSet contract) — omitting them here would make this embedded
+# subschema (not the real one tools/validate.py loads whole) throw
+# PointerToNowhere the moment a theme entry carrying "preview" is validated.
 entry_schema = dict(schema["definitions"]["entry"])
-entry_schema["definitions"] = {"sha256": schema["definitions"]["sha256"]}
+entry_schema["definitions"] = {
+    "sha256": schema["definitions"]["sha256"],
+    "swatchSet": schema["definitions"]["swatchSet"],
+    "hexColor": schema["definitions"]["hexColor"],
+}
 validator = jsonschema.validators.validator_for(entry_schema)(entry_schema)
 
 errors = []
@@ -675,6 +683,8 @@ else:
         errors.append(f"valid-dj: unexpected 'kind' key stamped onto a persona entry: {persona['kind']!r}")
     if "manifest" in persona:
         errors.append("valid-dj: unexpected 'manifest' key on a persona entry")
+    if "preview" in persona:
+        errors.append("valid-dj: unexpected 'preview' key on a persona entry (T191 projection is theme-only)")
     if "card" not in persona:
         errors.append("valid-dj: missing 'card' key")
     persona_errors = [e.message for e in validator.iter_errors(persona)]
@@ -701,6 +711,18 @@ else:
             got = manifest.get("sha256")
             if want != got:
                 errors.append(f"valid-theme.manifest.sha256 mismatch: recomputed {want}, index has {got}")
+    # T191 scope note: build_index.py must project meta.json's "preview" into
+    # the index entry (the "bestFor" precedent) — without it every real theme
+    # card renders zero shelf chips (T185's contract). Compared against the
+    # SAME meta.json build_index.py itself just read, not a hardcoded literal,
+    # so a future edit to the fixture can't silently desync this assertion.
+    meta_path = tree_root / "entries" / "valid-theme" / "valid-theme.meta.json"
+    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    if theme.get("preview") != meta.get("preview"):
+        errors.append(
+            f"valid-theme: index 'preview' {theme.get('preview')!r} does not match "
+            f"{meta_path}'s own 'preview' {meta.get('preview')!r} — build_index.py did not project it"
+        )
     theme_errors = [e.message for e in validator.iter_errors(theme)]
     if theme_errors:
         errors.append(f"valid-theme entry does not validate against schemas/index.schema.json: {theme_errors}")
@@ -710,9 +732,9 @@ if errors:
         print(line)
     sys.exit(1)
 print(
-    "kind-aware index shape OK: persona entry unchanged (card, no kind/manifest key), "
-    "theme entry carries kind:\"theme\" + manifest (sha256 verified), both entries "
-    "validate against schemas/index.schema.json"
+    "kind-aware index shape OK: persona entry unchanged (card, no kind/manifest/preview key), "
+    "theme entry carries kind:\"theme\" + manifest + preview (sha256 verified, preview matches "
+    "meta.json), both entries validate against schemas/index.schema.json"
 )
 PY
     if python3 "$tmp_kind_check" "$tmp_kind_index" "$TMP_KIND_TREE" "schemas/index.schema.json"; then

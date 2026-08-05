@@ -6,6 +6,9 @@ per SPEC F103.2 / T178).
         { "slug", "audience", "bestFor" (when present),
           "card": {"path", "sha256"}, "meta": {"path", "sha256"} },
         { "slug", "audience", "kind": "theme", "bestFor" (when present),
+          "preview" (when present, T191 — mirrors "bestFor"; a theme's meta.json
+          always carries it, theme-meta.schema.json requires it, but the
+          projection stays a plain presence check rather than an assumption),
           "manifest": {"path", "sha256"}, "meta": {"path", "sha256"} },
         ...
     ] }
@@ -139,6 +142,8 @@ def discover_entries(root: Path) -> tuple[list[dict], list[str]]:
             record["manifest"] = manifest_ref
         if "bestFor" in meta:
             record["bestFor"] = meta["bestFor"]
+        if "preview" in meta:
+            record["preview"] = meta["preview"]
         records.append(record)
         added_dates.append(added)
 

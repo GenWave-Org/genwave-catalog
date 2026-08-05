@@ -24,6 +24,23 @@
       "type": "string",
       "pattern": "^[a-f0-9]{64}(?![\\s\\S])"
     },
+    "swatchSet": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bg", "surface", "ink", "accent", "accent-2"],
+      "description": "The five shelf-chip swatches for one mode (mirrors schemas/theme-meta.schema.json's own `swatchSet`).",
+      "properties": {
+        "bg": { "$ref": "#/definitions/hexColor" },
+        "surface": { "$ref": "#/definitions/hexColor" },
+        "ink": { "$ref": "#/definitions/hexColor" },
+        "accent": { "$ref": "#/definitions/hexColor" },
+        "accent-2": { "$ref": "#/definitions/hexColor" }
+      }
+    },
+    "hexColor": {
+      "type": "string",
+      "pattern": "^#[0-9a-fA-F]{3,8}(?![\\s\\S])"
+    },
     "entry": {
       "type": "object",
       "additionalProperties": false,
@@ -46,6 +63,16 @@
         "bestFor": {
           "type": "array",
           "items": { "type": "string" }
+        },
+        "preview": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["light", "dark"],
+          "description": "Projected from a kind:\"theme\" entry's meta.json (T191, mirrors the `bestFor` precedent above) — the shelf-card swatch contract (T185): a HANDFUL of key token hex values per mode, enough to paint shelf chips without fetching and parsing the full manifest. Only ever present on a kind:\"theme\" entry; a persona entry's meta.json carries no `preview` field, so build_index.py never stamps this key onto one. Definitions duplicated from schemas/theme-meta.schema.json rather than $ref'd across files, the same standalone-file posture that schema's own $comment documents for its `added` pattern.",
+          "properties": {
+            "light": { "$ref": "#/definitions/swatchSet" },
+            "dark": { "$ref": "#/definitions/swatchSet" }
+          }
         },
         "card": {
           "type": "object",
