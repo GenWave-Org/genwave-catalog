@@ -1,0 +1,23 @@
+{
+  "author": "GenWave",
+  "description": "A bright rose-and-violet palette with a JetBrains Mono display face for a glitchy, scratched-record vibe.",
+  "audience": "everyone",
+  "added": "2026-08-05",
+  "preview": {
+    "light": {
+      "bg": "#f3e6e0",
+      "surface": "#fbf4ef",
+      "ink": "#2e231f",
+      "accent": "#d52652",
+      "accent-2": "#794d96"
+    },
+    "dark": {
+      "bg": "#1c1511",
+      "surface": "#281f1a",
+      "ink": "#eee7dd",
+      "accent": "#e1476d",
+      "accent-2": "#a277bf"
+    }
+  },
+  "bestFor": ["glitch", "electronic", "drive time"]
+}
