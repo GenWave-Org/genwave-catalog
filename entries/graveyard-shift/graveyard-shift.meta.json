@@ -1,0 +1,23 @@
+{
+  "author": "GenWave",
+  "description": "A hushed violet-and-plum palette, its Grenze Gotisch display face for the small hours between sign-off and sunrise.",
+  "audience": "everyone",
+  "added": "2026-08-05",
+  "preview": {
+    "light": {
+      "bg": "#e9dcd3",
+      "surface": "#f5ede5",
+      "ink": "#281e1b",
+      "accent": "#745bbc",
+      "accent-2": "#87436b"
+    },
+    "dark": {
+      "bg": "#16100c",
+      "surface": "#201913",
+      "ink": "#efe9e1",
+      "accent": "#866cd4",
+      "accent-2": "#be6699"
+    }
+  },
+  "bestFor": ["late-night", "moody", "high-contrast"]
+}

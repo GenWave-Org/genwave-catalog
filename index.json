@@ -88,6 +88,40 @@
     {
       "audience": "everyone",
       "bestFor": [
+        "late-night",
+        "moody",
+        "high-contrast"
+      ],
+      "kind": "theme",
+      "manifest": {
+        "path": "entries/graveyard-shift/graveyard-shift.theme.json",
+        "sha256": "8aed5c0b8c166b6225d48da35aefebcdaf6bc980c327faf87506a15f36cb3cab"
+      },
+      "meta": {
+        "path": "entries/graveyard-shift/graveyard-shift.meta.json",
+        "sha256": "fe68e1aeda69f6a6311ee99db01af3971bad20aed6796269a3173b6c9ee2db26"
+      },
+      "preview": {
+        "dark": {
+          "accent": "#866cd4",
+          "accent-2": "#be6699",
+          "bg": "#16100c",
+          "ink": "#efe9e1",
+          "surface": "#201913"
+        },
+        "light": {
+          "accent": "#745bbc",
+          "accent-2": "#87436b",
+          "bg": "#e9dcd3",
+          "ink": "#281e1b",
+          "surface": "#f5ede5"
+        }
+      },
+      "slug": "graveyard-shift"
+    },
+    {
+      "audience": "everyone",
+      "bestFor": [
         "synthwave",
         "electronic",
         "night drive"
