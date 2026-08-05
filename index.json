@@ -203,7 +203,41 @@
         "sha256": "997bcf8b4dffbff256c1373907db628925fe445fdbc01ab861163906ea90d6b1"
       },
       "slug": "the-archivist"
+    },
+    {
+      "audience": "everyone",
+      "bestFor": [
+        "vinyl",
+        "late-night",
+        "warm"
+      ],
+      "kind": "theme",
+      "manifest": {
+        "path": "entries/wow-and-flutter/wow-and-flutter.theme.json",
+        "sha256": "2f68fac164a74fb60e67c25070880861a247a77b88ae8d87a6cf30785fb9066f"
+      },
+      "meta": {
+        "path": "entries/wow-and-flutter/wow-and-flutter.meta.json",
+        "sha256": "79cde9246a3aaaee76ce3665c678669f205d03a4f6c7b2ddd80f1cdc855720cd"
+      },
+      "preview": {
+        "dark": {
+          "accent": "#b47414",
+          "accent-2": "#669844",
+          "bg": "#1f1712",
+          "ink": "#f0e8db",
+          "surface": "#2b211a"
+        },
+        "light": {
+          "accent": "#9b6411",
+          "accent-2": "#44692b",
+          "bg": "#f3e4d5",
+          "ink": "#2b211d",
+          "surface": "#fcf4eb"
+        }
+      },
+      "slug": "wow-and-flutter"
     }
   ],
-  "generatedAt": "2026-07-26"
+  "generatedAt": "2026-08-05"
 }
