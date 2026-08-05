@@ -1,0 +1,23 @@
+{
+  "author": "GenWave",
+  "description": "A weathered rust-and-brass palette with a Grenze Gotisch display face for a swashbuckling broadcast.",
+  "audience": "everyone",
+  "added": "2026-08-05",
+  "preview": {
+    "light": {
+      "bg": "#e4dfd5",
+      "surface": "#f3efe8",
+      "ink": "#261c17",
+      "accent": "#ca2f44",
+      "accent-2": "#70571e"
+    },
+    "dark": {
+      "bg": "#16110e",
+      "surface": "#221b16",
+      "ink": "#eee8dd",
+      "accent": "#d94b5e",
+      "accent-2": "#a08138"
+    }
+  },
+  "bestFor": ["adventure", "high-contrast"]
+}
