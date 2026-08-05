@@ -207,6 +207,40 @@
     {
       "audience": "everyone",
       "bestFor": [
+        "glitch",
+        "electronic",
+        "drive time"
+      ],
+      "kind": "theme",
+      "manifest": {
+        "path": "entries/skip/skip.theme.json",
+        "sha256": "3ba7da3167804af55db6e55f6435cbcdfc363973b593957639c17ec48ccac2d0"
+      },
+      "meta": {
+        "path": "entries/skip/skip.meta.json",
+        "sha256": "8c24d8e8a33c4ac14ab1523f83278ee617aa37d36dd4ce30ed70035a55cea4d8"
+      },
+      "preview": {
+        "dark": {
+          "accent": "#e1476d",
+          "accent-2": "#a277bf",
+          "bg": "#1c1511",
+          "ink": "#eee7dd",
+          "surface": "#281f1a"
+        },
+        "light": {
+          "accent": "#d52652",
+          "accent-2": "#794d96",
+          "bg": "#f3e6e0",
+          "ink": "#2e231f",
+          "surface": "#fbf4ef"
+        }
+      },
+      "slug": "skip"
+    },
+    {
+      "audience": "everyone",
+      "bestFor": [
         "folk",
         "indie pop",
         "morning"
