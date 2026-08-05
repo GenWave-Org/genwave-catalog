@@ -173,6 +173,39 @@
     {
       "audience": "everyone",
       "bestFor": [
+        "adventure",
+        "high-contrast"
+      ],
+      "kind": "theme",
+      "manifest": {
+        "path": "entries/pirate/pirate.theme.json",
+        "sha256": "eef3858b7f022fb350babf04aae0195aea1771ceb76ac8edef62020dc49e7a3e"
+      },
+      "meta": {
+        "path": "entries/pirate/pirate.meta.json",
+        "sha256": "8b2ac7feae8d4a45ac1e7d6ad7dea95e7edbd77eed026959f1cd65ddfd456082"
+      },
+      "preview": {
+        "dark": {
+          "accent": "#d94b5e",
+          "accent-2": "#a08138",
+          "bg": "#16110e",
+          "ink": "#eee8dd",
+          "surface": "#221b16"
+        },
+        "light": {
+          "accent": "#ca2f44",
+          "accent-2": "#70571e",
+          "bg": "#e4dfd5",
+          "ink": "#261c17",
+          "surface": "#f3efe8"
+        }
+      },
+      "slug": "pirate"
+    },
+    {
+      "audience": "everyone",
+      "bestFor": [
         "jazz",
         "classical",
         "evening"
