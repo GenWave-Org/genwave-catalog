@@ -1,0 +1,23 @@
+{
+  "author": "GenWave",
+  "description": "A warm amber-and-olive palette named for the wobble in a worn turntable belt.",
+  "audience": "everyone",
+  "added": "2026-08-05",
+  "preview": {
+    "light": {
+      "bg": "#f3e4d5",
+      "surface": "#fcf4eb",
+      "ink": "#2b211d",
+      "accent": "#9b6411",
+      "accent-2": "#44692b"
+    },
+    "dark": {
+      "bg": "#1f1712",
+      "surface": "#2b211a",
+      "ink": "#f0e8db",
+      "accent": "#b47414",
+      "accent-2": "#669844"
+    }
+  },
+  "bestFor": ["vinyl", "late-night", "warm"]
+}
