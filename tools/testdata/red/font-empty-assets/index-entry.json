@@ -1,0 +1,15 @@
+{
+  "slug": "font-empty-assets",
+  "kind": "font",
+  "audience": "everyone",
+  "manifest": {
+    "path": "entries/font-empty-assets/font-empty-assets.font.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "meta": {
+    "path": "entries/font-empty-assets/font-empty-assets.meta.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "assets": [],
+  "family": "Empty Assets"
+}

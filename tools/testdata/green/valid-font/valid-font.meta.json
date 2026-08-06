@@ -1,0 +1,6 @@
+{
+  "author": "Test Fixture",
+  "description": "Green-variant kind:\"font\" fixture for tools/run_selftest.sh (SPEC F104.1/F104.2 / T195) and tools/validate.py (validate_font_pack) \u2014 copied into a temporary entries/ tree at test time to exercise kind-aware validation end to end (font-manifest.schema.json, font-meta.schema.json, the pack-ceiling/OFL/license/orphan/duplicate gates). Not a real catalog entry, and NOT itself under entries/. The manifest's declared files[].bytes (456) DELIBERATELY differs from the woff2's real on-disk size (123): build_index must project stat() truth, and the mismatch is what makes that property test-discriminable (T196 review B1).",
+  "audience": "everyone",
+  "added": "2026-08-05"
+}

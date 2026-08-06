@@ -1,0 +1,10 @@
+{
+  "family": "Missing Weight Bytes",
+  "files": [
+    { "role": "upright", "file": "font-manifest-missing-weight-bytes-variable-latin.woff2", "style": "normal" }
+  ],
+  "license": "OFL-1.1",
+  "sourceUrl": "https://example.com/font-manifest-missing-weight-bytes",
+  "version": "1.000",
+  "subset": "latin"
+}

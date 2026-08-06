@@ -1,0 +1,30 @@
+{
+  "slug": "valid-font-index-entry",
+  "kind": "font",
+  "audience": "everyone",
+  "bestFor": [
+    "display",
+    "headings"
+  ],
+  "manifest": {
+    "path": "entries/valid-font-index-entry/valid-font-index-entry.font.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "meta": {
+    "path": "entries/valid-font-index-entry/valid-font-index-entry.meta.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "assets": [
+    {
+      "path": "entries/valid-font-index-entry/valid-font-index-entry-variable-latin.woff2",
+      "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "bytes": 7844
+    },
+    {
+      "path": "entries/valid-font-index-entry/OFL.txt",
+      "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "bytes": 4500
+    }
+  ],
+  "family": "Valid Font"
+}

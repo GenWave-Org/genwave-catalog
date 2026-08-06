@@ -1,0 +1,6 @@
+{
+  "author": "Red Fixture",
+  "description": "Red-variant kind:\"font\" fixture (SPEC F104.1 / T195) — its one files[] face omits both `weight` and `bytes` (schemas/font-manifest.schema.json's `fontFile` requires all five fields), proving tools/validate.py's schema check rejects a manifest whose declared face is missing required fields, not just a manifest that fails to parse.",
+  "audience": "everyone",
+  "added": "2026-08-05"
+}

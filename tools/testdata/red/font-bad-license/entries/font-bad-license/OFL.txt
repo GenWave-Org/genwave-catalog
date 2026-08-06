@@ -1,0 +1,1 @@
+Placeholder licence text (not actually MIT) — this fixture exercises the license-allowlist gate only.

@@ -1,0 +1,6 @@
+{
+  "author": "Red Fixture",
+  "description": "Red-variant kind:\"font\" fixture (SPEC F104.1/F104.2 / T195) — ships a THIRD asset file ('stowaway.woff2') that no files[] entry references and that isn't OFL.txt, proving tools/validate.py's validate_font_pack rejects a physical asset nothing accounts for (the reverse of font-orphan-manifest-file: a pack IS its files, both directions).",
+  "audience": "everyone",
+  "added": "2026-08-05"
+}

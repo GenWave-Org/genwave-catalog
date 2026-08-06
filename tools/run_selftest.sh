@@ -87,20 +87,61 @@ check_red() {
 KIND_GREEN_FIXTURE="tools/testdata/green/valid-theme"
 KIND_RED_DIR="tools/testdata/red"
 
+FONT_GREEN_FIXTURE="tools/testdata/green/valid-font"
+FONT_OVER_CEILING_ASSET="$RED_DIR/font-over-ceiling/entries/font-over-ceiling/font-over-ceiling-variable-latin.woff2"
+
 TMP_GREEN_TREE=""
 TMP_PRON_TREE=""
 TMP_SYMLINK_TREE=""
 TMP_KIND_TREE=""
 TMP_THEME_TREE=""
+TMP_FONT_TREE=""
+TMP_FONT_INDEX_TREE=""
+TMP_HOSTILE_BYTES_TREE=""
+TMP_SCHEMA_HELPERS_DIR=""
 cleanup() {
     rm -f "$OVERSIZE_CARD"
+    rm -f "$FONT_OVER_CEILING_ASSET"
     [[ -n "$TMP_GREEN_TREE" ]] && rm -rf "$TMP_GREEN_TREE"
     [[ -n "$TMP_PRON_TREE" ]] && rm -rf "$TMP_PRON_TREE"
     [[ -n "$TMP_SYMLINK_TREE" ]] && rm -rf "$TMP_SYMLINK_TREE"
     [[ -n "$TMP_KIND_TREE" ]] && rm -rf "$TMP_KIND_TREE"
     [[ -n "$TMP_THEME_TREE" ]] && rm -rf "$TMP_THEME_TREE"
+    [[ -n "$TMP_FONT_TREE" ]] && rm -rf "$TMP_FONT_TREE"
+    [[ -n "$TMP_FONT_INDEX_TREE" ]] && rm -rf "$TMP_FONT_INDEX_TREE"
+    [[ -n "$TMP_HOSTILE_BYTES_TREE" ]] && rm -rf "$TMP_HOSTILE_BYTES_TREE"
+    [[ -n "$TMP_SCHEMA_HELPERS_DIR" ]] && rm -rf "$TMP_SCHEMA_HELPERS_DIR"
 }
 trap cleanup EXIT
+
+# Shared home for the schemas/index.schema.json `entry` subschema + its own
+# sha256/assetRef/swatchSet/hexColor definitions embedding, so its own
+# "#/definitions/..." $refs self-resolve without needing a resolver rooted at
+# the full document — one Python module, written once, rather than a
+# duplicated `entry_schema["definitions"] = {...}` heredoc in each of
+# check_kind_entry_red/check_kind_entry_green below (N4 review finding).
+TMP_SCHEMA_HELPERS_DIR="$(mktemp -d)"
+cat >"$TMP_SCHEMA_HELPERS_DIR/index_entry_schema.py" <<'PY'
+"""Shared helper for tools/run_selftest.sh's inline Python checks against
+schemas/index.schema.json's `entry` subschema (N4 review finding: one
+definitions source instead of a copy per caller)."""
+import json
+from pathlib import Path
+
+import jsonschema
+
+
+def load_entry_validator(schema_path: Path = Path("schemas/index.schema.json")):
+    schema = json.loads(schema_path.read_text(encoding="utf-8"))
+    entry_schema = dict(schema["definitions"]["entry"])
+    entry_schema["definitions"] = {
+        "sha256": schema["definitions"]["sha256"],
+        "assetRef": schema["definitions"]["assetRef"],
+        "swatchSet": schema["definitions"]["swatchSet"],
+        "hexColor": schema["definitions"]["hexColor"],
+    }
+    return jsonschema.validators.validator_for(entry_schema)(entry_schema)
+PY
 
 echo "== validate.py: good entries (expect green) =="
 output=$(python3 tools/validate.py 2>&1)
@@ -227,32 +268,98 @@ for expect in "aa-contrast" "pair 'mute' on 'bg'" "measured 1.00:1"; do
 done
 echo
 
-echo "-- fixtures/golden.theme.json (the app-manifest-serializer parity fixture) validates against schemas/theme-manifest.schema.json --"
-tmp_golden_theme_check="$(mktemp)"
-cat >"$tmp_golden_theme_check" <<'PY'
+# Shared by every "does this golden parity fixture still validate against
+# its schema" check below (theme, font, and any future kind) — a THIRD
+# near-verbatim copy of this inline-Python block (font, added at T195) is
+# what made the duplication worth collapsing into one function (N4 review
+# finding).
+check_golden_fixture() {
+    local fixture_path="$1" schema_path="$2"
+    local output status
+    output=$(python3 - "$fixture_path" "$schema_path" <<'PY'
 import json
 import sys
 from pathlib import Path
 
 import jsonschema
 
-schema = json.loads(Path("schemas/theme-manifest.schema.json").read_text(encoding="utf-8"))
-golden = json.loads(Path("fixtures/golden.theme.json").read_text(encoding="utf-8"))
+fixture_path, schema_path = sys.argv[1], sys.argv[2]
+schema = json.loads(Path(schema_path).read_text(encoding="utf-8"))
+golden = json.loads(Path(fixture_path).read_text(encoding="utf-8"))
 validator = jsonschema.validators.validator_for(schema)(schema)
 errors = [e.message for e in validator.iter_errors(golden)]
 if errors:
     for message in errors:
-        print(f"fixtures/golden.theme.json: schema: {message}")
+        print(f"{fixture_path}: schema: {message}")
     sys.exit(1)
-print("fixtures/golden.theme.json validates against schemas/theme-manifest.schema.json")
+print(f"{fixture_path} validates against {schema_path}")
 PY
-if python3 "$tmp_golden_theme_check"; then
-    pass "fixtures/golden.theme.json validates against schemas/theme-manifest.schema.json"
+    )
+    status=$?
+    echo "$output"
+    if [[ $status -eq 0 ]]; then
+        pass "$fixture_path validates against $schema_path"
+    else
+        fail "$fixture_path does not validate against $schema_path"
+    fi
+    echo
+}
+
+echo "-- fixtures/golden.theme.json (the app-manifest-serializer parity fixture) validates against schemas/theme-manifest.schema.json --"
+check_golden_fixture "fixtures/golden.theme.json" "schemas/theme-manifest.schema.json"
+
+echo "== validate.py: kind-aware font-entry validation (schemas/font-manifest.schema.json + schemas/font-meta.schema.json, SPEC F104.1/F104.2 / T195) =="
+
+echo "-- green valid-font fixture validates clean end-to-end as a kind:\"font\" entry --"
+TMP_FONT_TREE="$(mktemp -d)"
+mkdir -p "$TMP_FONT_TREE/entries/valid-font"
+cp "$FONT_GREEN_FIXTURE/valid-font.font.json" "$TMP_FONT_TREE/entries/valid-font/valid-font.font.json"
+cp "$FONT_GREEN_FIXTURE/valid-font.meta.json" "$TMP_FONT_TREE/entries/valid-font/valid-font.meta.json"
+cp "$FONT_GREEN_FIXTURE/valid-font-variable-latin.woff2" "$TMP_FONT_TREE/entries/valid-font/valid-font-variable-latin.woff2"
+cp "$FONT_GREEN_FIXTURE/OFL.txt" "$TMP_FONT_TREE/entries/valid-font/OFL.txt"
+output=$(python3 tools/validate.py --root "$TMP_FONT_TREE" 2>&1)
+status=$?
+echo "$output"
+if [[ $status -eq 0 ]]; then
+    pass "green valid-font fixture validates clean as a kind:\"font\" entry"
 else
-    fail "fixtures/golden.theme.json does not validate against schemas/theme-manifest.schema.json"
+    fail "green valid-font fixture did not validate clean as a kind:\"font\" entry (expected exit 0, got $status)"
 fi
-rm -f "$tmp_golden_theme_check"
 echo
+
+echo "-- red font-manifest schema-shape gates: schemas/font-manifest.schema.json's own required-field and pattern checks (SPEC F104.1, T195 review finding — these previously had zero red coverage; mirrors bad-theme-mode/missing-theme-preview's role for the theme kind above) --"
+check_red_variant font-manifest-missing-weight-bytes "'weight' is a required property"
+check_red_variant font-manifest-bad-family "does not match '^[A-Za-z0-9][A-Za-z0-9 -]*"
+check_red_variant font-manifest-bad-sourceurl "does not match '^https://'"
+
+check_red_variant font-missing-ofl "font-missing-ofl"
+check_red_variant font-bad-license "font-bad-license"
+check_red_variant font-orphan-manifest "font-orphan-manifest-file"
+check_red_variant font-duplicate-asset "font-duplicate-asset"
+check_red_variant font-stowaway-asset "font-stowaway-asset"
+
+echo "-- red font-over-ceiling: per-pack byte ceiling rejects a font pack whose summed asset bytes exceed 204,800 (SPEC F104.2) --"
+if python3 - "$FONT_OVER_CEILING_ASSET" <<'PY'
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+path.parent.mkdir(parents=True, exist_ok=True)
+# 205 KiB alone already exceeds the 200 KiB (204,800-byte) per-pack ceiling —
+# generated here at test time, not committed (see .gitignore), the same
+# oversize-card precedent immediately above.
+path.write_bytes(b"x" * (205 * 1024))
+print(f"generated {path} ({path.stat().st_size} bytes)")
+PY
+then
+    check_red_variant font-over-ceiling "font-pack-ceiling"
+else
+    fail "failed to generate the font-over-ceiling fixture asset"
+fi
+rm -f "$FONT_OVER_CEILING_ASSET"
+
+echo "-- fixtures/golden.font.json (the app font-manifest-serializer parity fixture) validates against schemas/font-manifest.schema.json --"
+check_golden_fixture "fixtures/golden.font.json" "schemas/font-manifest.schema.json"
 
 echo "-- generating oversize-card fixture (not committed; see .gitignore) --"
 if python3 - "$OVERSIZE_CARD" <<'PY'
@@ -749,25 +856,347 @@ fi
 rm -f "$tmp_kind_index"
 echo
 
-check_kind_entry_red() {
-    local variant="$1" expect="$2"
-    local output status
-    output=$(python3 - "$KIND_RED_DIR/$variant/index-entry.json" "$expect" <<'PY'
+echo "== build_index.py + schemas/index.schema.json: font kind projects assets[]/family (SPEC F104.1, T196) =="
+# Mirrors the persona+theme kind-discriminator check above, font-shaped: a
+# small entries/ tree (the FONT_GREEN_FIXTURE's own font/meta/asset files)
+# fed through build_index.py, then the built entry's assets[]/family/byte
+# totals are checked against the SAME on-disk files build_index.py itself
+# just read — not hardcoded numbers — plus a schema-validity check against
+# schemas/index.schema.json's font branch (T196 obligation 6).
+TMP_FONT_INDEX_TREE="$(mktemp -d)"
+mkdir -p "$TMP_FONT_INDEX_TREE/entries/valid-font"
+cp "$FONT_GREEN_FIXTURE/valid-font.font.json" "$TMP_FONT_INDEX_TREE/entries/valid-font/valid-font.font.json"
+cp "$FONT_GREEN_FIXTURE/valid-font.meta.json" "$TMP_FONT_INDEX_TREE/entries/valid-font/valid-font.meta.json"
+cp "$FONT_GREEN_FIXTURE/valid-font-variable-latin.woff2" "$TMP_FONT_INDEX_TREE/entries/valid-font/valid-font-variable-latin.woff2"
+cp "$FONT_GREEN_FIXTURE/OFL.txt" "$TMP_FONT_INDEX_TREE/entries/valid-font/OFL.txt"
+
+tmp_font_index="$(mktemp)"
+font_index_build_ok=1
+if ! python3 tools/build_index.py --root "$TMP_FONT_INDEX_TREE" --out "$tmp_font_index"; then
+    fail "build_index.py exited non-zero building the font-kind fixture tree"
+    font_index_build_ok=0
+fi
+
+if [[ $font_index_build_ok -eq 1 ]]; then
+    tmp_font_index_check="$(mktemp)"
+    cat >"$tmp_font_index_check" <<'PY'
+import hashlib
 import json
 import sys
 from pathlib import Path
 
-import jsonschema
+sys.path.insert(0, sys.argv[4])
+from index_entry_schema import load_entry_validator
 
-schema = json.loads(Path("schemas/index.schema.json").read_text(encoding="utf-8"))
-# Embed the sha256 definition directly into the entry subschema so its
-# "#/definitions/sha256" $ref self-resolves without needing a resolver
-# rooted at the full document.
-entry_schema = dict(schema["definitions"]["entry"])
-entry_schema["definitions"] = {"sha256": schema["definitions"]["sha256"]}
-validator = jsonschema.validators.validator_for(entry_schema)(entry_schema)
+index_path, tree_root, schema_path = Path(sys.argv[1]), Path(sys.argv[2]), Path(sys.argv[3])
+data = json.loads(index_path.read_text())
+by_slug = {e["slug"]: e for e in data["entries"]}
+validator = load_entry_validator(schema_path)
 
-fixture_path, expect_substring = Path(sys.argv[1]), sys.argv[2]
+errors = []
+
+font = by_slug.get("valid-font")
+if font is None:
+    errors.append("valid-font entry missing from built index")
+else:
+    if font.get("kind") != "font":
+        errors.append(f"valid-font: expected kind 'font', got {font.get('kind')!r}")
+    manifest = font.get("manifest")
+    if not isinstance(manifest, dict) or not str(manifest.get("path", "")).endswith("valid-font.font.json"):
+        errors.append(f"valid-font: manifest missing/unexpected: {manifest!r}")
+
+    # family: projected straight off the manifest build_index.py itself just
+    # read, not a hardcoded literal (mirrors the theme "preview" precedent
+    # above) — so a future edit to the fixture can't silently desync this.
+    manifest_data = json.loads((tree_root / "entries/valid-font/valid-font.font.json").read_text(encoding="utf-8"))
+    if font.get("family") != manifest_data.get("family"):
+        errors.append(
+            f"valid-font: index 'family' {font.get('family')!r} does not match the manifest's own "
+            f"'family' {manifest_data.get('family')!r} — build_index.py did not project it"
+        )
+
+    # assets[]: every sibling file in the entry directory other than the
+    # manifest/meta themselves — the same font_asset_paths selection
+    # build_index.py itself uses (tools/catalog_lib.py) — recomputed here
+    # independently rather than assumed.
+    entry_dir = tree_root / "entries" / "valid-font"
+    on_disk = sorted(
+        p for p in entry_dir.iterdir()
+        if p.is_file() and p.name not in ("valid-font.font.json", "valid-font.meta.json")
+    )
+    assets = font.get("assets")
+    if not isinstance(assets, list) or len(assets) != len(on_disk):
+        got_len = len(assets) if isinstance(assets, list) else "n/a"
+        errors.append(f"valid-font: assets[] length {got_len} does not match on-disk asset count {len(on_disk)}")
+    else:
+        asset_paths = [a.get("path") for a in assets]
+        if asset_paths != sorted(asset_paths):
+            errors.append(f"valid-font: assets[] paths not sorted: {asset_paths}")
+
+        recomputed_total = 0
+        declared_total = 0
+        for asset, disk_path in zip(assets, on_disk):
+            want_sha = hashlib.sha256(disk_path.read_bytes()).hexdigest()
+            want_bytes = disk_path.stat().st_size
+            got_sha = asset.get("sha256")
+            got_bytes = asset.get("bytes")
+            if want_sha != got_sha:
+                errors.append(f"valid-font: {disk_path.name} sha256 mismatch: recomputed {want_sha}, index has {got_sha}")
+            if want_bytes != got_bytes:
+                errors.append(f"valid-font: {disk_path.name} bytes mismatch: recomputed {want_bytes}, index has {got_bytes}")
+            recomputed_total += want_bytes
+            declared_total += got_bytes if isinstance(got_bytes, int) else 0
+        # T196 obligation 6: the SUMMED assets[] byte total must match an
+        # independently-recomputed on-disk byte total for the same tree —
+        # not merely each individual asset matching its own on-disk file.
+        if recomputed_total != declared_total:
+            errors.append(
+                f"valid-font: assets[] byte total {declared_total} does not match independently "
+                f"recomputed on-disk byte total {recomputed_total}"
+            )
+
+    font_errors = [e.message for e in validator.iter_errors(font)]
+    if font_errors:
+        errors.append(f"valid-font entry does not validate against schemas/index.schema.json: {font_errors}")
+
+if errors:
+    for line in errors:
+        print(line)
+    sys.exit(1)
+print(
+    "font-kind index shape OK: kind/manifest/family projected, assets[] sorted with real sha256+bytes "
+    "matching on-disk files, summed byte total matches independently-recomputed on-disk total, entry "
+    "validates against schemas/index.schema.json"
+)
+PY
+    if python3 "$tmp_font_index_check" "$tmp_font_index" "$TMP_FONT_INDEX_TREE" "schemas/index.schema.json" "$TMP_SCHEMA_HELPERS_DIR"; then
+        pass "build_index.py projects a font entry's assets[]/family; summed byte total matches on-disk; entry schema-valid"
+    else
+        fail "build_index.py font-kind projection assertions failed"
+    fi
+    rm -f "$tmp_font_index_check"
+else
+    fail "skipped font-kind projection assertions because build_index.py failed above"
+fi
+rm -f "$tmp_font_index"
+echo
+
+echo "== build_index.py: a font manifest's declared files[].bytes never reaches assets[] (B1 review mutation probe) =="
+# The check above (T196 obligation 6) recomputes its expectation from the
+# SAME on-disk file the fixture's manifest happens to declare the identical
+# byte count for — it alone can't distinguish "build_index.py projected
+# stat().st_size" from "build_index.py projected the manifest's own
+# files[].bytes" when the two numbers match by construction. This probes
+# that gap directly: a synthetic pack whose manifest declares an
+# app-rejecting 999999 bytes (comfortably over
+# schemas/index.schema.json's own 262144-byte assetRef ceiling) for its one
+# face, asserting the emitted index carries the REAL on-disk stat() size,
+# never the manifest's hostile claim.
+TMP_HOSTILE_BYTES_TREE="$(mktemp -d)"
+mkdir -p "$TMP_HOSTILE_BYTES_TREE/entries/valid-font"
+python3 - "$FONT_GREEN_FIXTURE/valid-font.font.json" "$TMP_HOSTILE_BYTES_TREE/entries/valid-font/valid-font.font.json" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+src, dst = Path(sys.argv[1]), Path(sys.argv[2])
+manifest = json.loads(src.read_text(encoding="utf-8"))
+manifest["files"][0]["bytes"] = 999999  # app-rejecting: over the 262144-byte fetch-transport ceiling
+dst.write_text(json.dumps(manifest), encoding="utf-8")
+PY
+cp "$FONT_GREEN_FIXTURE/valid-font.meta.json" "$TMP_HOSTILE_BYTES_TREE/entries/valid-font/valid-font.meta.json"
+cp "$FONT_GREEN_FIXTURE/valid-font-variable-latin.woff2" "$TMP_HOSTILE_BYTES_TREE/entries/valid-font/valid-font-variable-latin.woff2"
+cp "$FONT_GREEN_FIXTURE/OFL.txt" "$TMP_HOSTILE_BYTES_TREE/entries/valid-font/OFL.txt"
+
+tmp_hostile_bytes_index="$(mktemp)"
+if python3 tools/build_index.py --root "$TMP_HOSTILE_BYTES_TREE" --out "$tmp_hostile_bytes_index"; then
+    tmp_hostile_bytes_check="$(mktemp)"
+    cat >"$tmp_hostile_bytes_check" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+index_path, tree_root = Path(sys.argv[1]), Path(sys.argv[2])
+data = json.loads(index_path.read_text())
+by_slug = {e["slug"]: e for e in data["entries"]}
+
+errors = []
+font = by_slug.get("valid-font")
+if font is None:
+    errors.append("valid-font entry missing from built index")
+else:
+    woff2_path = tree_root / "entries/valid-font/valid-font-variable-latin.woff2"
+    real_bytes = woff2_path.stat().st_size
+    declared_bytes = 999999
+
+    asset = next(
+        (a for a in font.get("assets", []) if str(a.get("path", "")).endswith("valid-font-variable-latin.woff2")),
+        None,
+    )
+    if asset is None:
+        errors.append("valid-font: woff2 asset missing from built assets[]")
+    else:
+        got = asset.get("bytes")
+        if got == declared_bytes:
+            errors.append(
+                f"valid-font: assets[].bytes {got!r} came straight from the manifest's own hostile "
+                "declared 999999, not stat()"
+            )
+        elif got != real_bytes:
+            errors.append(f"valid-font: assets[].bytes {got!r} does not match on-disk stat() {real_bytes}")
+
+if errors:
+    for line in errors:
+        print(line)
+    sys.exit(1)
+print("valid-font: assets[].bytes carries the on-disk truth, ignoring the manifest's hostile declared 999999")
+PY
+    if python3 "$tmp_hostile_bytes_check" "$tmp_hostile_bytes_index" "$TMP_HOSTILE_BYTES_TREE"; then
+        pass "build_index.py's assets[] bytes carry on-disk truth, never a font manifest's hostile declared value"
+    else
+        fail "build_index.py's assets[] bytes did not carry on-disk truth against a hostile declared manifest value"
+    fi
+    rm -f "$tmp_hostile_bytes_check"
+else
+    fail "build_index.py exited non-zero building the hostile-declared-bytes fixture tree"
+fi
+rm -f "$tmp_hostile_bytes_index"
+echo
+
+echo "== validate.py: index.json slug-ownership cross-check (T196 obligation 3, SPEC F104.1 — reviewer probe 8) =="
+echo "-- red font-asset-slug-mismatch: an asset path under ANOTHER entry's slug directory is rejected, naming the offense --"
+# validate_index only ever runs against the real repo root (see validate.py's
+# main(): gated on `root == REPO_ROOT`), so this calls validate_index
+# directly rather than through the --root CLI flag — the same posture
+# check_kind_entry_red/green already take for schema-only checks, just one
+# layer up (the real Python function, not just the schema it also enforces).
+tmp_slug_ownership_check="$(mktemp)"
+cat >"$tmp_slug_ownership_check" <<'PY'
+import sys
+from pathlib import Path
+
+sys.path.insert(0, "tools")
+import validate
+
+index_path = Path(sys.argv[1])
+violations = validate.validate_index(index_path)
+if not violations:
+    print(f"{index_path}: expected validate_index to reject it, but it passed")
+    sys.exit(1)
+if not any("slug-ownership" in v and "some-other-slug" in v for v in violations):
+    print(f"{index_path}: violations did not name the slug-ownership offense: {violations}")
+    sys.exit(1)
+for v in violations:
+    print(v)
+print(f"{index_path}: validate_index correctly rejected the cross-slug asset path")
+PY
+if python3 "$tmp_slug_ownership_check" "tools/testdata/red/font-asset-slug-mismatch/index.json"; then
+    pass "validate_index rejects an asset path under another entry's slug directory (slug-ownership)"
+else
+    fail "validate_index did not reject an asset path under another entry's slug directory (slug-ownership)"
+fi
+rm -f "$tmp_slug_ownership_check"
+echo
+
+echo "-- green: the real repo's own committed index.json passes the slug-ownership cross-check (every real entry is self-consistent) --"
+tmp_slug_ownership_green_check="$(mktemp)"
+cat >"$tmp_slug_ownership_green_check" <<'PY'
+import sys
+from pathlib import Path
+
+sys.path.insert(0, "tools")
+import validate
+
+index_path = Path("index.json")
+violations = validate.validate_index_slug_ownership(index_path, __import__("json").loads(index_path.read_text()))
+if violations:
+    for v in violations:
+        print(v)
+    sys.exit(1)
+print("index.json: every entry's card/manifest/meta/assets path resolves under its own slug")
+PY
+if python3 "$tmp_slug_ownership_green_check"; then
+    pass "the real repo's committed index.json passes the slug-ownership cross-check"
+else
+    fail "the real repo's committed index.json failed the slug-ownership cross-check"
+fi
+rm -f "$tmp_slug_ownership_green_check"
+echo
+
+echo "== validate.py: index.json duplicate-asset-path cross-check (T196 review M2) =="
+echo "-- red font-duplicate-asset-path: two assets sharing a path with DIFFERENT sha256/bytes pass the schema's uniqueItems (full-object only) but are rejected by validate_index --"
+# schemas/index.schema.json's uniqueItems on assets[] is full-object
+# uniqueness (path/sha256/bytes all equal) — a same-path/different-sha pair
+# is schema-valid (confirmed: this fixture carries no other violation), so
+# this proves validate_index itself (schema + both Python cross-checks) is
+# what actually rejects it, not merely the standalone function.
+tmp_dup_asset_path_check="$(mktemp)"
+cat >"$tmp_dup_asset_path_check" <<'PY'
+import sys
+from pathlib import Path
+
+sys.path.insert(0, "tools")
+import validate
+
+index_path = Path(sys.argv[1])
+violations = validate.validate_index(index_path)
+if not violations:
+    print(f"{index_path}: expected validate_index to reject it, but it passed")
+    sys.exit(1)
+if not any("duplicate-asset-path" in v for v in violations):
+    print(f"{index_path}: violations did not name the duplicate-asset-path offense: {violations}")
+    sys.exit(1)
+for v in violations:
+    print(v)
+print(f"{index_path}: validate_index correctly rejected the same-path/different-sha256 asset pair")
+PY
+if python3 "$tmp_dup_asset_path_check" "tools/testdata/red/font-duplicate-asset-path/index.json"; then
+    pass "validate_index rejects two assets sharing a path with different sha256/bytes (duplicate-asset-path)"
+else
+    fail "validate_index did not reject two assets sharing a path with different sha256/bytes (duplicate-asset-path)"
+fi
+rm -f "$tmp_dup_asset_path_check"
+echo
+
+echo "-- green: the real repo's own committed index.json carries no duplicate asset paths within any one entry --"
+tmp_dup_asset_path_green_check="$(mktemp)"
+cat >"$tmp_dup_asset_path_green_check" <<'PY'
+import sys
+from pathlib import Path
+
+sys.path.insert(0, "tools")
+import validate
+
+index_path = Path("index.json")
+violations = validate.validate_index_duplicate_asset_paths(index_path, __import__("json").loads(index_path.read_text()))
+if violations:
+    for v in violations:
+        print(v)
+    sys.exit(1)
+print("index.json: no entry's assets[] carries two assets with the same path")
+PY
+if python3 "$tmp_dup_asset_path_green_check"; then
+    pass "the real repo's committed index.json carries no duplicate asset paths"
+else
+    fail "the real repo's committed index.json carries a duplicate asset path"
+fi
+rm -f "$tmp_dup_asset_path_green_check"
+echo
+
+check_kind_entry_red() {
+    local variant="$1" expect="$2"
+    local output status
+    output=$(python3 - "$TMP_SCHEMA_HELPERS_DIR" "$KIND_RED_DIR/$variant/index-entry.json" "$expect" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+sys.path.insert(0, sys.argv[1])
+from index_entry_schema import load_entry_validator
+
+validator = load_entry_validator()
+
+fixture_path, expect_substring = Path(sys.argv[2]), sys.argv[3]
 instance = json.loads(fixture_path.read_text(encoding="utf-8"))
 errors = [e.message for e in validator.iter_errors(instance)]
 if not errors:
@@ -789,9 +1218,62 @@ PY
     echo
 }
 
+check_kind_entry_green() {
+    local variant="$1" fixture_dir="$2"
+    local output status
+    output=$(python3 - "$TMP_SCHEMA_HELPERS_DIR" "$fixture_dir/index-entry.json" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+sys.path.insert(0, sys.argv[1])
+from index_entry_schema import load_entry_validator
+
+validator = load_entry_validator()
+
+fixture_path = Path(sys.argv[2])
+instance = json.loads(fixture_path.read_text(encoding="utf-8"))
+errors = [e.message for e in validator.iter_errors(instance)]
+if errors:
+    print(f"{fixture_path}: expected schema validation to pass, but it did not: {errors}")
+    sys.exit(1)
+print(f"{fixture_path}: validates cleanly against schemas/index.schema.json")
+PY
+    )
+    status=$?
+    echo "$output"
+    if [[ $status -eq 0 ]]; then
+        pass "$variant: schemas/index.schema.json accepts it"
+    else
+        fail "$variant: schemas/index.schema.json did not accept it"
+    fi
+    echo
+}
+
 echo "== schemas/index.schema.json: kind discriminator rejects bad entries (SPEC F103.2 / T178) =="
 check_kind_entry_red bad-kind-value "'villain' is not one of"
 check_kind_entry_red bad-kind-theme-no-manifest "'manifest' is a required property"
+
+echo "== schemas/index.schema.json: font kind admits assets[]/family, rejects malformed ones (SPEC F104.1, T195) =="
+check_kind_entry_green valid-font-index-entry "tools/testdata/green/valid-font-index-entry"
+check_kind_entry_red bad-kind-font-no-assets "'assets' is a required property"
+check_kind_entry_red bad-font-family "'Bad<script>Family' does not match"
+
+echo "== schemas/index.schema.json: numeric/length bounds actually reject over-bound values (SPEC F104.1, T195 review finding — these three bounds previously had zero red coverage) =="
+check_kind_entry_red font-family-too-long "is too long"
+check_kind_entry_red font-asset-bytes-over-max "is greater than the maximum of 262144"
+check_kind_entry_red font-empty-assets "is too short"
+
+echo "== schemas/index.schema.json: kind/extension cross-dressing and kind-exclusive fields are rejected off their own kind (SPEC F103.2/F104.1, T195 review findings) =="
+
+echo "-- kind/extension cross-dressing: a kind's manifest.path pattern rejects the OTHER kind's manifest extension --"
+check_kind_entry_red theme-entry-font-manifest '\\.theme\\.json'
+check_kind_entry_red font-entry-theme-manifest '\\.font\\.json'
+
+echo "-- kind-exclusive fields: a field scoped to one kind's then/else branch is rejected on any other kind (N7/N8) --"
+check_kind_entry_red theme-entry-with-assets "should not be valid under {'required': ['assets']}"
+check_kind_entry_red persona-entry-with-manifest "should not be valid under {'required': ['manifest']}"
+check_kind_entry_red font-entry-with-preview "should not be valid under {'required': ['preview']}"
 
 echo "=========================================="
 if [[ $FAILURES -eq 0 ]]; then

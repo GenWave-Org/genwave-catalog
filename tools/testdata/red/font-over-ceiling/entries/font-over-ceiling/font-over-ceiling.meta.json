@@ -1,0 +1,6 @@
+{
+  "author": "Red Fixture",
+  "description": "Red-variant kind:\"font\" fixture (SPEC F104.2 / T195) — its woff2 face alone (generated at tools/run_selftest.sh runtime, not committed — see .gitignore, mirrors the oversize-card precedent) exceeds the 204,800-byte per-pack ceiling, proving tools/validate.py's validate_font_pack rejects an over-budget pack.",
+  "audience": "everyone",
+  "added": "2026-08-05"
+}

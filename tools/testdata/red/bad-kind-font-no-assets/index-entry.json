@@ -1,0 +1,13 @@
+{
+  "slug": "bad-kind-font-no-assets",
+  "kind": "font",
+  "audience": "everyone",
+  "manifest": {
+    "path": "entries/bad-kind-font-no-assets/bad-kind-font-no-assets.font.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "meta": {
+    "path": "entries/bad-kind-font-no-assets/bad-kind-font-no-assets.meta.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  }
+}

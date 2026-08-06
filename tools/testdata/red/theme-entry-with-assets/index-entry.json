@@ -1,0 +1,20 @@
+{
+  "slug": "theme-entry-with-assets",
+  "kind": "theme",
+  "audience": "everyone",
+  "manifest": {
+    "path": "entries/theme-entry-with-assets/theme-entry-with-assets.theme.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "meta": {
+    "path": "entries/theme-entry-with-assets/theme-entry-with-assets.meta.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "assets": [
+    {
+      "path": "entries/theme-entry-with-assets/stowaway.woff2",
+      "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "bytes": 7844
+    }
+  ]
+}

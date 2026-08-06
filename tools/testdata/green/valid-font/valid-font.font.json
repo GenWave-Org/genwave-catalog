@@ -1,0 +1,10 @@
+{
+  "family": "Valid Font",
+  "files": [
+    { "role": "upright", "file": "valid-font-variable-latin.woff2", "weight": "400 700", "style": "normal", "bytes": 456 }
+  ],
+  "license": "OFL-1.1",
+  "sourceUrl": "https://example.com/valid-font",
+  "version": "1.000",
+  "subset": "latin"
+}

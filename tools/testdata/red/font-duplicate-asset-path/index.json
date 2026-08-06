@@ -1,0 +1,36 @@
+{
+  "entries": [
+    {
+      "assets": [
+        {
+          "bytes": 7844,
+          "path": "entries/font-duplicate-asset-path/font-duplicate-asset-path-variable-latin.woff2",
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "bytes": 9999,
+          "path": "entries/font-duplicate-asset-path/font-duplicate-asset-path-variable-latin.woff2",
+          "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        {
+          "bytes": 4500,
+          "path": "entries/font-duplicate-asset-path/OFL.txt",
+          "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ],
+      "audience": "everyone",
+      "family": "Font Duplicate Asset Path",
+      "kind": "font",
+      "manifest": {
+        "path": "entries/font-duplicate-asset-path/font-duplicate-asset-path.font.json",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "meta": {
+        "path": "entries/font-duplicate-asset-path/font-duplicate-asset-path.meta.json",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "slug": "font-duplicate-asset-path"
+    }
+  ],
+  "generatedAt": "2026-08-05"
+}

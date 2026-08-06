@@ -1,0 +1,25 @@
+{
+  "slug": "font-entry-theme-manifest",
+  "kind": "font",
+  "audience": "everyone",
+  "manifest": {
+    "path": "entries/font-entry-theme-manifest/font-entry-theme-manifest.theme.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "meta": {
+    "path": "entries/font-entry-theme-manifest/font-entry-theme-manifest.meta.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "assets": [
+    {
+      "path": "entries/font-entry-theme-manifest/font-entry-theme-manifest-variable-latin.woff2",
+      "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "bytes": 7844
+    },
+    {
+      "path": "entries/font-entry-theme-manifest/OFL.txt",
+      "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "bytes": 4500
+    }
+  ]
+}

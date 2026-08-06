@@ -1,0 +1,41 @@
+{
+  "slug": "font-entry-with-preview",
+  "kind": "font",
+  "audience": "everyone",
+  "manifest": {
+    "path": "entries/font-entry-with-preview/font-entry-with-preview.font.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "meta": {
+    "path": "entries/font-entry-with-preview/font-entry-with-preview.meta.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "assets": [
+    {
+      "path": "entries/font-entry-with-preview/font-entry-with-preview-variable-latin.woff2",
+      "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "bytes": 7844
+    },
+    {
+      "path": "entries/font-entry-with-preview/OFL.txt",
+      "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "bytes": 4500
+    }
+  ],
+  "preview": {
+    "light": {
+      "bg": "#ffffff",
+      "surface": "#f0f0f0",
+      "ink": "#000000",
+      "accent": "#ff0000",
+      "accent-2": "#00ff00"
+    },
+    "dark": {
+      "bg": "#000000",
+      "surface": "#101010",
+      "ink": "#ffffff",
+      "accent": "#ff0000",
+      "accent-2": "#00ff00"
+    }
+  }
+}
