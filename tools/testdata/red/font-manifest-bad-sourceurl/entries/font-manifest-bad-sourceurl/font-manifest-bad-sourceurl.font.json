@@ -1,0 +1,10 @@
+{
+  "family": "Bad Source Url",
+  "files": [
+    { "role": "upright", "file": "font-manifest-bad-sourceurl-variable-latin.woff2", "weight": "400", "style": "normal", "bytes": 102 }
+  ],
+  "license": "OFL-1.1",
+  "sourceUrl": "http://example.com/x",
+  "version": "1.000",
+  "subset": "latin"
+}

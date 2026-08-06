@@ -1,0 +1,6 @@
+{
+  "author": "Red Fixture",
+  "description": "Red-variant kind:\"font\" fixture (SPEC F104.1 / T195 review) — the manifest's `family` is the CSS-injection payload `X;}</style><script>alert(1)</script>` rather than the CSS-injection-safe character set schemas/font-manifest.schema.json's `family` pattern enforces, proving tools/validate.py's schema check rejects a font MANIFEST carrying a bad family value (the sibling `bad-font-family` fixture only exercises this same pattern on the projected INDEX entry's own `family` field, a different code path).",
+  "audience": "everyone",
+  "added": "2026-08-05"
+}

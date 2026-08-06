@@ -77,6 +77,20 @@ def resolve_manifest(entry_dir: Path, slug: str) -> tuple[Path | None, str]:
     Returns (None, "persona") when neither file is present; the caller
     skips the directory in that case (tools/validate.py is the source of
     truth for that shape error, not this function).
+
+    *** T196 OBLIGATION — DOES NOT YET HANDLE kind:"font" ***
+    Unlike tools/validate.py's own resolve_kind (which already has a third
+    *.font.json branch, SPEC F104.1 / T195), THIS function stops at
+    persona/theme. A directory carrying only a *.font.json manifest falls
+    through to `return None, "persona"` below, so discover_entries' caller
+    sees `manifest_path is None` and silently `continue`s past it — a
+    schema-valid, tools/validate.py-clean font pack is simply never emitted
+    into index.json, no error, no log line. T196 is what adds the
+    `*.font.json` branch here (mirroring validate.py's resolve_kind), teaches
+    discover_entries to build the `{manifest, assets, family}` record shape
+    for it (see the OBLIGATIONS block ahead of main() below), and closes this
+    gap. Until T196 ships, do not assume "validate.py accepted this font
+    pack" implies "it's on the shelf" — check index.json.
     """
     persona_path = entry_dir / f"{slug}.persona.json"
     if persona_path.is_file():
@@ -85,6 +99,51 @@ def resolve_manifest(entry_dir: Path, slug: str) -> tuple[Path | None, str]:
     if theme_path.is_file():
         return theme_path, "theme"
     return None, "persona"
+
+
+# ============================================================================
+# T196 OBLIGATIONS — font-kind index projection (SPEC F104.1, closes the gap
+# resolve_manifest's own comment above marks). This is where T196's builder
+# starts: `discover_entries` below (and resolve_manifest above it) are what a
+# theme-kind entry already gets projected through; a font-kind entry needs
+# the equivalent treatment, six pieces, recorded here verbatim so T196 can
+# act on this list directly rather than rediscovering it:
+#
+#   1. resolve_manifest gains a third branch — a *.font.json file present
+#      means kind="font" (mirrors tools/validate.py's resolve_kind, which
+#      already has this branch as of T195) — checked after persona/theme,
+#      same precedence order.
+#   2. discover_entries projects a font entry's `assets[]` from REAL
+#      on-disk bytes, not the manifest's own (untrusted, merely-typed)
+#      `files[]` — every sibling asset file in the entry directory
+#      (font_asset_paths' own selection logic in tools/validate.py is the
+#      precedent: closed woff2|txt extension set), sorted for determinism,
+#      each carrying its own recomputed sha256 (sha256_of, already defined
+#      above) and real stat().st_size — never trust a manifest-declared
+#      `bytes` value for what ships in the index.
+#   3. tools/validate.py's validate_index (or an equivalent introduced
+#      alongside it) gains a slug-ownership cross-check: every `manifest`,
+#      `meta`, AND `assets[]` path an index entry carries must resolve
+#      under `entries/<that-entry's-own-slug>/` — nothing dangling, nothing
+#      borrowed from a sibling entry's directory.
+#   4. schemas/index.schema.json's `assets` property gains `uniqueItems:
+#      true` (full-object uniqueness, not just distinct paths) — a font
+#      entry's own `assets[]` should never carry the same asset twice, the
+#      same posture `files[]`'s duplicate-asset gate already takes one
+#      layer down in the pack's own manifest.
+#   5. discover_entries projects `family` onto a font entry's index record
+#      by reading it straight off the pack's own manifest `family` field
+#      (STORY-281 AC1 reconciliation, T194 review finding — recorded in
+#      CatalogFontManifestSerializer's own remarks) — the same `bestFor`/
+#      `preview` precedent already used for theme entries above.
+#   6. tools/run_selftest.sh gains an assertion that a built font entry's
+#      `assets[]` byte total (summed) matches independently-recomputed
+#      on-disk byte totals for the SAME fixture tree — not a hardcoded
+#      number — plus a schema-validity check of the freshly built entry
+#      against schemas/index.schema.json's `if`/`then`/`else` font branch,
+#      the same "green fixture exercises index shape" posture the existing
+#      persona/theme selftest sections already have.
+# ============================================================================
 
 
 def discover_entries(root: Path) -> tuple[list[dict], list[str]]:

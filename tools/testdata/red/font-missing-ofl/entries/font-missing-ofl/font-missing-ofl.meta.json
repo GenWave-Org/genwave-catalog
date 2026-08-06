@@ -1,0 +1,6 @@
+{
+  "author": "Red Fixture",
+  "description": "Red-variant kind:\"font\" fixture (SPEC F104.2 / T195) — ships a woff2 face but no OFL.txt licence file, proving tools/validate.py's validate_font_pack rejects a pack missing its licence text.",
+  "audience": "everyone",
+  "added": "2026-08-05"
+}

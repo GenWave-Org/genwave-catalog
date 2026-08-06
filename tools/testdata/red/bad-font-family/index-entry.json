@@ -1,0 +1,26 @@
+{
+  "slug": "bad-font-family",
+  "kind": "font",
+  "audience": "everyone",
+  "manifest": {
+    "path": "entries/bad-font-family/bad-font-family.font.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "meta": {
+    "path": "entries/bad-font-family/bad-font-family.meta.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "assets": [
+    {
+      "path": "entries/bad-font-family/bad-font-family-variable-latin.woff2",
+      "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "bytes": 7844
+    },
+    {
+      "path": "entries/bad-font-family/OFL.txt",
+      "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "bytes": 4500
+    }
+  ],
+  "family": "Bad<script>Family"
+}

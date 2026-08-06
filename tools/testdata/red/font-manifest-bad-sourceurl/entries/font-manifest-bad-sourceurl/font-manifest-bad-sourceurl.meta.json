@@ -1,0 +1,6 @@
+{
+  "author": "Red Fixture",
+  "description": "Red-variant kind:\"font\" fixture (SPEC F104.1 / T195 review) — declares `sourceUrl` \"http://example.com/x\" (plain http, not https), proving tools/validate.py's schema check rejects a font manifest whose source URL doesn't match schemas/font-manifest.schema.json's `^https://` pattern.",
+  "audience": "everyone",
+  "added": "2026-08-05"
+}

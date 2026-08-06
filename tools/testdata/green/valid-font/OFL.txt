@@ -1,0 +1,1 @@
+Placeholder OFL licence text for tools/run_selftest.sh (SPEC F104.2 / T195) — not the real SIL Open Font License, exercises font-missing-ofl presence checking only.

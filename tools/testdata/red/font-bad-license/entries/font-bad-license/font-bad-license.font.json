@@ -1,0 +1,10 @@
+{
+  "family": "Bad License",
+  "files": [
+    { "role": "upright", "file": "font-bad-license-variable-latin.woff2", "weight": "400", "style": "normal", "bytes": 102 }
+  ],
+  "license": "MIT",
+  "sourceUrl": "https://example.com/font-bad-license",
+  "version": "1.000",
+  "subset": "latin"
+}

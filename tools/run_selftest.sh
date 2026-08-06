@@ -87,18 +87,24 @@ check_red() {
 KIND_GREEN_FIXTURE="tools/testdata/green/valid-theme"
 KIND_RED_DIR="tools/testdata/red"
 
+FONT_GREEN_FIXTURE="tools/testdata/green/valid-font"
+FONT_OVER_CEILING_ASSET="$RED_DIR/font-over-ceiling/entries/font-over-ceiling/font-over-ceiling-variable-latin.woff2"
+
 TMP_GREEN_TREE=""
 TMP_PRON_TREE=""
 TMP_SYMLINK_TREE=""
 TMP_KIND_TREE=""
 TMP_THEME_TREE=""
+TMP_FONT_TREE=""
 cleanup() {
     rm -f "$OVERSIZE_CARD"
+    rm -f "$FONT_OVER_CEILING_ASSET"
     [[ -n "$TMP_GREEN_TREE" ]] && rm -rf "$TMP_GREEN_TREE"
     [[ -n "$TMP_PRON_TREE" ]] && rm -rf "$TMP_PRON_TREE"
     [[ -n "$TMP_SYMLINK_TREE" ]] && rm -rf "$TMP_SYMLINK_TREE"
     [[ -n "$TMP_KIND_TREE" ]] && rm -rf "$TMP_KIND_TREE"
     [[ -n "$TMP_THEME_TREE" ]] && rm -rf "$TMP_THEME_TREE"
+    [[ -n "$TMP_FONT_TREE" ]] && rm -rf "$TMP_FONT_TREE"
 }
 trap cleanup EXIT
 
@@ -252,6 +258,83 @@ else
     fail "fixtures/golden.theme.json does not validate against schemas/theme-manifest.schema.json"
 fi
 rm -f "$tmp_golden_theme_check"
+echo
+
+echo "== validate.py: kind-aware font-entry validation (schemas/font-manifest.schema.json + schemas/font-meta.schema.json, SPEC F104.1/F104.2 / T195) =="
+
+echo "-- green valid-font fixture validates clean end-to-end as a kind:\"font\" entry --"
+TMP_FONT_TREE="$(mktemp -d)"
+mkdir -p "$TMP_FONT_TREE/entries/valid-font"
+cp "$FONT_GREEN_FIXTURE/valid-font.font.json" "$TMP_FONT_TREE/entries/valid-font/valid-font.font.json"
+cp "$FONT_GREEN_FIXTURE/valid-font.meta.json" "$TMP_FONT_TREE/entries/valid-font/valid-font.meta.json"
+cp "$FONT_GREEN_FIXTURE/valid-font-variable-latin.woff2" "$TMP_FONT_TREE/entries/valid-font/valid-font-variable-latin.woff2"
+cp "$FONT_GREEN_FIXTURE/OFL.txt" "$TMP_FONT_TREE/entries/valid-font/OFL.txt"
+output=$(python3 tools/validate.py --root "$TMP_FONT_TREE" 2>&1)
+status=$?
+echo "$output"
+if [[ $status -eq 0 ]]; then
+    pass "green valid-font fixture validates clean as a kind:\"font\" entry"
+else
+    fail "green valid-font fixture did not validate clean as a kind:\"font\" entry (expected exit 0, got $status)"
+fi
+echo
+
+echo "-- red font-manifest schema-shape gates: schemas/font-manifest.schema.json's own required-field and pattern checks (SPEC F104.1, T195 review finding — these previously had zero red coverage; mirrors bad-theme-mode/missing-theme-preview's role for the theme kind above) --"
+check_red_variant font-manifest-missing-weight-bytes "'weight' is a required property"
+check_red_variant font-manifest-bad-family "does not match '^[A-Za-z0-9][A-Za-z0-9 -]*"
+check_red_variant font-manifest-bad-sourceurl "does not match '^https://'"
+
+check_red_variant font-missing-ofl "font-missing-ofl"
+check_red_variant font-bad-license "font-bad-license"
+check_red_variant font-orphan-manifest "font-orphan-manifest-file"
+check_red_variant font-duplicate-asset "font-duplicate-asset"
+check_red_variant font-stowaway-asset "font-stowaway-asset"
+
+echo "-- red font-over-ceiling: per-pack byte ceiling rejects a font pack whose summed asset bytes exceed 204,800 (SPEC F104.2) --"
+if python3 - "$FONT_OVER_CEILING_ASSET" <<'PY'
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+path.parent.mkdir(parents=True, exist_ok=True)
+# 205 KiB alone already exceeds the 200 KiB (204,800-byte) per-pack ceiling —
+# generated here at test time, not committed (see .gitignore), the same
+# oversize-card precedent immediately above.
+path.write_bytes(b"x" * (205 * 1024))
+print(f"generated {path} ({path.stat().st_size} bytes)")
+PY
+then
+    check_red_variant font-over-ceiling "font-pack-ceiling"
+else
+    fail "failed to generate the font-over-ceiling fixture asset"
+fi
+rm -f "$FONT_OVER_CEILING_ASSET"
+
+echo "-- fixtures/golden.font.json (the app font-manifest-serializer parity fixture) validates against schemas/font-manifest.schema.json --"
+tmp_golden_font_check="$(mktemp)"
+cat >"$tmp_golden_font_check" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+import jsonschema
+
+schema = json.loads(Path("schemas/font-manifest.schema.json").read_text(encoding="utf-8"))
+golden = json.loads(Path("fixtures/golden.font.json").read_text(encoding="utf-8"))
+validator = jsonschema.validators.validator_for(schema)(schema)
+errors = [e.message for e in validator.iter_errors(golden)]
+if errors:
+    for message in errors:
+        print(f"fixtures/golden.font.json: schema: {message}")
+    sys.exit(1)
+print("fixtures/golden.font.json validates against schemas/font-manifest.schema.json")
+PY
+if python3 "$tmp_golden_font_check"; then
+    pass "fixtures/golden.font.json validates against schemas/font-manifest.schema.json"
+else
+    fail "fixtures/golden.font.json does not validate against schemas/font-manifest.schema.json"
+fi
+rm -f "$tmp_golden_font_check"
 echo
 
 echo "-- generating oversize-card fixture (not committed; see .gitignore) --"
@@ -760,11 +843,18 @@ from pathlib import Path
 import jsonschema
 
 schema = json.loads(Path("schemas/index.schema.json").read_text(encoding="utf-8"))
-# Embed the sha256 definition directly into the entry subschema so its
-# "#/definitions/sha256" $ref self-resolves without needing a resolver
-# rooted at the full document.
+# Embed the sha256/assetRef/swatchSet/hexColor definitions directly into the
+# entry subschema so their "#/definitions/..." $refs self-resolve without
+# needing a resolver rooted at the full document. assetRef backs the F104.1
+# "assets" property (only actually resolved when a fixture's own instance
+# carries that key — harmless to embed for a fixture that doesn't).
 entry_schema = dict(schema["definitions"]["entry"])
-entry_schema["definitions"] = {"sha256": schema["definitions"]["sha256"]}
+entry_schema["definitions"] = {
+    "sha256": schema["definitions"]["sha256"],
+    "assetRef": schema["definitions"]["assetRef"],
+    "swatchSet": schema["definitions"]["swatchSet"],
+    "hexColor": schema["definitions"]["hexColor"],
+}
 validator = jsonschema.validators.validator_for(entry_schema)(entry_schema)
 
 fixture_path, expect_substring = Path(sys.argv[1]), sys.argv[2]
@@ -789,9 +879,70 @@ PY
     echo
 }
 
+check_kind_entry_green() {
+    local variant="$1" fixture_dir="$2"
+    local output status
+    output=$(python3 - "$fixture_dir/index-entry.json" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+import jsonschema
+
+schema = json.loads(Path("schemas/index.schema.json").read_text(encoding="utf-8"))
+# Same embedding as check_kind_entry_red — see its own remarks.
+entry_schema = dict(schema["definitions"]["entry"])
+entry_schema["definitions"] = {
+    "sha256": schema["definitions"]["sha256"],
+    "assetRef": schema["definitions"]["assetRef"],
+    "swatchSet": schema["definitions"]["swatchSet"],
+    "hexColor": schema["definitions"]["hexColor"],
+}
+validator = jsonschema.validators.validator_for(entry_schema)(entry_schema)
+
+fixture_path = Path(sys.argv[1])
+instance = json.loads(fixture_path.read_text(encoding="utf-8"))
+errors = [e.message for e in validator.iter_errors(instance)]
+if errors:
+    print(f"{fixture_path}: expected schema validation to pass, but it did not: {errors}")
+    sys.exit(1)
+print(f"{fixture_path}: validates cleanly against schemas/index.schema.json")
+PY
+    )
+    status=$?
+    echo "$output"
+    if [[ $status -eq 0 ]]; then
+        pass "$variant: schemas/index.schema.json accepts it"
+    else
+        fail "$variant: schemas/index.schema.json did not accept it"
+    fi
+    echo
+}
+
 echo "== schemas/index.schema.json: kind discriminator rejects bad entries (SPEC F103.2 / T178) =="
 check_kind_entry_red bad-kind-value "'villain' is not one of"
 check_kind_entry_red bad-kind-theme-no-manifest "'manifest' is a required property"
+
+echo "== schemas/index.schema.json: font kind admits assets[]/family, rejects malformed ones (SPEC F104.1, T195) =="
+check_kind_entry_green valid-font-index-entry "tools/testdata/green/valid-font-index-entry"
+check_kind_entry_red bad-kind-font-no-assets "'assets' is a required property"
+check_kind_entry_red bad-font-family "'Bad<script>Family' does not match"
+
+echo "== schemas/index.schema.json: numeric/length bounds actually reject over-bound values (SPEC F104.1, T195 review finding — these three bounds previously had zero red coverage) =="
+check_kind_entry_red font-family-too-long "is too long"
+check_kind_entry_red font-asset-bytes-over-max "is greater than the maximum of 262144"
+check_kind_entry_red font-empty-assets "is too short"
+
+echo "== schemas/index.schema.json: kind/extension cross-dressing and kind-exclusive fields are rejected off their own kind (SPEC F103.2/F104.1, T195 review findings) =="
+
+echo "-- kind/extension cross-dressing: a kind's manifest.path pattern rejects the OTHER kind's manifest extension --"
+check_kind_entry_red theme-entry-font-manifest '\\.theme\\.json'
+check_kind_entry_red font-entry-theme-manifest '\\.font\\.json'
+
+echo "-- kind-exclusive fields: a field scoped to one kind's then/else branch is rejected on any other kind (N7/N8) --"
+check_kind_entry_red theme-entry-with-assets "should not be valid under {'required': ['assets']}"
+check_kind_entry_red persona-entry-with-manifest "should not be valid under {'required': ['manifest']}"
+check_kind_entry_red font-entry-with-preview "should not be valid under {'required': ['preview']}"
 
 echo "=========================================="
 if [[ $FAILURES -eq 0 ]]; then

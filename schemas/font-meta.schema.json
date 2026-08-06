@@ -1,0 +1,38 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/GenWave-Org/genwave-catalog/main/schemas/font-meta.schema.json",
+  "title": "GenWave Font Pack Catalog Entry Metadata",
+  "description": "The <slug>.meta.json shape for a kind:\"font\" entry (app repo SPEC F104.1/F104.2, catalog-owned). Mirrors theme-meta.schema.json's posture: additionalProperties is false — this document belongs entirely to the catalog, so an unrecognized field is a contributor mistake worth failing CI on, not a forward-compat concern. There is no `preview` equivalent (a font pack has no swatch set); the pack's shelf card renders from `family`/description/byte total instead (SPEC F104.3), the family value itself living in the manifest, not here.",
+  "$comment": "`added`'s pattern ends in (?![\\s\\S]), the same portable absolute-end-of-string anchor persona-meta.schema.json and theme-meta.schema.json document in full and repeat verbatim — repeated here too so this file stands alone.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["author", "description", "audience", "added"],
+  "properties": {
+    "author": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Who curated/submitted this pack. Font packs are Dean-curated only (SPEC F104.2: \"no community pack submissions, standing ruling\"), but the field stays uniform with persona-meta.schema.json/theme-meta.schema.json's own `author` rather than being special-cased away."
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "description": "A short blurb introducing the pack — shown on the shelf card without fetching the manifest (SPEC F104.3)."
+    },
+    "audience": {
+      "type": "string",
+      "enum": ["everyone", "mature"],
+      "description": "Content self-rating, verified at review (mirrors persona-meta.schema.json/theme-meta.schema.json's `audience`; a typeface is rarely mature, but the field stays uniform across every entry kind so the shelf's rating logic never branches on `kind`)."
+    },
+    "added": {
+      "type": "string",
+      "format": "date",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}(?![\\s\\S])",
+      "description": "ISO 8601 date (YYYY-MM-DD) this pack was added to the catalog. `format: date` alone is annotation-only in draft-07 by default, so `pattern` carries the shape enforcement — but pattern alone only checks digit counts, not calendar validity; tools/validate.py separately parses this value with datetime.date.fromisoformat to reject a shape-valid but non-existent date."
+    },
+    "bestFor": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Optional use-case hints, e.g. \"display\", \"monospace\", \"headings\" — mirrors persona-meta.schema.json/theme-meta.schema.json's own `bestFor`."
+    }
+  }
+}

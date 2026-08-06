@@ -1,0 +1,6 @@
+{
+  "author": "Red Fixture",
+  "description": "Red-variant kind:\"font\" fixture (SPEC F104.2 / T195) — declares license \"MIT\", which is not in the catalog's permitted set (FONT_PERMITTED_LICENSES), proving tools/validate.py's validate_font_pack rejects an unlisted licence identifier.",
+  "audience": "everyone",
+  "added": "2026-08-05"
+}

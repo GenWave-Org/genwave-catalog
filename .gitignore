@@ -2,6 +2,11 @@
 # without committing a 256KB+ fixture to the repo — see tools/run_selftest.sh.
 /tools/testdata/red/oversize-card/entries/oversize-card/oversize-card.persona.json
 
+# Generated at tools/run_selftest.sh runtime to exercise the font pack's
+# per-pack byte ceiling without committing a 200KB+ fixture to the repo —
+# see tools/run_selftest.sh (mirrors the oversize-card entry above).
+/tools/testdata/red/font-over-ceiling/entries/font-over-ceiling/font-over-ceiling-variable-latin.woff2
+
 # Python bytecode cache from running the tools/ scripts.
 __pycache__/
 *.pyc

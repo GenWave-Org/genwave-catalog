@@ -1,0 +1,81 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/GenWave-Org/genwave-catalog/main/schemas/font-manifest.schema.json",
+  "title": "GenWave Font Pack Manifest",
+  "description": "The <slug>.font.json shape a GenWave station fetches for a kind:\"font\" catalog entry (app repo SPEC F104.1/F104.2, GenWave.Host.Catalog.CatalogFontManifest/CatalogFontManifestSerializer). Mirrors theme-manifest.schema.json's posture exactly: additionalProperties is true throughout, and this schema pins TYPES ONLY — it never rejects a byte-valid manifest over a field it doesn't yet know about or a value shape the app's own hardened deserializer (CatalogFontManifestSerializer.Deserialize) checks more strictly. That deserializer is the real validator (non-empty family/license/sourceUrl/subset, each files[] element's own role/file/weight/style/bytes checked present and positive); this schema only catches gross shape errors (wrong type, missing key) so a malformed catalog submission fails fast in CI rather than only at app fetch time. Never-reject-byte-valid: a manifest this schema accepts is not guaranteed to load in the app, but a manifest the app can actually load must never be rejected here for a reason the app itself doesn't enforce.",
+  "$comment": "`files[].file`'s pattern ends in (?![\\s\\S]), the same portable absolute-end-of-string anchor schemas/index.schema.json documents in full and schemas/theme-meta.schema.json repeats — used here rather than a bare `$` for the same reason: Python's re `$` also matches immediately before a trailing newline, and `\\Z` is Python-only (a literal 'Z' under ECMA-262). Repeated verbatim rather than by reference so this file stands alone.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["family", "files", "license", "sourceUrl", "subset"],
+  "properties": {
+    "family": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9 -]*(?![\\s\\S])",
+      "description": "Font-family name (CatalogFontManifest.Family) — matches the theme manifest's fonts.*.family when a shipped theme references this pack. Shape and length are byte-identical to schemas/index.schema.json's own optional shelf-card `family` field (GenWave.Host.Catalog.CatalogIndexValidator.FamilyPattern/MaxFamilyLength) — the same CSS-injection-safe character set and 64-character cap — because CatalogFontManifestSerializer.Deserialize hands THIS value straight onto the wire's `FontFamily` field (CatalogController.ToEntryResponse reads `fontManifest?.Family` with no shape check of its own) the moment a station fetches the pack's detail view; this schema is the only gate a manifest's own `family` value gets, so it must be at least this strict rather than deferring to a check that lives only on the index's copy of the value."
+    },
+    "files": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 2,
+      "description": "1-2 latin-subsetted faces (CatalogFontManifest.Files) — an upright face and, optionally, a second italic face; a font pack is one family, role-agnostic, never a full weight/style matrix (CatalogFontManifestFile's own remarks).",
+      "items": { "$ref": "#/definitions/fontFile" }
+    },
+    "license": {
+      "type": "string",
+      "minLength": 1,
+      "description": "SPDX licence identifier (CatalogFontManifest.License), e.g. \"OFL-1.1\" — FONTS.md step 1's \"OFL or an equivalent\" confirm. tools/validate.py additionally checks this value against the catalog's own permitted-licence set; this schema pins presence and type only."
+    },
+    "sourceUrl": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^https://",
+      "description": "Canonical upstream repository URL (CatalogFontManifest.SourceUrl) — FONTS.md step 1's \"locate its canonical upstream repository\"; FONTS.md's own step-2 provenance example (and this repo's golden.font.json parity fixture) always records one as `https://github.com/...`. Anchored to the scheme prefix only (not a full URL grammar) — enough to reject an `http://`, `javascript:`, or schemeless value without over-fitting a rule shape this schema doesn't otherwise validate."
+    },
+    "version": {
+      "type": ["string", "null"],
+      "description": "Upstream tag/commit, when determinable (CatalogFontManifest.Version, FONTS.md step 2's provenance-record example: `\"version\": null, // upstream tag/commit, when determinable`). Null-tolerant on purpose — not every upstream exposes one."
+    },
+    "subset": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The subsetting step recorded (CatalogFontManifest.Subset), e.g. \"latin\" — FONTS.md step 3."
+    }
+  },
+  "definitions": {
+    "fontFile": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["role", "file", "style", "weight", "bytes"],
+      "description": "One face inside `files[]` (CatalogFontManifestFile) — role-agnostic (\"upright\"/\"italic\"), not a full weight/style matrix. All five declared fields are required — this mirrors theme-manifest.schema.json's `fontAsset` posture exactly (full parity, not a split): CatalogFontManifestSerializer.Deserialize degrades the WHOLE manifest to null unless every files[] element's role/file/weight/style are present and non-empty and bytes is present and positive, the same all-fields-mandatory shape `fontAsset` (src/weight/style, all required) already has for the theme kind. This schema is at least as strict as that deserializer rather than deferring the rejection to app fetch time.",
+      "properties": {
+        "role": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Which face this is within the pack, e.g. \"upright\" or \"italic\" (CatalogFontManifestFile.Role)."
+        },
+        "file": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*\\.woff2(?![\\s\\S])",
+          "description": "Bare filename (no path) of the vendored asset this face resolves to, e.g. \"space-grotesk-variable-latin.woff2\" (CatalogFontManifestFile.File) — the pack's sibling asset under the same entries/<slug>/ directory, never a path or URL. Same closed woff2 extension and bare-filename character set the app's own asset path pattern enforces (GenWave.Host.Catalog.CatalogIndexValidator.AssetFileNameText, restricted here to woff2 since a manifest `file` always names a face, never the pack's OFL.txt)."
+        },
+        "style": {
+          "type": "string",
+          "minLength": 1,
+          "description": "CSS font-style descriptor, e.g. \"normal\" or \"italic\" (CatalogFontManifestFile.Style)."
+        },
+        "weight": {
+          "type": "string",
+          "minLength": 1,
+          "description": "CSS font-weight descriptor, e.g. \"300 700\" for a variable face (CatalogFontManifestFile.Weight). Required and non-empty — CatalogFontManifestSerializer.Deserialize rejects the whole manifest on an empty/missing value."
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Measured byte size of this face after subsetting (CatalogFontManifestFile.Bytes, FONTS.md step 4). Required and positive — CatalogFontManifestSerializer.Deserialize rejects the whole manifest on a missing/non-positive value; tools/validate.py separately enforces the summed per-pack ceiling over the entry's actual asset files on disk."
+        }
+      }
+    }
+  }
+}
