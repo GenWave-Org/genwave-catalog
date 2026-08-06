@@ -272,6 +272,37 @@
       "slug": "skip"
     },
     {
+      "assets": [
+        {
+          "bytes": 4495,
+          "path": "entries/space-grotesk/OFL.txt",
+          "sha256": "564ce565c371c5e5bbf286006565a7c9aa55a9f56e7ca58d56e05d649dd61a72"
+        },
+        {
+          "bytes": 26656,
+          "path": "entries/space-grotesk/space-grotesk-variable-latin.woff2",
+          "sha256": "8e8d3355bb47afec9b61b5bd631b66f40567eec10a244fcc5eae3eb76369f8fc"
+        }
+      ],
+      "audience": "everyone",
+      "bestFor": [
+        "display",
+        "tech",
+        "sans"
+      ],
+      "family": "Space Grotesk",
+      "kind": "font",
+      "manifest": {
+        "path": "entries/space-grotesk/space-grotesk.font.json",
+        "sha256": "72ec2c79da75de481c3b935121b285b1f5ed0cf523b1cac04641fa046c7e8d38"
+      },
+      "meta": {
+        "path": "entries/space-grotesk/space-grotesk.meta.json",
+        "sha256": "703d9dc1b64b1f135e50972ab4c5eada91423e9725b72d140517db149ccaee04"
+      },
+      "slug": "space-grotesk"
+    },
+    {
       "audience": "everyone",
       "bestFor": [
         "folk",
