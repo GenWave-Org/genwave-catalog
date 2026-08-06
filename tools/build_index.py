@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Build index.json at the repo root from entries/ (SPEC F89.2, kind-aware
-per SPEC F103.2 / T178).
+per SPEC F103.2 / T178, widened to the font kind by F104.1 / T196).
 
     { "generatedAt": <ISO date>, "entries": [
         { "slug", "audience", "bestFor" (when present),
@@ -10,25 +10,34 @@ per SPEC F103.2 / T178).
           always carries it, theme-meta.schema.json requires it, but the
           projection stays a plain presence check rather than an assumption),
           "manifest": {"path", "sha256"}, "meta": {"path", "sha256"} },
+        { "slug", "audience", "kind": "font", "bestFor" (when present),
+          "manifest": {"path", "sha256"}, "meta": {"path", "sha256"},
+          "assets": [{"path", "sha256", "bytes"}, ...] (sorted, real on-disk
+          bytes — never the manifest's own declared `files[].bytes`),
+          "family" (copied straight off the manifest's own `family` field,
+          T196 — STORY-281 AC1) },
         ...
     ] }
 
 `kind` is derived from which manifest filename an entry directory actually
 carries — <slug>.persona.json means kind="persona", <slug>.theme.json means
-kind="theme" (resolve_manifest below) — never from a field inside
-meta.json, so it can't drift from the file that's really on disk. A persona
-entry gets no `kind` key at all (rather than an explicit "persona"): the app
-already defaults a missing `kind` to persona (GenWave.Host, T176), so every
-entry that existed before T178 keeps its exact pre-existing shape and
-rebuilds byte-identical; only a theme entry gains both the new `kind` and
-`manifest` keys.
+kind="theme", <slug>.font.json means kind="font" (resolve_manifest below) —
+never from a field inside meta.json, so it can't drift from the file that's
+really on disk. A persona entry gets no `kind` key at all (rather than an
+explicit "persona"): the app already defaults a missing `kind` to persona
+(GenWave.Host, T176), so every entry that existed before T178 keeps its
+exact pre-existing shape and rebuilds byte-identical; only a theme or font
+entry gains the new `kind` and `manifest` keys (a font entry additionally
+gains `assets` and, when present in the manifest, `family`).
 
 Deterministic by construction: entries are sorted by slug, sha256 is computed
 over each file's raw bytes, paths are repo-root-relative (never absolute —
 F90.2 consumers reject an absolute path), and JSON is serialized with sorted
-keys and fixed separators plus a trailing newline. `example-dj` is excluded
-(README.md: it's documentation, never shelf stock). Symlinks anywhere under
-entries/ abort the build rather than being trusted (tools/catalog_lib.py).
+keys and fixed separators plus a trailing newline. A font entry's own
+`assets[]` is itself sorted (font_asset_paths, tools/catalog_lib.py) so this
+determinism holds for it too. `example-dj` is excluded (README.md: it's
+documentation, never shelf stock). Symlinks anywhere under entries/ abort the
+build rather than being trusted (tools/catalog_lib.py).
 
 `generatedAt` is derived entirely from the tree being indexed: the max
 `added` date across every INCLUDED entry's meta.json, or "1970-01-01" when
@@ -51,7 +60,7 @@ import json
 import sys
 from pathlib import Path
 
-from catalog_lib import REPO_ROOT, discover_entry_dirs, find_symlinks, rel
+from catalog_lib import KIND_SUFFIXES, REPO_ROOT, discover_entry_dirs, find_symlinks, font_asset_paths, rel
 
 EXCLUDED_SLUGS = {"example-dj"}  # documentation entry, never shelf stock (README.md)
 EMPTY_GENERATED_AT = "1970-01-01"
@@ -66,83 +75,86 @@ def resolve_manifest(entry_dir: Path, slug: str) -> tuple[Path | None, str]:
 
     `kind` is read off the filesystem, not off a field inside meta.json:
     <slug>.persona.json present means kind="persona" (the default,
-    pre-F103.2 shape), <slug>.theme.json present means kind="theme". This
-    is the single source of truth for kind — the same filename-per-kind
-    convention the app itself gates entry file-refs on (GenWave.Host, T176:
-    persona -> entries/<slug>/<slug>.persona.json, theme ->
-    entries/<slug>/<slug>.theme.json) — rather than a second, parallel
-    `kind` value recorded in meta.json that could drift from the manifest
-    file actually on disk.
+    pre-F103.2 shape), <slug>.theme.json present means kind="theme",
+    <slug>.font.json present means kind="font" (SPEC F104.1, T196 — walks
+    tools/catalog_lib.py's KIND_SUFFIXES in ITS OWN insertion order: persona,
+    then theme, then font — the same ordered mapping tools/validate.py's own
+    resolve_kind walks, so the two can no longer drift apart on either the
+    suffix spelling or the precedence order, T196 review M3). This is the
+    single source of truth for kind — the same filename-per-kind convention
+    the app itself gates entry file-refs on (GenWave.Host, T176: persona ->
+    entries/<slug>/<slug>.persona.json, theme ->
+    entries/<slug>/<slug>.theme.json, font ->
+    entries/<slug>/<slug>.font.json) — rather than a second, parallel `kind`
+    value recorded in meta.json that could drift from the manifest file
+    actually on disk.
 
-    Returns (None, "persona") when neither file is present; the caller
-    skips the directory in that case (tools/validate.py is the source of
-    truth for that shape error, not this function).
+    Returns (None, "persona") when none of the three files are present; the
+    caller skips the directory in that case (tools/validate.py is the
+    source of truth for that shape error, not this function).
 
-    *** T196 OBLIGATION — DOES NOT YET HANDLE kind:"font" ***
-    Unlike tools/validate.py's own resolve_kind (which already has a third
-    *.font.json branch, SPEC F104.1 / T195), THIS function stops at
-    persona/theme. A directory carrying only a *.font.json manifest falls
-    through to `return None, "persona"` below, so discover_entries' caller
-    sees `manifest_path is None` and silently `continue`s past it — a
-    schema-valid, tools/validate.py-clean font pack is simply never emitted
-    into index.json, no error, no log line. T196 is what adds the
-    `*.font.json` branch here (mirroring validate.py's resolve_kind), teaches
-    discover_entries to build the `{manifest, assets, family}` record shape
-    for it (see the OBLIGATIONS block ahead of main() below), and closes this
-    gap. Until T196 ships, do not assume "validate.py accepted this font
-    pack" implies "it's on the shelf" — check index.json.
+    HISTORY: until T196, this function stopped at persona/theme — a
+    directory carrying only a *.font.json manifest fell through to
+    `return None, "persona"`, so discover_entries' caller saw
+    `manifest_path is None` and silently `continue`d past it: a
+    schema-valid, tools/validate.py-clean font pack was simply never
+    emitted into index.json (no error, no log line), even though
+    tools/validate.py's own resolve_kind already classified it kind:"font".
+    T196 added the branch below, closing that gap; the OBLIGATIONS block
+    ahead of main() records the full six-piece contract T196 delivered
+    against.
     """
-    persona_path = entry_dir / f"{slug}.persona.json"
-    if persona_path.is_file():
-        return persona_path, "persona"
-    theme_path = entry_dir / f"{slug}.theme.json"
-    if theme_path.is_file():
-        return theme_path, "theme"
+    for kind, suffix in KIND_SUFFIXES.items():
+        candidate = entry_dir / f"{slug}{suffix}"
+        if candidate.is_file():
+            return candidate, kind
     return None, "persona"
 
 
 # ============================================================================
-# T196 OBLIGATIONS — font-kind index projection (SPEC F104.1, closes the gap
-# resolve_manifest's own comment above marks). This is where T196's builder
-# starts: `discover_entries` below (and resolve_manifest above it) are what a
-# theme-kind entry already gets projected through; a font-kind entry needs
-# the equivalent treatment, six pieces, recorded here verbatim so T196 can
-# act on this list directly rather than rediscovering it:
+# T196 OBLIGATIONS — font-kind index projection (SPEC F104.1). Recorded here
+# verbatim at T195 as the contract for T196 to act on directly rather than
+# rediscover; kept here UNCHANGED IN SUBSTANCE as the historical record of
+# that contract now that T196 has implemented all six pieces — each marked
+# DONE below with where it landed:
 #
-#   1. resolve_manifest gains a third branch — a *.font.json file present
-#      means kind="font" (mirrors tools/validate.py's resolve_kind, which
-#      already has this branch as of T195) — checked after persona/theme,
-#      same precedence order.
-#   2. discover_entries projects a font entry's `assets[]` from REAL
-#      on-disk bytes, not the manifest's own (untrusted, merely-typed)
-#      `files[]` — every sibling asset file in the entry directory
-#      (font_asset_paths' own selection logic in tools/validate.py is the
-#      precedent: closed woff2|txt extension set), sorted for determinism,
+#   1. DONE (T196) — resolve_manifest gains a third branch — a *.font.json
+#      file present means kind="font" (mirrors tools/validate.py's
+#      resolve_kind, which already had this branch as of T195) — checked
+#      after persona/theme, same precedence order. See resolve_manifest
+#      above.
+#   2. DONE (T196) — discover_entries projects a font entry's `assets[]`
+#      from REAL on-disk bytes, not the manifest's own (untrusted,
+#      merely-typed) `files[]` — every sibling asset file in the entry
+#      directory (font_asset_paths, moved to tools/catalog_lib.py at T196 so
+#      both this module and tools/validate.py share one definition of "what
+#      counts as a font pack's own asset file"), sorted for determinism,
 #      each carrying its own recomputed sha256 (sha256_of, already defined
-#      above) and real stat().st_size — never trust a manifest-declared
-#      `bytes` value for what ships in the index.
-#   3. tools/validate.py's validate_index (or an equivalent introduced
-#      alongside it) gains a slug-ownership cross-check: every `manifest`,
-#      `meta`, AND `assets[]` path an index entry carries must resolve
-#      under `entries/<that-entry's-own-slug>/` — nothing dangling, nothing
-#      borrowed from a sibling entry's directory.
-#   4. schemas/index.schema.json's `assets` property gains `uniqueItems:
-#      true` (full-object uniqueness, not just distinct paths) — a font
-#      entry's own `assets[]` should never carry the same asset twice, the
-#      same posture `files[]`'s duplicate-asset gate already takes one
-#      layer down in the pack's own manifest.
-#   5. discover_entries projects `family` onto a font entry's index record
-#      by reading it straight off the pack's own manifest `family` field
+#      above) and real stat().st_size — never a manifest-declared `bytes`
+#      value. See discover_entries below.
+#   3. DONE (T196) — tools/validate.py's validate_index gained a
+#      slug-ownership cross-check (validate_index_slug_ownership): every
+#      `card`, `manifest`, `meta`, AND `assets[]` path an index entry
+#      carries must resolve under `entries/<that-entry's-own-slug>/` —
+#      nothing dangling, nothing borrowed from a sibling entry's directory.
+#   4. DONE (T196) — schemas/index.schema.json's `assets` property gained
+#      `uniqueItems: true` (full-object uniqueness, not just distinct
+#      paths) — the same posture `files[]`'s duplicate-asset gate already
+#      takes one layer down in the pack's own manifest.
+#   5. DONE (T196) — discover_entries projects `family` onto a font entry's
+#      index record straight off the pack's own manifest `family` field
 #      (STORY-281 AC1 reconciliation, T194 review finding — recorded in
 #      CatalogFontManifestSerializer's own remarks) — the same `bestFor`/
-#      `preview` precedent already used for theme entries above.
-#   6. tools/run_selftest.sh gains an assertion that a built font entry's
-#      `assets[]` byte total (summed) matches independently-recomputed
-#      on-disk byte totals for the SAME fixture tree — not a hardcoded
-#      number — plus a schema-validity check of the freshly built entry
-#      against schemas/index.schema.json's `if`/`then`/`else` font branch,
-#      the same "green fixture exercises index shape" posture the existing
-#      persona/theme selftest sections already have.
+#      `preview` precedent already used for theme entries above. See
+#      discover_entries below.
+#   6. DONE (T196) — tools/run_selftest.sh gained an assertion that a built
+#      font entry's `assets[]` byte total (summed) matches
+#      independently-recomputed on-disk byte totals for the SAME fixture
+#      tree — not a hardcoded number — plus a schema-validity check of the
+#      freshly built entry against schemas/index.schema.json's
+#      `if`/`then`/`else` font branch, the same "green fixture exercises
+#      index shape" posture the existing persona/theme selftest sections
+#      already have.
 # ============================================================================
 
 
@@ -199,6 +211,28 @@ def discover_entries(root: Path) -> tuple[list[dict], list[str]]:
         else:
             record["kind"] = kind
             record["manifest"] = manifest_ref
+            if kind == "font":
+                # assets[] is projected from what's REALLY on disk (T196
+                # obligation 2) — never the manifest's own (untrusted,
+                # merely-typed) files[].bytes — sorted for determinism
+                # (font_asset_paths, tools/catalog_lib.py, shared with
+                # tools/validate.py's validate_font_pack gates).
+                record["assets"] = [
+                    {
+                        "path": rel(root, asset_path),
+                        "sha256": sha256_of(asset_path),
+                        "bytes": asset_path.stat().st_size,
+                    }
+                    for asset_path in font_asset_paths(entry_dir)
+                ]
+                # `family` is copied straight off the manifest (STORY-281
+                # AC1, T196 obligation 5) — required by
+                # schemas/font-manifest.schema.json, so, like `audience`
+                # above, this is a plain dict access: tools/validate.py is
+                # the source of truth for that shape guarantee, the same
+                # posture this module already takes throughout.
+                manifest_data = json.loads(manifest_path.read_text(encoding="utf-8"))
+                record["family"] = manifest_data["family"]
         if "bestFor" in meta:
             record["bestFor"] = meta["bestFor"]
         if "preview" in meta:

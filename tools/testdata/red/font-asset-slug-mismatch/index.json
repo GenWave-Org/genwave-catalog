@@ -1,0 +1,31 @@
+{
+  "entries": [
+    {
+      "assets": [
+        {
+          "bytes": 7844,
+          "path": "entries/some-other-slug/stolen-variable-latin.woff2",
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "bytes": 4500,
+          "path": "entries/font-asset-slug-mismatch/OFL.txt",
+          "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ],
+      "audience": "everyone",
+      "family": "Font Asset Slug Mismatch",
+      "kind": "font",
+      "manifest": {
+        "path": "entries/font-asset-slug-mismatch/font-asset-slug-mismatch.font.json",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "meta": {
+        "path": "entries/font-asset-slug-mismatch/font-asset-slug-mismatch.meta.json",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "slug": "font-asset-slug-mismatch"
+    }
+  ],
+  "generatedAt": "2026-08-05"
+}
