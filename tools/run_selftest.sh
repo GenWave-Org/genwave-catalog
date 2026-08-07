@@ -249,6 +249,7 @@ echo
 
 check_red_variant bad-theme-mode "'dark' is a required property"
 check_red_variant missing-theme-preview "'preview' is a required property"
+check_red_variant theme-unvendored-font "theme-unvendored-font: theme 'theme-unvendored-font' fonts.sans references font src '/fonts/space-grotesk-variable-latin.woff2'"
 
 echo "-- red bad-theme-contrast: AA contrast gate rejects a theme entry with a sub-4.5:1 asserted pair (SPEC F102.8 / T158, ported to the catalog at T180) --"
 output=$(python3 tools/validate.py --root "$KIND_RED_DIR/bad-theme-contrast" 2>&1)
