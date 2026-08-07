@@ -1,10 +1,16 @@
 # 🤝 Contributing to genwave-catalog
 
-Thanks for wanting to add a DJ to the shelf. This is a community catalog of
-[GenWave](https://github.com/GenWave-Org/genwave) persona cards — every entry here is a
-character someone else's radio station can drop straight in. That's a gift to strangers, so
-we ask a bit of care in return. This doc is the full bar: what CI checks mechanically, and
-what a human reviews.
+Thanks for wanting to add to the shelf. This is a community catalog for
+[GenWave](https://github.com/GenWave-Org/genwave), carrying three kinds of entry: DJ **personas**
+and **themes** (both open to community submission) and **font packs** (Dean-curated only — see
+[Font packs](#font-packs-kind-font) below). Every entry here is something someone else's radio
+station can drop straight in. That's a gift to strangers, so we ask a bit of care in return. This
+doc is the full bar: what CI checks mechanically, and what a human reviews.
+
+This walkthrough below is the **persona** path. Submitting a **theme** instead? Read this section
+for the shared mechanics (prerequisites, validate/lint/index/selftest, the PR template), then
+jump to [🎨 Theme submission](#-theme-submission) for what's different. Font packs don't follow
+this path at all — see [Font packs](#font-packs-kind-font).
 
 ## 🚀 Start to finish
 
@@ -24,13 +30,16 @@ what a human reviews.
    ```
    python3 tools/validate.py
    ```
-   Fix every violation it prints — each one names the offending file and rule. Then run the
-   submission-length lint too, before you open a PR:
+   Fix every violation it prints — each one names the offending file and rule; it's kind-aware, so
+   a theme entry is checked against the theme schemas and gates, not the persona ones. Then, for a
+   persona, run the submission-length lint too, before you open a PR:
    ```
    python3 tools/lint.py
    ```
-   Warnings alone won't block a PR, but read them — see the "Keep the card tight" section below
-   for why they're there. Red always needs fixing.
+   `tools/lint.py` covers **persona cards only** today — it has nothing to say about a theme entry
+   one way or the other, so a clean run here is not itself a theme quality signal. Warnings alone
+   won't block a PR, but read them — see the "Keep the card tight" section below for why they're
+   there. Red always needs fixing.
 6. **Regenerate the index**:
    ```
    python3 tools/build_index.py
@@ -73,7 +82,20 @@ CI enforces shape. A human enforces character. Both matter, and both are law her
 **Hard bans, regardless of rating, no exceptions:** hate/harassment content, sexualized minors,
 real-person impersonation, trademarks/branding.
 
-The rest of this doc walks through items 3–7 one at a time.
+**Per kind:** items 1, 2, 4, 5, and 8 above apply to a theme exactly as written — schema-valid,
+required fields present (against the theme schemas, not the persona ones), `audience`
+self-rating, CC0 checkbox, scoped diff. Items 3 and 6 have a theme equivalent, not a persona-only
+meaning: a theme still needs its own one-line distinctness statement (what makes this *look*
+distinct, not this DJ), and English-first still applies to whatever prose a theme entry carries
+(`description` — a theme has no `soul`/`lore`/`quirks`/`samplePatter` to translate). Item 7
+(`tools/lint.py`'s prompt-weight budget) is **persona-only** and does not apply to a theme — a
+theme carries no field that rides into a runtime model prompt. A theme submission adds two gates
+of its own with no persona equivalent (AA contrast, vendored-five faces) — see
+[🎨 Theme submission](#-theme-submission) below. Font packs don't clear this bar at all —
+curated only, see [Font packs](#font-packs-kind-font).
+
+The rest of this doc walks through items 3–7 one at a time, for a persona; theme specifics are
+their own section below.
 
 ### 🎭 The distinctness statement
 
@@ -138,6 +160,50 @@ One more thing the lint holds the line on: a pronunciation rule the app would si
 one whose `word` never actually matches inside `pattern`, or that's otherwise dead on arrival —
 fails CI outright, not just a warning. A rule like that would never fire at runtime anyway, so
 there's no soft version of it: fix what the lint names rather than arguing with it.
+
+## 🎨 Theme submission
+
+Themes are open to community submission, same as personas — the mechanics above (prerequisites,
+`tools/validate.py`, `tools/build_index.py`, `tools/run_selftest.sh`, the PR template) all apply.
+Only the files and gates below are theme-specific.
+
+1. **Copy an existing theme entry** — e.g. `entries/graveyard-shift/` — to `entries/<your-slug>/`,
+   then rename both files to `<your-slug>.theme.json` and `<your-slug>.meta.json`. Same slug rule
+   as personas: `^[a-z0-9]+(-[a-z0-9]+)*$` (README.md's
+   [Slug format](./README.md#slug-format)).
+2. **Author the manifest** (`<slug>.theme.json`) — validates against
+   `schemas/theme-manifest.schema.json`. The shape is owned by the
+   [GenWave app repo](https://github.com/GenWave-Org/genwave) (SPEC F103.2), same posture as the
+   persona card: this catalog validates a copy of that schema but never changes it. Required:
+   `slug`, `name`, `author`, `fonts` (`display` and `sans`, each `{ family, assets[] }`), `modes`
+   (`light` and `dark` token maps).
+3. **Author the metadata** (`<slug>.meta.json`) — validates against
+   `schemas/theme-meta.schema.json`. Required: `author`, `description`, `audience`, `added`, and
+   `preview` — a `light`/`dark` swatch set (`bg`/`surface`/`ink`/`accent`/`accent-2` hex values)
+   the shelf card paints without fetching the full manifest. There is no `samplePatter` field; a
+   theme has no on-air voice.
+4. **Clear the AA contrast gate — HARD, not a warning.** `tools/contrast.py` checks the same 11
+   token pairs the app's own `admin-ui/__specs__/theme-shelf-contrast.spec.ts` asserts against
+   every shipped theme: `ink` on each of `bg`/`surface`/`surface-2`, `accent-ink` on `accent`,
+   `danger-ink` on `danger`, and `mute`/`accent-2` on each of those same three grounds — every
+   pair measuring **≥4.5:1** in BOTH `light` and `dark` modes (22 checks total). A failing pair,
+   or a pair missing either of its two tokens, rejects the entry before it ever reaches
+   `index.json` — same posture as a schema failure, not a lint warning. Run
+   `python3 tools/validate.py` locally before you open a PR; the specific failing pair is named in
+   the output.
+5. **The vendored-five faces rule — HARD, no exceptions.** A theme's `fonts.display`/`fonts.sans`
+   assets may reference ONLY GenWave's five vendored `/fonts/*.woff2` faces: **`fraunces`,
+   `fraunces-italic`, `source-sans-3`, `jetbrains-mono`, `grenze-gotisch`** (each a
+   `-variable-latin.woff2` file). This is a standing ruling (SPEC F104.9's unbreakable-themes
+   invariant, PLAN T205, Dean's 2026-08-05 ruling: "themes never reference font packs in the
+   catalog") — a theme referencing anything else, **including a font pack shipped by this very
+   catalog**, is HARD-rejected by `tools/validate.py`'s curated-only theme-font-provenance gate.
+   Why: a catalog theme has to keep rendering with zero network on every station regardless of
+   which font packs, if any, that station has installed; a theme that could reference a pack face
+   would silently 404 its font on any station that hadn't installed that exact pack.
+
+The [quality bar](#-the-quality-bar) above still applies — see its "Per kind" note for exactly
+which of the 8 items carry over as-is, which have a theme equivalent, and which are persona-only.
 
 ## 🔍 What review looks like
 
