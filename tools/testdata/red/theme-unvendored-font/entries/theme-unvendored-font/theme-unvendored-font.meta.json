@@ -1,0 +1,22 @@
+{
+  "author": "Red Fixture",
+  "description": "Red-variant kind:\"theme\" fixture (SPEC F104.9 / T205) — its .theme.json's fonts.sans.assets[0].src names a real font-PACK face (space-grotesk-variable-latin.woff2, this repo's own kind:\"font\" entry) instead of one of GenWave's five vendored /fonts/*.woff2 faces, proving tools/validate.py's validate_theme_font_provenance rejects a catalog theme that references a font-pack face (the unbreakable-themes invariant, Dean's ruling 2026-08-05: \"themes never reference font packs in the catalog\"). Everything else about this fixture (contrast pairs, required fields) mirrors the green valid-theme fixture exactly, so this is the ONE thing under test.",
+  "audience": "everyone",
+  "added": "2026-08-07",
+  "preview": {
+    "light": {
+      "bg": "#f7ecd2",
+      "surface": "#fff8e6",
+      "ink": "#2c2410",
+      "accent": "#b8860b",
+      "accent-2": "#4f6b52"
+    },
+    "dark": {
+      "bg": "#171205",
+      "surface": "#241c09",
+      "ink": "#f4ecce",
+      "accent": "#e0a52c",
+      "accent-2": "#7fa382"
+    }
+  }
+}

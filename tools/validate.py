@@ -38,6 +38,17 @@ per SPEC F103.2 / T179):
     as the schema check above it — a failing pair, or a pair missing either
     of its two tokens, rejects the entry before it ever reaches
     tools/build_index.py.
+  - A theme's manifest stays curated-only (SPEC F104.9's unbreakable-themes
+    invariant, PLAN T205, Dean's ruling 2026-08-05: "themes never reference
+    font packs in the catalog"): every `fonts.display`/`fonts.sans` asset
+    `src` must be one of GenWave's five vendored `/fonts/*.woff2` faces
+    (VENDORED_FONT_SRCS, mirroring the app's own fonts-provenance.json) —
+    never a font-pack face. A HARD gate (tools/validate.py's
+    `validate_theme_font_provenance`); the app's own widened, per-station
+    vendored-union-installed law (SPEC F104.9/F104.10) governs a station's
+    own theme IMPORT, not what the shared catalog shelf may publish, so a
+    catalog theme keeps rendering with zero network on every station
+    regardless of which packs, if any, that station has installed.
   - A font pack (kind:\"font\", <slug>.font.json) is gated per SPEC F104.2,
     on top of its own schema check (schemas/font-manifest.schema.json /
     schemas/font-meta.schema.json): the entry's actual asset files (every
@@ -151,6 +162,24 @@ FONT_PACK_BYTE_CEILING = 200 * 1024  # 204,800 bytes; SPEC F104.2's per-pack cei
 # that wording names; widen this set (and this comment) if/when a future pack
 # needs a third.
 FONT_PERMITTED_LICENSES = {"OFL-1.1", "Apache-2.0"}
+
+# SPEC F104.9's "unbreakable themes" invariant (Dean's ruling 2026-08-05, PLAN T205: "themes never
+# reference font packs in the catalog") — mirrors the app's own GenWave.Host/wwwroot/fonts/fonts-
+# provenance.json (FONTS.md's curated set) exactly. The app's ThemeFontProvenanceValidator widens to
+# vendored UNION installed for a station's own IMPORT (SPEC F104.9/F104.10) — but that union is
+# per-station, depending on which packs THAT station happened to install. A theme entry accepted onto
+# the PUBLIC catalog must reference ONLY this fixed set: it renders identically, with zero network, on
+# EVERY station regardless of what that station has installed — the guarantee validate_theme_font_
+# provenance below exists to hold. Keep this set and that JSON file in sync by hand if GenWave ever
+# vendors a new base face (the same cross-repo "authored in one repo, mirrored in the other" discipline
+# fixtures/golden.theme.json already carries, T177).
+VENDORED_FONT_SRCS = {
+    "/fonts/fraunces-variable-latin.woff2",
+    "/fonts/fraunces-italic-variable-latin.woff2",
+    "/fonts/source-sans-3-variable-latin.woff2",
+    "/fonts/jetbrains-mono-variable-latin.woff2",
+    "/fonts/grenze-gotisch-variable-latin.woff2",
+}
 
 
 def load_schema(name: str) -> dict:
@@ -288,6 +317,49 @@ def validate_theme_aa(manifest_path: Path, slug: str, manifest: object) -> list[
         f"{rel(REPO_ROOT, manifest_path)}: aa-contrast: theme '{slug}': {finding}"
         for finding in check_theme_aa(manifest.get("modes"))
     ]
+
+
+def validate_theme_font_provenance(manifest_path: Path, slug: str, manifest: object) -> list[str]:
+    """SPEC F104.9's unbreakable-themes invariant, catalog-CI half (PLAN T205) — a theme entry
+    accepted onto the PUBLIC catalog may reference ONLY VENDORED_FONT_SRCS, never a font-pack face.
+    See that constant's own remarks for why: the app's widened, per-station vendored-union-installed
+    law (SPEC F104.9/F104.10) governs a station's own theme IMPORT, not what the shared, catalog-wide
+    shelf may publish — a catalog theme referencing a pack face would render only on stations that
+    happened to install that exact pack, silently 404ing its font everywhere else.
+
+    A HARD gate, same posture as validate_theme_aa next to it: every `fonts.display`/`fonts.sans`
+    face's every asset `src` is checked; a single unvendored src rejects the whole entry, naming the
+    offending src (never silently accepted, never merely warned about). Defensive against a manifest
+    that failed its own schema shape check (missing/malformed `fonts`, a role, or `assets`) — those
+    shapes are silently skipped here, not reported as a second violation; the schema check next to
+    this call already names that failure once."""
+    if not isinstance(manifest, dict):
+        return []
+    fonts = manifest.get("fonts")
+    if not isinstance(fonts, dict):
+        return []
+
+    violations: list[str] = []
+    for role in ("display", "sans"):
+        face = fonts.get(role)
+        if not isinstance(face, dict):
+            continue
+        assets = face.get("assets")
+        if not isinstance(assets, list):
+            continue
+        for asset in assets:
+            if not isinstance(asset, dict):
+                continue
+            src = asset.get("src")
+            if isinstance(src, str) and src not in VENDORED_FONT_SRCS:
+                violations.append(
+                    f"{rel(REPO_ROOT, manifest_path)}: theme-unvendored-font: theme '{slug}' "
+                    f"fonts.{role} references font src '{src}', outside GenWave's vendored curated "
+                    "set — a catalog theme may never reference a font-pack face (SPEC F104.9's "
+                    "unbreakable-themes invariant)"
+                )
+
+    return violations
 
 
 def validate_font_pack(entry_dir: Path, slug: str, manifest: object) -> list[str]:
@@ -494,6 +566,7 @@ def validate_entry(entry_dir: Path, kind_specs: dict[str, KindSpec]) -> list[str
             violations.extend(validate_schema(manifest_path, manifest_instance, spec.manifest_schema))
             if kind == "theme":
                 violations.extend(validate_theme_aa(manifest_path, slug, manifest_instance))
+                violations.extend(validate_theme_font_provenance(manifest_path, slug, manifest_instance))
             elif kind == "font":
                 violations.extend(validate_font_pack(entry_dir, slug, manifest_instance))
 
