@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Lint genwave-catalog persona cards against submission length budgets
-(SPEC F89.6).
+"""Lint genwave-catalog persona cards and show manifests against submission
+length budgets (SPEC F89.6, SPEC F118.4).
 
 Rules enforced, each a two-tier check (WARN, then HARD if far enough over):
 
@@ -31,6 +31,15 @@ Rules enforced, each a two-tier check (WARN, then HARD if far enough over):
     word occurs more than once in pattern (case-insensitive) — only the
     first occurrence binds (same rule the app's Create documents), later
     occurrences are unreachable.
+  - show-name-budget / show-tagline-budget / show-flavor-budget: len(name) /
+    len(tagline) / len(flavor) on a show manifest (<slug>.show.json) against
+    its SPEC F115.1 1x budget (name 60, tagline 120, flavor 400 chars) —
+    WARN when over the 1x budget, HARD when at or over 2x it (SPEC F118.4's
+    WARN>1x/HARD>=2x posture — deliberately inclusive at the 2x boundary,
+    unlike the persona checks above, since F118.4 states the line as
+    "HARD >= 2x" explicitly). The budget numbers themselves are read off
+    GenWave.Core.Domain.ShowBudgets (name<=60, tagline<=120, flavor<=400 at
+    1x) rather than re-declared — SPEC F89.5's numbers-stated-once posture.
 
 A hard finding implies its warn threshold was also crossed; only the HARD
 line is printed for that field+check, never both.
@@ -38,16 +47,18 @@ line is printed for that field+check, never both.
 Every message states the measured value against its budget, e.g.
 "soul is 1301 chars (warn 600, hard 1200)".
 
-Scope: every entries/<slug>/<slug>.persona.json under --root, INCLUDING
-example-dj (it's the template people copy, and must stay within budget too).
-A card that fails to parse as JSON, or whose soul/name/quirks/lore fields are
-missing or not the expected type, is SKIPPED SILENTLY — malformed JSON/shape
-is tools/validate.py's law, not this lint's, and this tool must never crash
-on garbage input (every field is read with .get() plus a type check). The
-same silent-skip contract applies to pronunciations independently of the
-rest of the card: missing, null, or not a list skips dead-rule/word-repeat
-entirely; a non-dict list item, or a rule whose pattern/ipa/word is present
-but wrong-typed, skips that one rule — wrong types are schema law
+Scope: every entries/<slug>/<slug>.persona.json AND every
+entries/<slug>/<slug>.show.json under --root, INCLUDING example-dj (it's the
+template people copy, and must stay within budget too — example-dj carries
+no show manifest, so only the persona checks apply to it). A card/manifest
+that fails to parse as JSON, or whose relevant fields are missing or not the
+expected type, is SKIPPED SILENTLY — malformed JSON/shape is
+tools/validate.py's law, not this lint's, and this tool must never crash on
+garbage input (every field is read with .get() plus a type check). The same
+silent-skip contract applies to pronunciations independently of the rest of
+the card: missing, null, or not a list skips dead-rule/word-repeat entirely;
+a non-dict list item, or a rule whose pattern/ipa/word is present but
+wrong-typed, skips that one rule — wrong types are schema law
 (tools/validate.py + the bad-pronunciations-type red fixture), not this
 lint's. An entries/<slug> directory that is itself a symlink (or a symlink
 anywhere under it) is SKIPPED SILENTLY too, before any file inside it is
@@ -106,6 +117,19 @@ WEIGHT_WARN = 900
 WEIGHT_HARD = 1800
 PROMPT_WEIGHT_SAMPLE_SIZE = 3  # genwave SPEC F71.3: 2-3 quirks sampled per break
 
+# SPEC F115.1's show field-length budgets at 1x (reasoned-not-fitted, same
+# posture as the persona budgets above) — mirrors the app's own
+# GenWave.Core.Domain.ShowBudgets.{NameMaxChars,TaglineMaxChars,FlavorMaxChars}
+# exactly, the F89.5 numbers-stated-once rule. SPEC F118.4's own tier is
+# WARN>1x, HARD>=2x — the 2x boundary is INCLUSIVE on the hard side,
+# deliberately unlike the persona budgets above (whose HARD tier is a plain
+# `> hard` check): F118.4 states the show posture as "HARD >= 2x" in so many
+# words, so check_show_field_budget below implements that literally rather
+# than reusing check_soul_budget's `>` shape.
+SHOW_NAME_BUDGET = 60
+SHOW_TAGLINE_BUDGET = 120
+SHOW_FLAVOR_BUDGET = 400
+
 VERBOSITY_PHRASES = (
     "ramble",
     "at length",
@@ -157,6 +181,55 @@ def load_card_fields(card_path: Path) -> tuple[str, list[str], list[str], str, o
         return None
 
     return soul, quirks, lore, name, pronunciations
+
+
+def load_show_fields(manifest_path: Path) -> tuple[str, str, str] | None:
+    """Read and shape-check a show manifest. Returns (name, tagline, flavor)
+    when all three are present and correctly typed, else None — a silent
+    skip, the same load_card_fields contract above (shape law belongs to
+    validate.py, not here)."""
+    try:
+        raw = manifest_path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return None
+    try:
+        manifest = json.loads(raw)
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(manifest, dict):
+        return None
+
+    name = manifest.get("name")
+    tagline = manifest.get("tagline")
+    flavor = manifest.get("flavor")
+
+    if not isinstance(name, str) or not isinstance(tagline, str) or not isinstance(flavor, str):
+        return None
+
+    return name, tagline, flavor
+
+
+def check_show_field_budget(value: str, budget: int, rule: str, field_label: str) -> list[Finding]:
+    """WARN when `value` exceeds `budget` (1x), HARD when it reaches 2x
+    `budget` — SPEC F118.4's WARN>1x/HARD>=2x posture, inclusive at the 2x
+    boundary (see SHOW_NAME_BUDGET's own remarks for why this differs from
+    check_soul_budget's plain `>` shape)."""
+    length = len(value)
+    hard = budget * 2
+    message = f"{field_label} is {length} chars (1x budget {budget}, warn >{budget}, hard >={hard})"
+    if length >= hard:
+        return [(HARD, rule, message)]
+    if length > budget:
+        return [(WARN, rule, message)]
+    return []
+
+
+def lint_show(name: str, tagline: str, flavor: str) -> list[Finding]:
+    findings: list[Finding] = []
+    findings.extend(check_show_field_budget(name, SHOW_NAME_BUDGET, "show-name-budget", "name"))
+    findings.extend(check_show_field_budget(tagline, SHOW_TAGLINE_BUDGET, "show-tagline-budget", "tagline"))
+    findings.extend(check_show_field_budget(flavor, SHOW_FLAVOR_BUDGET, "show-flavor-budget", "flavor"))
+    return findings
 
 
 def check_soul_budget(soul: str) -> list[Finding]:
@@ -323,7 +396,12 @@ def format_finding(tier: str, label: str, rule: str, message: str, github_action
 
 def lint_entries(entries_dir: Path) -> list[tuple[str, str, str, str]]:
     """Every finding across every entry under entries_dir, as
-    (tier, repo-relative label, rule, message) tuples."""
+    (tier, repo-relative label, rule, message) tuples. Checks a persona card
+    (<slug>.persona.json) and a show manifest (<slug>.show.json) the same
+    pass, over the same entry_dir loop — an entry only ever carries one of
+    the two (tools/catalog_lib.py's KIND_SUFFIXES precedence), so this never
+    double-lints a single manifest, it just avoids a second directory walk
+    for the show budgets added at SPEC F118.4 / T253."""
     results: list[tuple[str, str, str, str]] = []
     for entry_dir in discover_entry_dirs(entries_dir):
         # Symlinks are never trusted (tools/catalog_lib.py: find_symlinks) —
@@ -335,14 +413,22 @@ def lint_entries(entries_dir: Path) -> list[tuple[str, str, str, str]]:
         if find_symlinks(entry_dir):
             continue
         slug = entry_dir.name
+
         card_path = entry_dir / f"{slug}.persona.json"
         fields = load_card_fields(card_path)
-        if fields is None:
-            continue
-        soul, quirks, lore, name, pronunciations = fields
-        label = rel(REPO_ROOT, card_path)
-        for tier, rule, message in lint_card(soul, quirks, lore, name, pronunciations):
-            results.append((tier, label, rule, message))
+        if fields is not None:
+            soul, quirks, lore, name, pronunciations = fields
+            label = rel(REPO_ROOT, card_path)
+            for tier, rule, message in lint_card(soul, quirks, lore, name, pronunciations):
+                results.append((tier, label, rule, message))
+
+        show_path = entry_dir / f"{slug}.show.json"
+        show_fields = load_show_fields(show_path)
+        if show_fields is not None:
+            show_name, tagline, flavor = show_fields
+            show_label = rel(REPO_ROOT, show_path)
+            for tier, rule, message in lint_show(show_name, tagline, flavor):
+                results.append((tier, show_label, rule, message))
     return results
 
 

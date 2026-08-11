@@ -1,0 +1,6 @@
+{
+  "author": "Red Fixture",
+  "description": "Red-variant fixture: flavor at exactly 2x the SPEC F115.1 budget (800 chars) \u2014 must HARD-fail tools/lint.py (SPEC F118.4's WARN>1x/HARD>=2x posture, T253).",
+  "audience": "everyone",
+  "added": "2026-08-11"
+}

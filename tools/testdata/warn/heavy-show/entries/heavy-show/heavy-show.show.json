@@ -1,0 +1,6 @@
+{
+  "schemaVersion": 1,
+  "name": "Long show name padding out past the sixty character budget line here Long show name paddin",
+  "tagline": "A tagline stretched well past its one-times budget so the lint's warn tier fires but the hard tier at two-times stays comfortably out of reach today. A tagline stretched well past ",
+  "flavor": "Prompt-only flavor text stretched deliberately past its one-times budget line so the catalog lint warns without yet crossing the two-times hard ceiling that would reject the whole show manifest outright at import time. Prompt-only flavor text stretched deliberately past its one-times budget line so the catalog lint warns without yet crossing the two-times hard ceiling that would reject the whole show manifest outright at import time. Prompt-only flavor text stretched deliberately past its one-times budget line so the catalog lint warns without yet crossing the two-times hard ceiling that would"
+}

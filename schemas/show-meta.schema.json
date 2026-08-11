@@ -1,0 +1,44 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/GenWave-Org/genwave-catalog/main/schemas/show-meta.schema.json",
+  "title": "GenWave Show Catalog Entry Metadata",
+  "description": "The <slug>.meta.json shape for a kind:\"show\" entry (app repo SPEC F118.1, catalog-owned). Mirrors persona-meta.schema.json / theme-meta.schema.json / font-meta.schema.json's posture: additionalProperties is false — this document belongs entirely to the catalog, so an unrecognized field is a contributor mistake worth failing CI on, not a forward-compat concern. There is no samplePatter/preview equivalent (a show has neither on-air sample lines nor a swatch set); in their place, `suggestedPersona` is the show-specific optional field (SPEC F118.3): a catalog persona slug the import modal offers to also hire, SOFT (the show installs regardless of whether the suggestion is on the shelf, already hired, or absent). Read directly off this file at import time (PLAN T254) — unlike `bestFor`, it is never projected into index.json, since it is consulted only once, at the moment a station is deciding whether to import, not needed for a zero-fetch shelf listing.",
+  "$comment": "`added`'s pattern ends in (?![\\s\\S]), the same portable absolute-end-of-string anchor persona-meta.schema.json/theme-meta.schema.json/font-meta.schema.json document in full and repeat verbatim — repeated here too so this file stands alone.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["author", "description", "audience", "added"],
+  "properties": {
+    "author": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Who submitted this show."
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "description": "A short blurb introducing the show — shown on the shelf card without fetching the full manifest."
+    },
+    "audience": {
+      "type": "string",
+      "enum": ["everyone", "mature"],
+      "description": "Content self-rating, verified at PR review (mirrors persona-meta.schema.json/theme-meta.schema.json/font-meta.schema.json's own `audience` — required for every kind, SPEC F118.4)."
+    },
+    "added": {
+      "type": "string",
+      "format": "date",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}(?![\\s\\S])",
+      "description": "ISO 8601 date (YYYY-MM-DD) this entry was added to the catalog. `format: date` alone is annotation-only in draft-07 by default, so `pattern` carries the shape enforcement — but pattern alone only checks digit counts, not calendar validity; tools/validate.py separately parses this value with datetime.date.fromisoformat to reject a shape-valid but non-existent date."
+    },
+    "bestFor": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Optional daypart/mood-affinity hints, e.g. \"morning-drive\", \"late-night\" — mirrors persona-meta.schema.json/theme-meta.schema.json/font-meta.schema.json's own `bestFor`."
+    },
+    "suggestedPersona": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*(?![\\s\\S])",
+      "maxLength": 64,
+      "description": "Optional catalog persona slug the import modal offers to also hire (SPEC F118.3) — SOFT: shown only when that slug is on the shelf and not already hired, and the show installs regardless either way. Absence means no suggestion; a stale or unknown (but shape-valid) slug is exactly the \"unknown\" case F118.3's own test names, not a schema-rejectable shape — but the SHAPE itself is pinned to the catalog's own slug vocabulary (mirrors schemas/index.schema.json's own `entry.slug` pattern) and to 64 chars, byte-identical to the app's own GenWave.Host.Api.BoundedImportBodyReader.MaxCatalogSlugLength (the same cheap-reject-before-any-real-work bound PersonaController/ThemesImportController apply to their own `catalogSlug` route parameter) — this value is read back out at import time and offered as a candidate slug for a second catalog fetch, so it is untrusted input the same way any other slug-shaped field here is, not a free-text field like `description`."
+    }
+  }
+}

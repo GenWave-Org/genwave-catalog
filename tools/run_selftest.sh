@@ -30,7 +30,16 @@
 #  11. .github/workflows/ci.yml wires tools/lint.py into the validate job —
 #      same drift-check spirit as item 5, so a CI edit that drops the lint
 #      step fails here too, not just after merge
+#  12. kind-aware show-entry validation (schemas/show-manifest.schema.json +
+#      schemas/show-meta.schema.json, SPEC F118.1/F118.4, T253): a green
+#      valid-show fixture end to end, red schema-shape gates (missing
+#      flavor, missing audience), fixtures/golden.show.json against the
+#      show-manifest schema, build_index.py's show-kind projection (kind +
+#      manifest only, no card/assets/family/preview), and tools/lint.py's
+#      show budget lint (WARN>1x on every field, HARD>=2x on flavor at
+#      exactly the 2x boundary)
 #
+
 # Every python3/build_index.py invocation below has its exit status checked
 # explicitly (`set -uo pipefail`, not `set -e`, since several steps below —
 # the red-variant checks — deliberately run a command expected to fail and
@@ -90,6 +99,9 @@ KIND_RED_DIR="tools/testdata/red"
 FONT_GREEN_FIXTURE="tools/testdata/green/valid-font"
 FONT_OVER_CEILING_ASSET="$RED_DIR/font-over-ceiling/entries/font-over-ceiling/font-over-ceiling-variable-latin.woff2"
 
+SHOW_GREEN_FIXTURE="tools/testdata/green/valid-show"
+HEAVY_SHOW_DIR="tools/testdata/warn/heavy-show"
+
 TMP_GREEN_TREE=""
 TMP_PRON_TREE=""
 TMP_SYMLINK_TREE=""
@@ -99,6 +111,8 @@ TMP_FONT_TREE=""
 TMP_FONT_INDEX_TREE=""
 TMP_HOSTILE_BYTES_TREE=""
 TMP_SCHEMA_HELPERS_DIR=""
+TMP_SHOW_TREE=""
+TMP_SHOW_INDEX_TREE=""
 cleanup() {
     rm -f "$OVERSIZE_CARD"
     rm -f "$FONT_OVER_CEILING_ASSET"
@@ -111,6 +125,8 @@ cleanup() {
     [[ -n "$TMP_FONT_INDEX_TREE" ]] && rm -rf "$TMP_FONT_INDEX_TREE"
     [[ -n "$TMP_HOSTILE_BYTES_TREE" ]] && rm -rf "$TMP_HOSTILE_BYTES_TREE"
     [[ -n "$TMP_SCHEMA_HELPERS_DIR" ]] && rm -rf "$TMP_SCHEMA_HELPERS_DIR"
+    [[ -n "$TMP_SHOW_TREE" ]] && rm -rf "$TMP_SHOW_TREE"
+    [[ -n "$TMP_SHOW_INDEX_TREE" ]] && rm -rf "$TMP_SHOW_INDEX_TREE"
 }
 trap cleanup EXIT
 
@@ -362,6 +378,115 @@ rm -f "$FONT_OVER_CEILING_ASSET"
 echo "-- fixtures/golden.font.json (the app font-manifest-serializer parity fixture) validates against schemas/font-manifest.schema.json --"
 check_golden_fixture "fixtures/golden.font.json" "schemas/font-manifest.schema.json"
 
+echo "== validate.py: kind-aware show-entry validation (schemas/show-manifest.schema.json + schemas/show-meta.schema.json, SPEC F118.1/F118.4, T253) =="
+
+echo "-- green valid-show fixture validates clean end-to-end as a kind:\"show\" entry --"
+TMP_SHOW_TREE="$(mktemp -d)"
+mkdir -p "$TMP_SHOW_TREE/entries/valid-show"
+cp "$SHOW_GREEN_FIXTURE/valid-show.show.json" "$TMP_SHOW_TREE/entries/valid-show/valid-show.show.json"
+cp "$SHOW_GREEN_FIXTURE/valid-show.meta.json" "$TMP_SHOW_TREE/entries/valid-show/valid-show.meta.json"
+output=$(python3 tools/validate.py --root "$TMP_SHOW_TREE" 2>&1)
+status=$?
+echo "$output"
+if [[ $status -eq 0 ]]; then
+    pass "green valid-show fixture validates clean as a kind:\"show\" entry"
+else
+    fail "green valid-show fixture did not validate clean as a kind:\"show\" entry (expected exit 0, got $status)"
+fi
+echo
+
+echo "-- red show-manifest schema-shape gate: a manifest missing the required 'flavor' field is rejected (SPEC F118.1) --"
+check_red_variant show-manifest-missing-flavor "'flavor' is a required property"
+
+echo "-- red show-missing-audience: audience is required for a show entry same as every other kind (SPEC F118.4 AC2) --"
+check_red_variant show-missing-audience "'audience' is a required property"
+
+echo "-- red show-meta-bad-suggested-persona: suggestedPersona is untrusted input, not free text — a path-traversal string is rejected by the slug pattern/maxLength gate, not merely non-empty (security review MUST-FIX 1) --"
+check_red_variant show-meta-bad-suggested-persona "suggestedPersona: '../../etc/passwd' does not match"
+
+echo "-- red show-stowaway-asset: a stray .woff2 in a show entry directory is rejected — show's KindSpec.allows_extra is always False (unlike font's own asset allowance), so ANY sibling file beyond the manifest/meta is unexpected (security review NOTE 4) --"
+check_red_variant show-stowaway-asset "unexpected-file"
+
+echo "-- fixtures/golden.show.json (the cross-repo show-manifest parity fixture, PLAN T254) validates against schemas/show-manifest.schema.json --"
+check_golden_fixture "fixtures/golden.show.json" "schemas/show-manifest.schema.json"
+
+echo "== build_index.py + schemas/index.schema.json: show kind projects manifest only — no card/assets/family/preview (SPEC F118.1, T253) =="
+TMP_SHOW_INDEX_TREE="$(mktemp -d)"
+mkdir -p "$TMP_SHOW_INDEX_TREE/entries/valid-show"
+cp "$SHOW_GREEN_FIXTURE/valid-show.show.json" "$TMP_SHOW_INDEX_TREE/entries/valid-show/valid-show.show.json"
+cp "$SHOW_GREEN_FIXTURE/valid-show.meta.json" "$TMP_SHOW_INDEX_TREE/entries/valid-show/valid-show.meta.json"
+
+tmp_show_index="$(mktemp)"
+show_index_build_ok=1
+if ! python3 tools/build_index.py --root "$TMP_SHOW_INDEX_TREE" --out "$tmp_show_index"; then
+    fail "build_index.py exited non-zero building the show-kind fixture tree"
+    show_index_build_ok=0
+fi
+
+if [[ $show_index_build_ok -eq 1 ]]; then
+    tmp_show_index_check="$(mktemp)"
+    cat >"$tmp_show_index_check" <<'PY'
+import hashlib
+import json
+import sys
+from pathlib import Path
+
+sys.path.insert(0, sys.argv[4])
+from index_entry_schema import load_entry_validator
+
+index_path, tree_root, schema_path = Path(sys.argv[1]), Path(sys.argv[2]), Path(sys.argv[3])
+data = json.loads(index_path.read_text())
+by_slug = {e["slug"]: e for e in data["entries"]}
+validator = load_entry_validator(schema_path)
+
+errors = []
+
+show = by_slug.get("valid-show")
+if show is None:
+    errors.append("valid-show entry missing from built index")
+else:
+    if show.get("kind") != "show":
+        errors.append(f"valid-show: expected kind 'show', got {show.get('kind')!r}")
+    for absent_key in ("card", "assets", "family", "preview"):
+        if absent_key in show:
+            errors.append(f"valid-show: unexpected '{absent_key}' key on a show entry")
+    manifest = show.get("manifest")
+    if not isinstance(manifest, dict):
+        errors.append("valid-show: missing 'manifest' key")
+    else:
+        path = manifest.get("path")
+        if not isinstance(path, str) or not path.endswith("valid-show.show.json"):
+            errors.append(f"valid-show.manifest.path unexpected: {path!r}")
+        else:
+            want = hashlib.sha256((tree_root / path).read_bytes()).hexdigest()
+            got = manifest.get("sha256")
+            if want != got:
+                errors.append(f"valid-show.manifest.sha256 mismatch: recomputed {want}, index has {got}")
+    show_errors = [e.message for e in validator.iter_errors(show)]
+    if show_errors:
+        errors.append(f"valid-show entry does not validate against schemas/index.schema.json: {show_errors}")
+
+if errors:
+    for line in errors:
+        print(line)
+    sys.exit(1)
+print(
+    "show-kind index shape OK: kind/manifest projected (sha256 verified), no card/assets/family/"
+    "preview, entry validates against schemas/index.schema.json"
+)
+PY
+    if python3 "$tmp_show_index_check" "$tmp_show_index" "$TMP_SHOW_INDEX_TREE" "schemas/index.schema.json" "$TMP_SCHEMA_HELPERS_DIR"; then
+        pass "build_index.py projects a show entry's kind+manifest only (no card/assets/family/preview); entry schema-valid"
+    else
+        fail "build_index.py show-kind projection assertions failed"
+    fi
+    rm -f "$tmp_show_index_check"
+else
+    fail "skipped show-kind projection assertions because build_index.py failed above"
+fi
+rm -f "$tmp_show_index"
+echo
+
 echo "-- generating oversize-card fixture (not committed; see .gitignore) --"
 if python3 - "$OVERSIZE_CARD" <<'PY'
 import json
@@ -535,6 +660,38 @@ if grep -qE '^WARN ' <<<"$ga_output"; then
     fail "heavy-card lint.py (GITHUB_ACTIONS=1) mixed a plain 'WARN ' line in with ::warning annotations"
 else
     pass "heavy-card lint.py (GITHUB_ACTIONS=1) produced no plain 'WARN ' lines"
+fi
+echo
+
+echo "== lint.py: show budget lint (SPEC F115.1/F118.4 · T253) =="
+
+echo "-- red oversize-show-flavor: flavor at EXACTLY 2x its SPEC F115.1 budget (800 chars) HARD-fails; name/tagline stay within budget (F118.4's WARN>1x/HARD>=2x posture, inclusive at the 2x boundary) --"
+check_red_lint oversize-show-flavor "show-flavor-budget"
+
+echo "-- warn heavy-show: name/tagline/flavor each land in the 1x..2x band -> WARN once each, exit 0, never HARD (SPEC F118.4 · T253) --"
+output=$(python3 tools/lint.py --root "$HEAVY_SHOW_DIR" 2>&1)
+status=$?
+echo "$output"
+if [[ $status -eq 0 ]]; then
+    pass "heavy-show lint.py exits 0"
+else
+    fail "heavy-show lint.py exited $status, expected 0"
+fi
+for expect in "show-name-budget" "show-tagline-budget" "show-flavor-budget"; do
+    if grep -qF "$expect" <<<"$output"; then
+        pass "heavy-show lint.py warns naming '$expect'"
+    else
+        fail "heavy-show lint.py did not warn naming '$expect'"
+    fi
+done
+# Mirrors the heavy-card "(7 warnings)" total-count precedent above: pinning
+# the summary line's total to exactly 3 — combined with the 3 distinct rule
+# ids each already confirmed present — is what actually proves each fires
+# exactly once.
+if grep -qF "(3 warnings)" <<<"$output"; then
+    pass "heavy-show lint.py reports exactly 3 warnings total (each show budget rule fires exactly once)"
+else
+    fail "heavy-show lint.py did not report exactly 3 total warnings"
 fi
 echo
 
@@ -1255,6 +1412,10 @@ echo "== schemas/index.schema.json: kind discriminator rejects bad entries (SPEC
 check_kind_entry_red bad-kind-value "'villain' is not one of"
 check_kind_entry_red bad-kind-theme-no-manifest "'manifest' is a required property"
 
+echo "== schemas/index.schema.json: show kind admits manifest-only entries, rejects one missing it (SPEC F118.1, T253) =="
+check_kind_entry_green valid-show-index-entry "tools/testdata/green/valid-show-index-entry"
+check_kind_entry_red bad-kind-show-no-manifest "'manifest' is a required property"
+
 echo "== schemas/index.schema.json: font kind admits assets[]/family, rejects malformed ones (SPEC F104.1, T195) =="
 check_kind_entry_green valid-font-index-entry "tools/testdata/green/valid-font-index-entry"
 check_kind_entry_red bad-kind-font-no-assets "'assets' is a required property"
@@ -1270,11 +1431,13 @@ echo "== schemas/index.schema.json: kind/extension cross-dressing and kind-exclu
 echo "-- kind/extension cross-dressing: a kind's manifest.path pattern rejects the OTHER kind's manifest extension --"
 check_kind_entry_red theme-entry-font-manifest '\\.theme\\.json'
 check_kind_entry_red font-entry-theme-manifest '\\.font\\.json'
+check_kind_entry_red show-entry-theme-manifest '\\.show\\.json'
 
-echo "-- kind-exclusive fields: a field scoped to one kind's then/else branch is rejected on any other kind (N7/N8) --"
+echo "-- kind-exclusive fields: a field scoped to one kind's then/else branch is rejected on any other kind (N7/N8, extended to show at T253) --"
 check_kind_entry_red theme-entry-with-assets "should not be valid under {'required': ['assets']}"
 check_kind_entry_red persona-entry-with-manifest "should not be valid under {'required': ['manifest']}"
 check_kind_entry_red font-entry-with-preview "should not be valid under {'required': ['preview']}"
+check_kind_entry_red show-entry-with-assets "should not be valid under {'required': ['assets']}"
 
 echo "=========================================="
 if [[ $FAILURES -eq 0 ]]; then

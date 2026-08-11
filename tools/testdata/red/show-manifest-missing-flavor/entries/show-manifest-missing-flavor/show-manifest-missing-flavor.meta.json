@@ -1,0 +1,6 @@
+{
+  "author": "Red Fixture",
+  "description": "Red-variant kind:\"show\" fixture (SPEC F118.1 / T253) \u2014 its manifest omits the required `flavor` field (schemas/show-manifest.schema.json requires schemaVersion/name/tagline/flavor), proving tools/validate.py's schema check rejects a manifest missing a required field, not just a manifest that fails to parse.",
+  "audience": "everyone",
+  "added": "2026-08-11"
+}
