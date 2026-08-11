@@ -501,6 +501,24 @@
     {
       "audience": "everyone",
       "bestFor": [
+        "folk",
+        "indie pop",
+        "morning"
+      ],
+      "kind": "show",
+      "manifest": {
+        "path": "entries/the-wake-up-call/the-wake-up-call.show.json",
+        "sha256": "a5cb9b5157fb01b5fb817090a4bf6d5e6bd89e4e3e71687b29f358aad5721c74"
+      },
+      "meta": {
+        "path": "entries/the-wake-up-call/the-wake-up-call.meta.json",
+        "sha256": "31e35217cc3d1391ea7a6b7fbee91758cd4af8838428d67788f74d5cd21a2091"
+      },
+      "slug": "the-wake-up-call"
+    },
+    {
+      "audience": "everyone",
+      "bestFor": [
         "ambient",
         "dream pop",
         "late night"
