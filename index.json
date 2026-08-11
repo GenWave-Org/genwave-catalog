@@ -465,6 +465,24 @@
     {
       "audience": "everyone",
       "bestFor": [
+        "ambient",
+        "dream pop",
+        "late night"
+      ],
+      "kind": "show",
+      "manifest": {
+        "path": "entries/til-sunrise/til-sunrise.show.json",
+        "sha256": "8b1feb48d219e78fd14370c90dd7a4f6f63f39fb1cff0407b0dea1329661d2c5"
+      },
+      "meta": {
+        "path": "entries/til-sunrise/til-sunrise.meta.json",
+        "sha256": "23b98e6e175767290fee1a7b00d30f57f1fd6bc1339218d9678401dcd6b14d31"
+      },
+      "slug": "til-sunrise"
+    },
+    {
+      "audience": "everyone",
+      "bestFor": [
         "vinyl",
         "late-night",
         "warm"
