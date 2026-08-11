@@ -140,6 +140,24 @@
     {
       "audience": "everyone",
       "bestFor": [
+        "jazz",
+        "classical",
+        "evening"
+      ],
+      "kind": "show",
+      "manifest": {
+        "path": "entries/liner-notes/liner-notes.show.json",
+        "sha256": "ecadf37860e0abbe7eded3c96939f504ee67eeee28182bca1a3b5757fe417bf7"
+      },
+      "meta": {
+        "path": "entries/liner-notes/liner-notes.meta.json",
+        "sha256": "1193099d41181f5f0703bc5588cbb789c0fd299aa51859dcdc13a50d45a55940"
+      },
+      "slug": "liner-notes"
+    },
+    {
+      "audience": "everyone",
+      "bestFor": [
         "synthwave",
         "electronic",
         "night drive"
