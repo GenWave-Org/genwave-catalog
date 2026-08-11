@@ -41,6 +41,24 @@
         "soul",
         "deep cuts"
       ],
+      "kind": "show",
+      "manifest": {
+        "path": "entries/crate-diggers-hour/crate-diggers-hour.show.json",
+        "sha256": "c03700cc71e4c32a3ad999cfafb9c0fef2dcc53b94399efbdfc4b2f1c49f25a4"
+      },
+      "meta": {
+        "path": "entries/crate-diggers-hour/crate-diggers-hour.meta.json",
+        "sha256": "425cd1a8a8b639b0dd8ea2a83b396cbf507456bb6c1439b1a412fd3009328734"
+      },
+      "slug": "crate-diggers-hour"
+    },
+    {
+      "audience": "everyone",
+      "bestFor": [
+        "funk",
+        "soul",
+        "deep cuts"
+      ],
       "card": {
         "path": "entries/dusty-groves/dusty-groves.persona.json",
         "sha256": "214b035c14e04aa2a5571cd1f65aaff9c07c6f2ceb2f213a50d39f4c42a14893"
@@ -371,5 +389,5 @@
       "slug": "wow-and-flutter"
     }
   ],
-  "generatedAt": "2026-08-05"
+  "generatedAt": "2026-08-11"
 }
