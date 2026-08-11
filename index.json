@@ -413,6 +413,24 @@
     {
       "audience": "everyone",
       "bestFor": [
+        "instrumental",
+        "world",
+        "sunday"
+      ],
+      "kind": "show",
+      "manifest": {
+        "path": "entries/special-collections/special-collections.show.json",
+        "sha256": "5b379d89ffd6a498576bf2e189a8ee584287d39e4986decceef8d305306f6020"
+      },
+      "meta": {
+        "path": "entries/special-collections/special-collections.meta.json",
+        "sha256": "677c50a121f2b60c945726a7644b23312d57b34364c51b7690619ab0b6b7e2b2"
+      },
+      "slug": "special-collections"
+    },
+    {
+      "audience": "everyone",
+      "bestFor": [
         "pop",
         "dance",
         "weekend"
