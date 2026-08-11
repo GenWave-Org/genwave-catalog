@@ -259,6 +259,24 @@
     {
       "audience": "everyone",
       "bestFor": [
+        "shoegaze",
+        "indie rock",
+        "late night"
+      ],
+      "kind": "show",
+      "manifest": {
+        "path": "entries/roomtone/roomtone.show.json",
+        "sha256": "1863b4be12c676c9886402f9200a3320ad36aeb3f7cae89217b424e6490ba40e"
+      },
+      "meta": {
+        "path": "entries/roomtone/roomtone.meta.json",
+        "sha256": "f50367593489b281647e9f4b668ad5788cabb45af065da4ea0cffd1494a1ede5"
+      },
+      "slug": "roomtone"
+    },
+    {
+      "audience": "everyone",
+      "bestFor": [
         "blues",
         "country",
         "evening"
