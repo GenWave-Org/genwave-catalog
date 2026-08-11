@@ -330,6 +330,24 @@
     {
       "audience": "everyone",
       "bestFor": [
+        "blues",
+        "country",
+        "evening"
+      ],
+      "kind": "show",
+      "manifest": {
+        "path": "entries/screen-door-sessions/screen-door-sessions.show.json",
+        "sha256": "b0eb87ac199a5bbfe2786e2449f66c1dedf7abc7f922cd68311cb267e2c3ec3d"
+      },
+      "meta": {
+        "path": "entries/screen-door-sessions/screen-door-sessions.meta.json",
+        "sha256": "1a4fbf51f9a60dd771b750efa3ebf18c27cba5f932ac9b8e5e40bb8672a7f195"
+      },
+      "slug": "screen-door-sessions"
+    },
+    {
+      "audience": "everyone",
+      "bestFor": [
         "glitch",
         "electronic",
         "drive time"
