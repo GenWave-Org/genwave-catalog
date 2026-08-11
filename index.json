@@ -191,6 +191,24 @@
     {
       "audience": "everyone",
       "bestFor": [
+        "synthwave",
+        "electronic",
+        "night drive"
+      ],
+      "kind": "show",
+      "manifest": {
+        "path": "entries/neon-hours/neon-hours.show.json",
+        "sha256": "27a2a1072a61069d3262a087a4b9c887e3f2c70dae343f802f1c4f0ef43ca17c"
+      },
+      "meta": {
+        "path": "entries/neon-hours/neon-hours.meta.json",
+        "sha256": "b85c69c5fb4b9e93ee36270936b062b24b50897fccdfb0d4da97a8036294030e"
+      },
+      "slug": "neon-hours"
+    },
+    {
+      "audience": "everyone",
+      "bestFor": [
         "adventure",
         "high-contrast"
       ],
