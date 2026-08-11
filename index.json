@@ -41,6 +41,24 @@
         "soul",
         "deep cuts"
       ],
+      "kind": "show",
+      "manifest": {
+        "path": "entries/crate-diggers-hour/crate-diggers-hour.show.json",
+        "sha256": "c03700cc71e4c32a3ad999cfafb9c0fef2dcc53b94399efbdfc4b2f1c49f25a4"
+      },
+      "meta": {
+        "path": "entries/crate-diggers-hour/crate-diggers-hour.meta.json",
+        "sha256": "425cd1a8a8b639b0dd8ea2a83b396cbf507456bb6c1439b1a412fd3009328734"
+      },
+      "slug": "crate-diggers-hour"
+    },
+    {
+      "audience": "everyone",
+      "bestFor": [
+        "funk",
+        "soul",
+        "deep cuts"
+      ],
       "card": {
         "path": "entries/dusty-groves/dusty-groves.persona.json",
         "sha256": "214b035c14e04aa2a5571cd1f65aaff9c07c6f2ceb2f213a50d39f4c42a14893"
@@ -122,6 +140,24 @@
     {
       "audience": "everyone",
       "bestFor": [
+        "jazz",
+        "classical",
+        "evening"
+      ],
+      "kind": "show",
+      "manifest": {
+        "path": "entries/liner-notes/liner-notes.show.json",
+        "sha256": "ecadf37860e0abbe7eded3c96939f504ee67eeee28182bca1a3b5757fe417bf7"
+      },
+      "meta": {
+        "path": "entries/liner-notes/liner-notes.meta.json",
+        "sha256": "1193099d41181f5f0703bc5588cbb789c0fd299aa51859dcdc13a50d45a55940"
+      },
+      "slug": "liner-notes"
+    },
+    {
+      "audience": "everyone",
+      "bestFor": [
         "synthwave",
         "electronic",
         "night drive"
@@ -169,6 +205,24 @@
         "sha256": "7269e5099e86339173ac2b877ef8e8202b4c0d0468983ff6f88c385351258dc6"
       },
       "slug": "midnight-mabel"
+    },
+    {
+      "audience": "everyone",
+      "bestFor": [
+        "synthwave",
+        "electronic",
+        "night drive"
+      ],
+      "kind": "show",
+      "manifest": {
+        "path": "entries/neon-hours/neon-hours.show.json",
+        "sha256": "27a2a1072a61069d3262a087a4b9c887e3f2c70dae343f802f1c4f0ef43ca17c"
+      },
+      "meta": {
+        "path": "entries/neon-hours/neon-hours.meta.json",
+        "sha256": "b85c69c5fb4b9e93ee36270936b062b24b50897fccdfb0d4da97a8036294030e"
+      },
+      "slug": "neon-hours"
     },
     {
       "audience": "everyone",
@@ -223,6 +277,42 @@
     {
       "audience": "everyone",
       "bestFor": [
+        "punk",
+        "rock",
+        "drive time"
+      ],
+      "kind": "show",
+      "manifest": {
+        "path": "entries/redline/redline.show.json",
+        "sha256": "2e3eacd8446ab0d22dcc6e2a62233237400c56647c6ada3357d63496479a3c2c"
+      },
+      "meta": {
+        "path": "entries/redline/redline.meta.json",
+        "sha256": "a3effc459982dab9ac6a808019f20ed88050d9b04834ce896476d130107a7218"
+      },
+      "slug": "redline"
+    },
+    {
+      "audience": "everyone",
+      "bestFor": [
+        "shoegaze",
+        "indie rock",
+        "late night"
+      ],
+      "kind": "show",
+      "manifest": {
+        "path": "entries/roomtone/roomtone.show.json",
+        "sha256": "1863b4be12c676c9886402f9200a3320ad36aeb3f7cae89217b424e6490ba40e"
+      },
+      "meta": {
+        "path": "entries/roomtone/roomtone.meta.json",
+        "sha256": "f50367593489b281647e9f4b668ad5788cabb45af065da4ea0cffd1494a1ede5"
+      },
+      "slug": "roomtone"
+    },
+    {
+      "audience": "everyone",
+      "bestFor": [
         "blues",
         "country",
         "evening"
@@ -236,6 +326,24 @@
         "sha256": "9b1524d500e729f69b68ad4938382a89399881f20e14822db48e8d7bfed3c99d"
       },
       "slug": "rusty-strings"
+    },
+    {
+      "audience": "everyone",
+      "bestFor": [
+        "blues",
+        "country",
+        "evening"
+      ],
+      "kind": "show",
+      "manifest": {
+        "path": "entries/screen-door-sessions/screen-door-sessions.show.json",
+        "sha256": "b0eb87ac199a5bbfe2786e2449f66c1dedf7abc7f922cd68311cb267e2c3ec3d"
+      },
+      "meta": {
+        "path": "entries/screen-door-sessions/screen-door-sessions.meta.json",
+        "sha256": "1a4fbf51f9a60dd771b750efa3ebf18c27cba5f932ac9b8e5e40bb8672a7f195"
+      },
+      "slug": "screen-door-sessions"
     },
     {
       "audience": "everyone",
@@ -305,6 +413,42 @@
     {
       "audience": "everyone",
       "bestFor": [
+        "instrumental",
+        "world",
+        "sunday"
+      ],
+      "kind": "show",
+      "manifest": {
+        "path": "entries/special-collections/special-collections.show.json",
+        "sha256": "5b379d89ffd6a498576bf2e189a8ee584287d39e4986decceef8d305306f6020"
+      },
+      "meta": {
+        "path": "entries/special-collections/special-collections.meta.json",
+        "sha256": "677c50a121f2b60c945726a7644b23312d57b34364c51b7690619ab0b6b7e2b2"
+      },
+      "slug": "special-collections"
+    },
+    {
+      "audience": "everyone",
+      "bestFor": [
+        "pop",
+        "dance",
+        "weekend"
+      ],
+      "kind": "show",
+      "manifest": {
+        "path": "entries/sugar-rush/sugar-rush.show.json",
+        "sha256": "7b4a17b777c676b12b6e311c79b82d6c94e0522d08d88d611ff5baca57794060"
+      },
+      "meta": {
+        "path": "entries/sugar-rush/sugar-rush.meta.json",
+        "sha256": "fc7d1ed6cb0825ec34db9526c93b1a7136794f4d0c0c024ab778854c2fbdfc5b"
+      },
+      "slug": "sugar-rush"
+    },
+    {
+      "audience": "everyone",
+      "bestFor": [
         "folk",
         "indie pop",
         "morning"
@@ -335,6 +479,78 @@
         "sha256": "997bcf8b4dffbff256c1373907db628925fe445fdbc01ab861163906ea90d6b1"
       },
       "slug": "the-archivist"
+    },
+    {
+      "audience": "everyone",
+      "bestFor": [
+        "swing",
+        "big band",
+        "evening"
+      ],
+      "kind": "show",
+      "manifest": {
+        "path": "entries/the-ballroom-sessions/the-ballroom-sessions.show.json",
+        "sha256": "748fbf75addd44a8173bfcda70e9915260027215b10d5316e1472a206d47a8bc"
+      },
+      "meta": {
+        "path": "entries/the-ballroom-sessions/the-ballroom-sessions.meta.json",
+        "sha256": "1368024944b55264bbf591e9eb43b89ee48b745010c71b03638485775f39a966"
+      },
+      "slug": "the-ballroom-sessions"
+    },
+    {
+      "audience": "everyone",
+      "bestFor": [
+        "doo-wop",
+        "oldies",
+        "afternoon"
+      ],
+      "kind": "show",
+      "manifest": {
+        "path": "entries/the-rocking-chair-revue/the-rocking-chair-revue.show.json",
+        "sha256": "6d23594139e7f59d0f9aa9ae30e7c0e747a9655d00886c1deb95742fce250cb0"
+      },
+      "meta": {
+        "path": "entries/the-rocking-chair-revue/the-rocking-chair-revue.meta.json",
+        "sha256": "921fe9fd666defa90f9dd8b937eaea4c7b5bc20ee80a0321be43d15777a96b74"
+      },
+      "slug": "the-rocking-chair-revue"
+    },
+    {
+      "audience": "everyone",
+      "bestFor": [
+        "folk",
+        "indie pop",
+        "morning"
+      ],
+      "kind": "show",
+      "manifest": {
+        "path": "entries/the-wake-up-call/the-wake-up-call.show.json",
+        "sha256": "a5cb9b5157fb01b5fb817090a4bf6d5e6bd89e4e3e71687b29f358aad5721c74"
+      },
+      "meta": {
+        "path": "entries/the-wake-up-call/the-wake-up-call.meta.json",
+        "sha256": "31e35217cc3d1391ea7a6b7fbee91758cd4af8838428d67788f74d5cd21a2091"
+      },
+      "slug": "the-wake-up-call"
+    },
+    {
+      "audience": "everyone",
+      "bestFor": [
+        "ambient",
+        "dream pop",
+        "late night"
+      ],
+      "kind": "show",
+      "manifest": {
+        "path": "entries/til-sunrise/til-sunrise.show.json",
+        "sha256": "8b1feb48d219e78fd14370c90dd7a4f6f63f39fb1cff0407b0dea1329661d2c5"
+      },
+      "meta": {
+        "path": "entries/til-sunrise/til-sunrise.meta.json",
+        "sha256": "23b98e6e175767290fee1a7b00d30f57f1fd6bc1339218d9678401dcd6b14d31"
+      },
+      "slug": "til-sunrise"
     },
     {
       "audience": "everyone",
@@ -371,5 +587,5 @@
       "slug": "wow-and-flutter"
     }
   ],
-  "generatedAt": "2026-08-05"
+  "generatedAt": "2026-08-11"
 }
