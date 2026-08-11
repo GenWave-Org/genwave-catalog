@@ -411,6 +411,24 @@
     {
       "audience": "everyone",
       "bestFor": [
+        "doo-wop",
+        "oldies",
+        "afternoon"
+      ],
+      "kind": "show",
+      "manifest": {
+        "path": "entries/the-rocking-chair-revue/the-rocking-chair-revue.show.json",
+        "sha256": "6d23594139e7f59d0f9aa9ae30e7c0e747a9655d00886c1deb95742fce250cb0"
+      },
+      "meta": {
+        "path": "entries/the-rocking-chair-revue/the-rocking-chair-revue.meta.json",
+        "sha256": "921fe9fd666defa90f9dd8b937eaea4c7b5bc20ee80a0321be43d15777a96b74"
+      },
+      "slug": "the-rocking-chair-revue"
+    },
+    {
+      "audience": "everyone",
+      "bestFor": [
         "vinyl",
         "late-night",
         "warm"
