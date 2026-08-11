@@ -404,6 +404,9 @@ check_red_variant show-missing-audience "'audience' is a required property"
 echo "-- red show-meta-bad-suggested-persona: suggestedPersona is untrusted input, not free text — a path-traversal string is rejected by the slug pattern/maxLength gate, not merely non-empty (security review MUST-FIX 1) --"
 check_red_variant show-meta-bad-suggested-persona "suggestedPersona: '../../etc/passwd' does not match"
 
+echo "-- red show-meta-suggested-persona-too-long: a shape-valid slug at 65 chars (one over the 64-char cap) is rejected by maxLength alone, not the pattern — kills a mutant that widens or drops the cap (security review nit) --"
+check_red_variant show-meta-suggested-persona-too-long "suggestedPersona: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' is too long"
+
 echo "-- red show-stowaway-asset: a stray .woff2 in a show entry directory is rejected — show's KindSpec.allows_extra is always False (unlike font's own asset allowance), so ANY sibling file beyond the manifest/meta is unexpected (security review NOTE 4) --"
 check_red_variant show-stowaway-asset "unexpected-file"
 
