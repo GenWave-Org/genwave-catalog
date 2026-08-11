@@ -339,6 +339,24 @@
     {
       "audience": "everyone",
       "bestFor": [
+        "swing",
+        "big band",
+        "evening"
+      ],
+      "kind": "show",
+      "manifest": {
+        "path": "entries/the-ballroom-sessions/the-ballroom-sessions.show.json",
+        "sha256": "748fbf75addd44a8173bfcda70e9915260027215b10d5316e1472a206d47a8bc"
+      },
+      "meta": {
+        "path": "entries/the-ballroom-sessions/the-ballroom-sessions.meta.json",
+        "sha256": "1368024944b55264bbf591e9eb43b89ee48b745010c71b03638485775f39a966"
+      },
+      "slug": "the-ballroom-sessions"
+    },
+    {
+      "audience": "everyone",
+      "bestFor": [
         "vinyl",
         "late-night",
         "warm"
@@ -371,5 +389,5 @@
       "slug": "wow-and-flutter"
     }
   ],
-  "generatedAt": "2026-08-05"
+  "generatedAt": "2026-08-11"
 }
