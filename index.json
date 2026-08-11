@@ -377,6 +377,24 @@
     {
       "audience": "everyone",
       "bestFor": [
+        "pop",
+        "dance",
+        "weekend"
+      ],
+      "kind": "show",
+      "manifest": {
+        "path": "entries/sugar-rush/sugar-rush.show.json",
+        "sha256": "7b4a17b777c676b12b6e311c79b82d6c94e0522d08d88d611ff5baca57794060"
+      },
+      "meta": {
+        "path": "entries/sugar-rush/sugar-rush.meta.json",
+        "sha256": "fc7d1ed6cb0825ec34db9526c93b1a7136794f4d0c0c024ab778854c2fbdfc5b"
+      },
+      "slug": "sugar-rush"
+    },
+    {
+      "audience": "everyone",
+      "bestFor": [
         "folk",
         "indie pop",
         "morning"
