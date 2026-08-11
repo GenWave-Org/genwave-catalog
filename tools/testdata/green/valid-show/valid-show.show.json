@@ -1,0 +1,6 @@
+{
+  "schemaVersion": 1,
+  "name": "Valid Show Fixture",
+  "tagline": "A green-variant tagline, comfortably within the SPEC F115.1 1x budget.",
+  "flavor": "Green-variant flavor text for tools/run_selftest.sh \u2014 a schema-valid show manifest, comfortably within the SPEC F115.1 1x budgets, copied into a temporary entries/ tree at test time to exercise kind-aware validation and index building end to end."
+}

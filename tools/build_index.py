@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Build index.json at the repo root from entries/ (SPEC F89.2, kind-aware
-per SPEC F103.2 / T178, widened to the font kind by F104.1 / T196).
+per SPEC F103.2 / T178, widened to the font kind by F104.1 / T196, widened
+to the show kind by F118.1 / T253).
 
     { "generatedAt": <ISO date>, "entries": [
         { "slug", "audience", "bestFor" (when present),
@@ -16,19 +17,27 @@ per SPEC F103.2 / T178, widened to the font kind by F104.1 / T196).
           bytes — never the manifest's own declared `files[].bytes`),
           "family" (copied straight off the manifest's own `family` field,
           T196 — STORY-281 AC1) },
+        { "slug", "audience", "kind": "show", "bestFor" (when present),
+          "manifest": {"path", "sha256"}, "meta": {"path", "sha256"} }
+          (SPEC F118.1, T253 — no `assets`/`family`/`preview`: a show entry
+          is the minimal `{manifest, meta}` shape, nothing to project beyond
+          it; `suggestedPersona`, when present in meta.json, is deliberately
+          NOT projected here — it's read directly off the meta file at
+          import time, PLAN T254, not needed for a zero-fetch shelf listing),
         ...
     ] }
 
 `kind` is derived from which manifest filename an entry directory actually
 carries — <slug>.persona.json means kind="persona", <slug>.theme.json means
-kind="theme", <slug>.font.json means kind="font" (resolve_manifest below) —
-never from a field inside meta.json, so it can't drift from the file that's
-really on disk. A persona entry gets no `kind` key at all (rather than an
-explicit "persona"): the app already defaults a missing `kind` to persona
-(GenWave.Host, T176), so every entry that existed before T178 keeps its
-exact pre-existing shape and rebuilds byte-identical; only a theme or font
-entry gains the new `kind` and `manifest` keys (a font entry additionally
-gains `assets` and, when present in the manifest, `family`).
+kind="theme", <slug>.font.json means kind="font", <slug>.show.json means
+kind="show" (resolve_manifest below) — never from a field inside meta.json,
+so it can't drift from the file that's really on disk. A persona entry gets
+no `kind` key at all (rather than an explicit "persona"): the app already
+defaults a missing `kind` to persona (GenWave.Host, T176), so every entry
+that existed before T178 keeps its exact pre-existing shape and rebuilds
+byte-identical; only a theme, font, or show entry gains the new `kind` and
+`manifest` keys (a font entry additionally gains `assets` and, when present
+in the manifest, `family`).
 
 Deterministic by construction: entries are sorted by slug, sha256 is computed
 over each file's raw bytes, paths are repo-root-relative (never absolute —
@@ -76,20 +85,22 @@ def resolve_manifest(entry_dir: Path, slug: str) -> tuple[Path | None, str]:
     `kind` is read off the filesystem, not off a field inside meta.json:
     <slug>.persona.json present means kind="persona" (the default,
     pre-F103.2 shape), <slug>.theme.json present means kind="theme",
-    <slug>.font.json present means kind="font" (SPEC F104.1, T196 — walks
+    <slug>.font.json present means kind="font" (SPEC F104.1, T196),
+    <slug>.show.json present means kind="show" (SPEC F118.1, T253 — walks
     tools/catalog_lib.py's KIND_SUFFIXES in ITS OWN insertion order: persona,
-    then theme, then font — the same ordered mapping tools/validate.py's own
-    resolve_kind walks, so the two can no longer drift apart on either the
-    suffix spelling or the precedence order, T196 review M3). This is the
-    single source of truth for kind — the same filename-per-kind convention
-    the app itself gates entry file-refs on (GenWave.Host, T176: persona ->
-    entries/<slug>/<slug>.persona.json, theme ->
-    entries/<slug>/<slug>.theme.json, font ->
-    entries/<slug>/<slug>.font.json) — rather than a second, parallel `kind`
+    then theme, then font, then show — the same ordered mapping
+    tools/validate.py's own resolve_kind walks, so the two can no longer
+    drift apart on either the suffix spelling or the precedence order, T196
+    review M3). This is the single source of truth for kind — the same
+    filename-per-kind convention the app itself gates entry file-refs on
+    (GenWave.Host, T176: persona -> entries/<slug>/<slug>.persona.json,
+    theme -> entries/<slug>/<slug>.theme.json, font ->
+    entries/<slug>/<slug>.font.json, show ->
+    entries/<slug>/<slug>.show.json) — rather than a second, parallel `kind`
     value recorded in meta.json that could drift from the manifest file
     actually on disk.
 
-    Returns (None, "persona") when none of the three files are present; the
+    Returns (None, "persona") when none of the four files are present; the
     caller skips the directory in that case (tools/validate.py is the
     source of truth for that shape error, not this function).
 

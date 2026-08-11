@@ -35,17 +35,19 @@ FONT_ASSET_NAME_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*\.(?:woff2|txt
 
 # Kind -> manifest filename suffix, in PRECEDENCE order: persona wins if,
 # bizarrely, more than one manifest file is present in an entry directory,
-# then theme, then font (SPEC F103.2 / F104.1). tools/build_index.py's
-# resolve_manifest and tools/validate.py's build_kind_specs both walk THIS
-# one ordered mapping to derive kind from the filename actually on disk
-# (T196 review M3) — before this, each tool spelled the same kind/suffix/
-# precedence triple out by hand with prose merely claiming the two stayed in
-# sync, which is exactly the drift shape this epic already paid for once
-# (resolve_manifest's own HISTORY note in tools/build_index.py).
+# then theme, then font, then show (SPEC F103.2 / F104.1 / F118.1).
+# tools/build_index.py's resolve_manifest and tools/validate.py's
+# build_kind_specs both walk THIS one ordered mapping to derive kind from the
+# filename actually on disk (T196 review M3) — before this, each tool spelled
+# the same kind/suffix/precedence triple out by hand with prose merely
+# claiming the two stayed in sync, which is exactly the drift shape this
+# epic already paid for once (resolve_manifest's own HISTORY note in
+# tools/build_index.py).
 KIND_SUFFIXES: dict[str, str] = {
     "persona": ".persona.json",
     "theme": ".theme.json",
     "font": ".font.json",
+    "show": ".show.json",
 }
 
 

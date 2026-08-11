@@ -73,8 +73,8 @@
         },
         "kind": {
           "type": "string",
-          "enum": ["persona", "theme", "font"],
-          "description": "Entry discriminator (SPEC F103.2 / T178, widened to \"font\" by F104.1 / T195). Optional — an entry with no `kind` is treated as \"persona\", matching every pre-F103.2 entry and the app's own back-compat default (GenWave.Host, T176: a missing `kind` defaults to persona; an unrecognized `kind` value there causes the app to skip just that one entry, not abort the whole index — this schema is stricter than the app and rejects an unrecognized value outright, since here it can only mean a build regression in this repo's own tooling, not a newer app talking to an older catalog). `kind` decides which file-ref property below is required and which path pattern its `path` must match: \"persona\" (or omitted) requires `card` matching `*.persona.json` — the unchanged, pre-F103.2 shape; \"theme\" requires `manifest` matching `*.theme.json`; \"font\" requires BOTH `manifest` matching `*.font.json` AND a non-empty `assets` array (SPEC F104.1 — a font entry is `{manifest, meta}` plus its vendored asset files, the first binary files in the catalog)."
+          "enum": ["persona", "theme", "font", "show"],
+          "description": "Entry discriminator (SPEC F103.2 / T178, widened to \"font\" by F104.1 / T195, widened to \"show\" by F118.1 / T253). Optional — an entry with no `kind` is treated as \"persona\", matching every pre-F103.2 entry and the app's own back-compat default (GenWave.Host, T176: a missing `kind` defaults to persona; an unrecognized `kind` value there causes the app to skip just that one entry, not abort the whole index — this schema is stricter than the app and rejects an unrecognized value outright, since here it can only mean a build regression in this repo's own tooling, not a newer app talking to an older catalog). `kind` decides which file-ref property below is required and which path pattern its `path` must match: \"persona\" (or omitted) requires `card` matching `*.persona.json` — the unchanged, pre-F103.2 shape; \"theme\" requires `manifest` matching `*.theme.json`; \"font\" requires BOTH `manifest` matching `*.font.json` AND a non-empty `assets` array (SPEC F104.1 — a font entry is `{manifest, meta}` plus its vendored asset files, the first binary files in the catalog); \"show\" requires `manifest` matching `*.show.json` (SPEC F118.1 — a show entry is `{manifest, meta}` with no assets, family, or preview, the same minimal shape as a theme entry minus its swatch preview)."
         },
         "audience": {
           "type": "string",
@@ -88,7 +88,7 @@
           "type": "object",
           "additionalProperties": false,
           "required": ["light", "dark"],
-          "description": "Projected from a kind:\"theme\" entry's meta.json (T191, mirrors the `bestFor` precedent above) — the shelf-card swatch contract (T185): a HANDFUL of key token hex values per mode, enough to paint shelf chips without fetching and parsing the full manifest. Only ever present on a kind:\"theme\" entry; a persona entry's meta.json carries no `preview` field, so build_index.py never stamps this key onto one. Excluded from a kind:\"font\" entry too (T195 review N8) — the font `then` branch's own `allOf` rejects a font entry carrying this key, the same posture the theme branch already takes on `assets`/`family`: a font pack has no swatch preview to project, T191's projection is theme-only. Definitions duplicated from schemas/theme-meta.schema.json rather than $ref'd across files, the same standalone-file posture that schema's own $comment documents for its `added` pattern.",
+          "description": "Projected from a kind:\"theme\" entry's meta.json (T191, mirrors the `bestFor` precedent above) — the shelf-card swatch contract (T185): a HANDFUL of key token hex values per mode, enough to paint shelf chips without fetching and parsing the full manifest. Only ever present on a kind:\"theme\" entry; a persona entry's meta.json carries no `preview` field, so build_index.py never stamps this key onto one. Excluded from a kind:\"font\" entry too (T195 review N8) and a kind:\"show\" entry too (T253) — the font and show `then` branches' own `allOf` each reject an entry of that kind carrying this key, the same posture the theme branch already takes on `assets`/`family`: neither a font pack nor a show has a swatch preview to project, T191's projection is theme-only. Definitions duplicated from schemas/theme-meta.schema.json rather than $ref'd across files, the same standalone-file posture that schema's own $comment documents for its `added` pattern.",
           "properties": {
             "light": { "$ref": "#/definitions/swatchSet" },
             "dark": { "$ref": "#/definitions/swatchSet" }
@@ -115,7 +115,7 @@
             "path": {
               "type": "string",
               "pattern": "^entries/[a-z0-9]+(-[a-z0-9]+)*/[a-z0-9]+(-[a-z0-9]+)*\\.[a-z]+\\.json(?![\\s\\S])",
-              "description": "Repo-root-relative POSIX path under entries/<slug>/ to the kind:\"theme\" or kind:\"font\" manifest file (SPEC F103.2 / F104.1) — no leading slash, no .., no URL scheme; the pattern's own shape rules all three out. The exact required extension (`*.theme.json` for a theme entry, `*.font.json` for a font entry) is deliberately NOT enforced here — it's pinned per-kind by the `manifest.path` pattern nested in each `if`/`then`/`else` branch below instead, so a theme entry naming a `.font.json` manifest (or vice versa) fails there rather than validating against this shared, kind-blind definition (a prior version of this pattern accepted either extension regardless of `kind`, letting the two cross-dress). The one `manifest` key every non-persona kind targets (F103.2's generalised `{manifest, meta}` model); persona entries keep using `card` (see the `kind` description above) rather than this key — and, as of the persona `else` branch's own `allOf` (T195 review N7), are schema-rejected from carrying this key at all: an entry with no `kind` (or `kind: \"persona\"`) that names both `card` and `manifest` validated clean before that addition even though it's a shape GenWave.Host's own kind resolution never produces and would reject the whole index over app-side (exactly one of `card`/`manifest` is ever expected, never both)."
+              "description": "Repo-root-relative POSIX path under entries/<slug>/ to the kind:\"theme\", kind:\"font\", or kind:\"show\" manifest file (SPEC F103.2 / F104.1 / F118.1) — no leading slash, no .., no URL scheme; the pattern's own shape rules all three out. The exact required extension (`*.theme.json` for a theme entry, `*.font.json` for a font entry, `*.show.json` for a show entry) is deliberately NOT enforced here — it's pinned per-kind by the `manifest.path` pattern nested in each `if`/`then`/`else` branch below instead, so a theme entry naming a `.font.json` manifest (or vice versa) fails there rather than validating against this shared, kind-blind definition (a prior version of this pattern accepted either extension regardless of `kind`, letting the two cross-dress). The one `manifest` key every non-persona kind targets (F103.2's generalised `{manifest, meta}` model); persona entries keep using `card` (see the `kind` description above) rather than this key — and, as of the persona `else` branch's own `allOf` (T195 review N7), are schema-rejected from carrying this key at all: an entry with no `kind` (or `kind: \"persona\"`) that names both `card` and `manifest` validated clean before that addition even though it's a shape GenWave.Host's own kind resolution never produces and would reject the whole index over app-side (exactly one of `card`/`manifest` is ever expected, never both)."
             },
             "sha256": { "$ref": "#/definitions/sha256" }
           }
@@ -186,12 +186,35 @@
           "allOf": [{ "not": { "required": ["preview"] } }]
         },
         "else": {
-          "required": ["card"],
-          "allOf": [
-            { "not": { "required": ["assets"] } },
-            { "not": { "required": ["family"] } },
-            { "not": { "required": ["manifest"] } }
-          ]
+          "if": {
+            "required": ["kind"],
+            "properties": { "kind": { "const": "show" } }
+          },
+          "then": {
+            "required": ["manifest"],
+            "properties": {
+              "manifest": {
+                "properties": {
+                  "path": {
+                    "pattern": "^entries/[a-z0-9]+(-[a-z0-9]+)*/[a-z0-9]+(-[a-z0-9]+)*\\.show\\.json(?![\\s\\S])"
+                  }
+                }
+              }
+            },
+            "allOf": [
+              { "not": { "required": ["assets"] } },
+              { "not": { "required": ["family"] } },
+              { "not": { "required": ["preview"] } }
+            ]
+          },
+          "else": {
+            "required": ["card"],
+            "allOf": [
+              { "not": { "required": ["assets"] } },
+              { "not": { "required": ["family"] } },
+              { "not": { "required": ["manifest"] } }
+            ]
+          }
         }
       }
     }

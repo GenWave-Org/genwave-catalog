@@ -1,0 +1,17 @@
+{
+  "slug": "valid-show-index-entry",
+  "kind": "show",
+  "audience": "everyone",
+  "bestFor": [
+    "late-night",
+    "drive-time"
+  ],
+  "manifest": {
+    "path": "entries/valid-show-index-entry/valid-show-index-entry.show.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "meta": {
+    "path": "entries/valid-show-index-entry/valid-show-index-entry.meta.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  }
+}

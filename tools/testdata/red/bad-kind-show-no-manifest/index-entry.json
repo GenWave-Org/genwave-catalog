@@ -1,0 +1,13 @@
+{
+  "slug": "bad-kind-show-no-manifest",
+  "kind": "show",
+  "audience": "everyone",
+  "card": {
+    "path": "entries/bad-kind-show-no-manifest/bad-kind-show-no-manifest.persona.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "meta": {
+    "path": "entries/bad-kind-show-no-manifest/bad-kind-show-no-manifest.meta.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  }
+}

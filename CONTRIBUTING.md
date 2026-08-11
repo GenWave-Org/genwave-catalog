@@ -1,16 +1,17 @@
 # 🤝 Contributing to genwave-catalog
 
 Thanks for wanting to add to the shelf. This is a community catalog for
-[GenWave](https://github.com/GenWave-Org/genwave), carrying three kinds of entry: DJ **personas**
-and **themes** (both open to community submission) and **font packs** (Dean-curated only — see
-[Font packs](#font-packs-kind-font) below). Every entry here is something someone else's radio
-station can drop straight in. That's a gift to strangers, so we ask a bit of care in return. This
-doc is the full bar: what CI checks mechanically, and what a human reviews.
+[GenWave](https://github.com/GenWave-Org/genwave), carrying four kinds of entry: DJ **personas**,
+**themes**, and **shows** (all three open to community submission) and **font packs**
+(Dean-curated only — see [Font packs](#font-packs-kind-font) below). Every entry here is something
+someone else's radio station can drop straight in. That's a gift to strangers, so we ask a bit of
+care in return. This doc is the full bar: what CI checks mechanically, and what a human reviews.
 
-This walkthrough below is the **persona** path. Submitting a **theme** instead? Read this section
-for the shared mechanics (prerequisites, validate/lint/index/selftest, the PR template), then
-jump to [🎨 Theme submission](#-theme-submission) for what's different. Font packs don't follow
-this path at all — see [Font packs](#font-packs-kind-font).
+This walkthrough below is the **persona** path. Submitting a **theme** or **show** instead? Read
+this section for the shared mechanics (prerequisites, validate/lint/index/selftest, the PR
+template), then jump to [🎨 Theme submission](#-theme-submission) or
+[🎙 Show submission](#-show-submission) for what's different. Font packs don't follow this path
+at all — see [Font packs](#font-packs-kind-font).
 
 ## 🚀 Start to finish
 
@@ -32,14 +33,15 @@ this path at all — see [Font packs](#font-packs-kind-font).
    ```
    Fix every violation it prints — each one names the offending file and rule; it's kind-aware, so
    a theme entry is checked against the theme schemas and gates, not the persona ones. Then, for a
-   persona, run the submission-length lint too, before you open a PR:
+   persona or a show, run the submission-length lint too, before you open a PR:
    ```
    python3 tools/lint.py
    ```
-   `tools/lint.py` covers **persona cards only** today — it has nothing to say about a theme entry
-   one way or the other, so a clean run here is not itself a theme quality signal. Warnings alone
-   won't block a PR, but read them — see the "Keep the card tight" section below for why they're
-   there. Red always needs fixing.
+   `tools/lint.py` covers **persona cards and show manifests** today — it has nothing to say about
+   a theme entry one way or the other, so a clean run here is not itself a theme quality signal.
+   Warnings alone won't block a PR, but read them — see the "Keep the card tight" section below
+   (personas) or [🎙 Show submission](#-show-submission) (shows) for why they're there. Red always
+   needs fixing.
 6. **Regenerate the index**:
    ```
    python3 tools/build_index.py
@@ -82,20 +84,26 @@ CI enforces shape. A human enforces character. Both matter, and both are law her
 **Hard bans, regardless of rating, no exceptions:** hate/harassment content, sexualized minors,
 real-person impersonation, trademarks/branding.
 
-**Per kind:** items 1, 2, 4, 5, and 8 above apply to a theme exactly as written — schema-valid,
-required fields present (against the theme schemas, not the persona ones), `audience`
-self-rating, CC0 checkbox, scoped diff. Items 3 and 6 have a theme equivalent, not a persona-only
-meaning: a theme still needs its own one-line distinctness statement (what makes this *look*
-distinct, not this DJ), and English-first still applies to whatever prose a theme entry carries
-(`description` — a theme has no `soul`/`lore`/`quirks`/`samplePatter` to translate). Item 7
-(`tools/lint.py`'s prompt-weight budget) is **persona-only** and does not apply to a theme — a
-theme carries no field that rides into a runtime model prompt. A theme submission adds two gates
+**Per kind:** items 1, 2, 4, 5, and 8 above apply to a theme or a show exactly as written —
+schema-valid, required fields present (against that kind's own schemas, not the persona ones),
+`audience` self-rating, CC0 checkbox, scoped diff. Items 3 and 6 have a theme equivalent and a
+show equivalent, not a persona-only meaning: a theme still needs its own one-line distinctness
+statement (what makes this *look* distinct, not this DJ) and a show needs one too (what makes this
+*show's format* distinct, not this DJ or this look); English-first still applies to whatever prose
+a theme entry carries (`description` — a theme has no `soul`/`lore`/`quirks`/`samplePatter` to
+translate) and to a show's `tagline`/`flavor`/`description`. Item 7 (`tools/lint.py`'s
+prompt-weight budget) is **persona-specific in its exact framing** and does not apply to a theme
+at all — a theme carries no field that rides into a runtime model prompt — but a show carries its
+own separate `tools/lint.py` budget gate on `name`/`tagline`/`flavor` (a different formula, SPEC
+F115.1/F118.4, not the persona's soul-plus-quirks prompt-weight one) — see
+[🎙 Show submission](#-show-submission) below for its numbers. A theme submission adds two gates
 of its own with no persona equivalent (AA contrast, vendored-five faces) — see
-[🎨 Theme submission](#-theme-submission) below. Font packs don't clear this bar at all —
-curated only, see [Font packs](#font-packs-kind-font).
+[🎨 Theme submission](#-theme-submission) below; a show submission adds one (the `suggestedPersona`
+slug-shape/64-char cap) — see [🎙 Show submission](#-show-submission). Font packs don't clear this
+bar at all — curated only, see [Font packs](#font-packs-kind-font).
 
-The rest of this doc walks through items 3–7 one at a time, for a persona; theme specifics are
-their own section below.
+The rest of this doc walks through items 3–7 one at a time, for a persona; theme and show
+specifics are their own sections below.
 
 ### 🎭 The distinctness statement
 
@@ -204,6 +212,40 @@ Only the files and gates below are theme-specific.
 
 The [quality bar](#-the-quality-bar) above still applies — see its "Per kind" note for exactly
 which of the 8 items carry over as-is, which have a theme equivalent, and which are persona-only.
+
+## 🎙 Show submission
+
+Shows are open to community submission, same as personas and themes — the mechanics above
+(prerequisites, `tools/validate.py`, `tools/build_index.py`, `tools/run_selftest.sh`, the PR
+template) all apply. Only the files and gates below are show-specific.
+
+1. **Create `entries/<your-slug>/`** — there's no existing show entry to copy yet (the seed
+   lineup ships separately, PLAN T256), so author `<slug>.show.json` and `<slug>.meta.json` from
+   scratch, following the shapes below. Same slug rule as every other kind:
+   `^[a-z0-9]+(-[a-z0-9]+)*$` (README.md's [Slug format](./README.md#slug-format)).
+2. **Author the manifest** (`<slug>.show.json`) — validates against
+   `schemas/show-manifest.schema.json`. The shape is owned by the
+   [GenWave app repo](https://github.com/GenWave-Org/genwave) (SPEC F118.1), same posture as the
+   persona card and theme manifest: this catalog validates a copy of that schema but never changes
+   it. Required: `schemaVersion`, `name`, `tagline`, `flavor`.
+3. **Author the metadata** (`<slug>.meta.json`) — validates against
+   `schemas/show-meta.schema.json`. Required: `author`, `description`, `audience`, `added`.
+   Optional: `bestFor`; and `suggestedPersona` — a persona slug the import modal may offer to also
+   hire (SPEC F118.3). It's **soft**: a suggestion that's unknown or already hired just means no
+   offer, never an import failure. Its *shape* is still enforced, though — it must match the
+   catalog's own slug format (`^[a-z0-9]+(-[a-z0-9]+)*$`) and stay within 64 characters, the same
+   cap the app's own `catalogSlug` route parameter enforces; free text does not pass here.
+4. **Keep `name`/`tagline`/`flavor` within budget — CI-checked, warnings first, red only for the
+   absurd.** Run `python3 tools/lint.py` before you open a PR; its warnings name the exact measured
+   value against the budget for whichever field is over — that output is the source of truth for
+   the numbers, not this doc, so there's only one place for them to be right (SPEC F115.1: warn
+   past 1x, SPEC F118.4: red at or past 2x). `flavor` never leaves the station once imported — the
+   same persona-`soul` precedent as the "Keep the card tight" section above — while `name`/`tagline`
+   are public and air on the station (SPEC F115.3); the budget applies to all three regardless of
+   which are public.
+
+The [quality bar](#-the-quality-bar) above still applies — see its "Per kind" note for exactly
+which of the 8 items carry over as-is, which have a show equivalent, and which are persona-only.
 
 ## 🔍 What review looks like
 

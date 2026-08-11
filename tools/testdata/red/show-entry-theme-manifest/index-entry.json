@@ -1,0 +1,13 @@
+{
+  "slug": "show-entry-theme-manifest",
+  "kind": "show",
+  "audience": "everyone",
+  "manifest": {
+    "path": "entries/show-entry-theme-manifest/show-entry-theme-manifest.theme.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "meta": {
+    "path": "entries/show-entry-theme-manifest/show-entry-theme-manifest.meta.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  }
+}

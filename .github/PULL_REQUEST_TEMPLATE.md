@@ -1,9 +1,9 @@
 <!--
-Thanks for submitting to the shelf! The catalog carries three kinds of entry — persona, theme,
-and font pack. Please read CONTRIBUTING.md before filling this out — it explains every item below
-in full. Fill in the section for YOUR kind (Persona or Theme) below and delete the other one; the
-checklists further down apply to either kind. Both CI and this checklist need to pass before a
-maintainer will review.
+Thanks for submitting to the shelf! The catalog carries four kinds of entry — persona, theme,
+font pack, and show. Please read CONTRIBUTING.md before filling this out — it explains every item
+below in full. Fill in the section for YOUR kind (Persona, Theme, or Show) below and delete the
+other two; the checklists further down apply to any kind. Both CI and this checklist need to
+pass before a maintainer will review.
 
 Font packs are Dean-curated only — no community PRs; by arrangement only. See CONTRIBUTING.md's
 "Font packs" section.
@@ -33,6 +33,23 @@ entry on the shelf, in one line.
 - [ ] Every `fonts.display`/`fonts.sans` asset references one of GenWave's five vendored faces
       only (`fraunces`, `fraunces-italic`, `source-sans-3`, `jetbrains-mono`, `grenze-gotisch`) —
       never a font-pack face, including one from this catalog.
+
+## Show
+
+**Slug:** `<your-slug>`
+
+**Distinct format statement (required):** what makes this show's format distinct from every other
+entry on the shelf, in one line — the format/vibe, not a DJ's personality or a look.
+
+> _(fill in here)_
+
+- [ ] `name` (≤60 chars), `tagline` (≤120 chars), and `flavor` (≤400 chars) are each within their
+      SPEC F115.1 1x budget locally: `python3 tools/lint.py` reports no `show-name-budget` /
+      `show-tagline-budget` / `show-flavor-budget` violation (warnings are fine; red is not).
+- [ ] `suggestedPersona`, if present in `<slug>.meta.json`, is a persona slug already **on this
+      shelf** (`entries/<slug>/`) — the import modal only offers "also hire" when it resolves to a
+      real, on-shelf persona entry (SPEC F118.3; an unknown or already-hired slug is fine too, it
+      just means no offer, never a rejected import).
 
 ## ✅ Mechanical checks
 
@@ -68,7 +85,8 @@ I understand this rating is verified at review, and mature-leaning content submi
 ## 🇬🇧 English-first (required)
 
 - [ ] This entry's prose is written in English, per the v1 English-first policy — persona:
-      `soul`, `lore`, `quirks`, `samplePatter`, `description`; theme: `description`.
+      `soul`, `lore`, `quirks`, `samplePatter`, `description`; theme: `description`; show:
+      `tagline`, `flavor`, `description`.
 
 ## 🚫 Hard bans attestation (required)
 

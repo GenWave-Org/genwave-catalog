@@ -1,0 +1,7 @@
+{
+  "author": "Red Fixture",
+  "description": "Red-variant fixture: suggestedPersona is shape-valid (lowercase/digits/hyphens) but 65 chars -- one over the 64-char cap byte-identical to the app's own BoundedImportBodyReader.MaxCatalogSlugLength -- must fail schemas/show-meta.schema.json's maxLength gate; kills a mutant that widens or drops the cap while the pattern still holds (security review nit, T253).",
+  "audience": "everyone",
+  "added": "2026-08-11",
+  "suggestedPersona": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+}

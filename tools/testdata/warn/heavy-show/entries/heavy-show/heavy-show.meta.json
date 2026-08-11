@@ -1,0 +1,6 @@
+{
+  "author": "Test Fixture",
+  "description": "Warn-variant fixture: name/tagline/flavor each stretched past their SPEC F115.1 1x budget but short of the 2x hard ceiling \u2014 tools/lint.py must warn on each (3 total) and still exit 0 (SPEC F118.4, T253).",
+  "audience": "everyone",
+  "added": "2026-08-11"
+}

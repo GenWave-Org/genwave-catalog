@@ -1,0 +1,7 @@
+{
+  "author": "Red Fixture",
+  "description": "Red-variant fixture: suggestedPersona carries a path-traversal string, not a bare catalog slug \u2014 must fail schemas/show-meta.schema.json's pattern/maxLength gate (SPEC F118.3, review MUST-FIX 1, T253).",
+  "audience": "everyone",
+  "added": "2026-08-11",
+  "suggestedPersona": "../../etc/passwd"
+}

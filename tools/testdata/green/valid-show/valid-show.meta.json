@@ -1,0 +1,10 @@
+{
+  "author": "Test Fixture",
+  "description": "Green-variant kind:\"show\" fixture for tools/run_selftest.sh (SPEC F118.1 / T253) and tools/validate.py \u2014 copied into a temporary entries/ tree at test time to exercise kind-aware validation and index building end to end (show-manifest.schema.json, show-meta.schema.json, build_index.py's kind-aware output shape). Not a real catalog entry, and NOT itself under entries/.",
+  "audience": "everyone",
+  "added": "2026-08-11",
+  "bestFor": [
+    "late-night"
+  ],
+  "suggestedPersona": "example-dj"
+}

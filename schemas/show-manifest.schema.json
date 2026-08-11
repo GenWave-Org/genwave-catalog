@@ -1,0 +1,29 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/GenWave-Org/genwave-catalog/main/schemas/show-manifest.schema.json",
+  "title": "GenWave Show Manifest",
+  "description": "The <slug>.show.json shape a GenWave station imports (app repo SPEC F118.1/F118.2, format owned by GenWave-Org/genwave — GenWave.Host's own manifest parser lands at PLAN T254). Mirrors persona-card.schema.json / theme-manifest.schema.json's posture exactly: additionalProperties is true throughout, and this schema pins TYPES ONLY — no maxLength on name/tagline/flavor. SPEC F115.1's field-length budgets (name<=60, tagline<=120, flavor<=400 chars at 1x, reasoned-not-fitted, the F89.5 numbers-stated-once posture) live in three other places instead: the app's own GenWave.Core.Domain.ShowBudgets (1x, editor-enforced at write time), the app parser (hard-rejects >2x — SPEC F115.1, PLAN T254; catalog CI is deliberately one char stricter, red at exactly 2x — SPEC F118.4/STORY-314 AC1), and tools/lint.py (WARN>1x, HARD>=2x — SPEC F118.4) — never in this schema, so a byte-valid manifest that merely exceeds a budget is never rejected here.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["schemaVersion", "name", "tagline", "flavor"],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Manifest format major version — the same posture as PersonaCard.schemaVersion / ThemeManifest's own schemaVersion: a future app-side manifest parser (PLAN T254) rejects any manifest whose major exceeds what it knows, but tolerates unknown fields within a known major."
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Show name (SPEC F115.1) — public by construction, joins the F67 disclosure inventory as a pinned field alongside tagline (SPEC F115.3). GenWave.Core.Domain.Show.Name is non-nullable, mirrored here as a required, non-empty string the same way persona-card.schema.json's own `name` is."
+    },
+    "tagline": {
+      "type": "string",
+      "description": "Public, broadcast-shaped one-liner (SPEC F115.1/F115.3). Empty string (\"\") is a legal, byte-valid export — GenWave.Core.Domain.Show.Tagline is a nullable column, so an authored show with no tagline set exports as \"\" the same way persona-card.schema.json's own `tagline` documents for a persona with none. A non-empty bar for a catalog SUBMISSION is CONTRIBUTING.md's job, not this format schema's."
+    },
+    "flavor": {
+      "type": "string",
+      "description": "Prompt-only text, private forever (SPEC F115.3 — the persona-soul precedent, mirroring persona-card.schema.json's own `soul` exactly): never appears in a public payload, spectator surface, or log line. The full-card import confirm (SPEC F118.2) shows it to the owner adopting it, since it lands as prompt config the moment the show installs. Empty string (\"\") is a legal, byte-valid export — GenWave.Core.Domain.Show.Flavor is a nullable column, so an authored show with no flavor set exports as \"\" the same way `soul` does for a persona with none."
+    }
+  }
+}

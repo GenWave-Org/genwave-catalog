@@ -7,8 +7,9 @@ per SPEC F103.2 / T179):
   - An entry's `kind` is read off which manifest filename its directory
     carries — <slug>.persona.json means a persona entry, <slug>.theme.json
     means a theme entry, <slug>.font.json means a font entry (SPEC F104.1 /
-    T195) — persona wins if, bizarrely, more than one manifest file is
-    present, then theme, then font (resolve_kind's own precedence, driven by
+    T195), <slug>.show.json means a show entry (SPEC F118.1 / T253) —
+    persona wins if, bizarrely, more than one manifest file is present, then
+    theme, then font, then show (resolve_kind's own precedence, driven by
     the `kind_specs` dict build_kind_specs() assembles — N5, T196; the
     kind/suffix/precedence triple itself now lives in tools/catalog_lib.py's
     KIND_SUFFIXES, T196 review M3). This is now the SAME convention
@@ -18,7 +19,7 @@ per SPEC F103.2 / T179):
     module classified kind:"font" validated here but build_index.py silently
     skipped it (never emitted an index entry for it). T196 closed that gap
     (resolve_manifest's own comment in tools/build_index.py records the
-    history). An entry with none of the three manifest filenames is reported
+    history). An entry with none of the four manifest filenames is reported
     as a missing persona card, the pre-T179 default.
   - <slug>.persona.json (or <slug>.theme.json) and <slug>.meta.json are each
     valid JSON.
@@ -71,21 +72,23 @@ per SPEC F103.2 / T179):
     this, unlike a bare `$` in Python's re would let through.
   - entries/ contains only <slug>/ directories — no loose files.
   - An entry directory contains only its manifest file (<slug>.persona.json,
-    <slug>.theme.json, or <slug>.font.json) and <slug>.meta.json — plus,
-    ONLY for a font entry, its own asset files (woff2 faces + OFL.txt) — any
-    other file is a violation.
+    <slug>.theme.json, <slug>.font.json, or <slug>.show.json) and
+    <slug>.meta.json — plus, ONLY for a font entry, its own asset files
+    (woff2 faces + OFL.txt) — any other file is a violation.
   - Nothing under entries/ is a symlink, at any depth (checked before any
     file is read).
   - <slug>.persona.json is <= 256 KiB and <slug>.meta.json is <= 64 KiB. No
-    size cap is enforced on <slug>.theme.json or <slug>.font.json — SPEC
-    F103.2/F104.2 don't define one on the manifest text itself and the app
-    imposes none on a loaded manifest (a font pack's own per-pack asset
-    ceiling is a separate, asset-summed rule — see above).
+    size cap is enforced on <slug>.theme.json, <slug>.font.json, or
+    <slug>.show.json — SPEC F103.2/F104.2/F118.1 don't define one on the
+    manifest text itself and the app imposes none on a loaded manifest (a
+    font pack's own per-pack asset ceiling is a separate, asset-summed rule
+    — see above).
   - fixtures/golden.persona.json (the app-serializer parity artifact) still
     validates against the card schema, fixtures/golden.theme.json still
-    validates against the theme-manifest schema, and fixtures/golden.font.json
-    still validates against the font-manifest schema, so none of the three
-    can silently rot.
+    validates against the theme-manifest schema, fixtures/golden.font.json
+    still validates against the font-manifest schema, and
+    fixtures/golden.show.json still validates against the show-manifest
+    schema, so none of the four can silently rot.
   - index.json exists at the repo root and validates against
     schemas/index.schema.json — this and the fixtures/ check above only ever
     run against the real repo (see --root below), never a testdata root.
@@ -189,12 +192,12 @@ def load_schema(name: str) -> dict:
 @dataclass(frozen=True)
 class KindSpec:
     """Everything that varies by entry kind (SPEC F103.2 persona/theme,
-    F104.1 font): the manifest filename suffix, a human-readable label for
-    error messages, the manifest/meta schema pair, the manifest's own size
-    cap (persona only — see CARD_SIZE_CAP), a predicate for which EXTRA
-    sibling files an entry directory of this kind may carry beyond its own
-    manifest/meta (font only: its own asset files), and the exact wording
-    used when a file fails that allowance.
+    F104.1 font, F118.1 show): the manifest filename suffix, a
+    human-readable label for error messages, the manifest/meta schema pair,
+    the manifest's own size cap (persona only — see CARD_SIZE_CAP), a
+    predicate for which EXTRA sibling files an entry directory of this kind
+    may carry beyond its own manifest/meta (font only: its own asset files),
+    and the exact wording used when a file fails that allowance.
 
     ONE dict of these (see build_kind_specs) replaces what used to be three
     separate per-kind ladders (N5, T196 review finding): resolve_kind's own
@@ -202,8 +205,8 @@ class KindSpec:
     manifest_suffix/manifest_schema/meta_schema/size_cap by hand, and the
     allowed-names if/else next to it that special-cased font's extra asset
     files. Each of the three now reads off this one structure instead of
-    re-enumerating persona/theme/font independently — a new kind is one new
-    dict entry, not three new branches."""
+    re-enumerating persona/theme/font/show independently — a new kind is one
+    new dict entry, not three new branches."""
 
     suffix: str
     label: str
@@ -219,10 +222,10 @@ def build_kind_specs() -> dict[str, KindSpec]:
     `kind_specs` dict every per-kind decision in this module reads from
     (N5, T196). Insertion order IS precedence order: resolve_kind returns the
     first kind whose glob matches when walking this dict — persona, then
-    theme, then font — the exact precedence this module has always
-    documented (persona wins if, bizarrely, more than one manifest file is
-    present in an entry directory). Each entry's `suffix` is read off
-    tools/catalog_lib.py's KIND_SUFFIXES — the same ordered mapping
+    theme, then font, then show — the exact precedence this module has
+    always documented (persona wins if, bizarrely, more than one manifest
+    file is present in an entry directory). Each entry's `suffix` is read
+    off tools/catalog_lib.py's KIND_SUFFIXES — the same ordered mapping
     tools/build_index.py's resolve_manifest walks — rather than being
     hand-spelled here a second time (T196 review M3)."""
     specs = {
@@ -255,6 +258,15 @@ def build_kind_specs() -> dict[str, KindSpec]:
                 "only <slug>.font.json, <slug>.meta.json, and asset files matching "
                 "[A-Za-z0-9][A-Za-z0-9._-]*.(woff2|txt) are allowed in a font entry directory"
             ),
+        ),
+        "show": KindSpec(
+            suffix=KIND_SUFFIXES["show"],
+            label="show manifest",
+            manifest_schema=load_schema("show-manifest.schema.json"),
+            meta_schema=load_schema("show-meta.schema.json"),
+            size_cap=None,  # SPEC F118.1 defines none on the manifest text itself, same posture as theme/font
+            allows_extra=lambda path: False,
+            unexpected_file_hint="only <slug>.show.json and <slug>.meta.json are allowed in an entry directory",
         ),
     }
     # Order pin (T196 review note): precedence order must BE KIND_SUFFIXES' order —
@@ -483,27 +495,29 @@ def validate_added_date(meta_path: Path, meta: object) -> list[str]:
 
 
 def resolve_kind(entry_dir: Path, kind_specs: dict[str, KindSpec]) -> str:
-    """"persona", "theme", or "font" — which manifest filename this entry
-    directory carries, resolved by walking `kind_specs` in ITS OWN insertion
-    order (persona wins if, bizarrely, more than one manifest file is
-    present, then theme, then font — SPEC F104.1 / T195) and returning the
-    first kind whose `*{suffix}` glob actually matches; none present
-    defaults to "persona" (the pre-T179 shape, so the caller reports a
-    familiar missing-card violation rather than a new missing-kind one).
-    Glob-matched rather than an exact <slug>.* filename so a
-    slug-mismatched manifest file is still classified — and then reported
-    as a slug-mismatch below, not silently treated as missing.
+    """"persona", "theme", "font", or "show" — which manifest filename this
+    entry directory carries, resolved by walking `kind_specs` in ITS OWN
+    insertion order (persona wins if, bizarrely, more than one manifest file
+    is present, then theme, then font, then show — SPEC F104.1 / T195,
+    F118.1 / T253) and returning the first kind whose `*{suffix}` glob
+    actually matches; none present defaults to "persona" (the pre-T179
+    shape, so the caller reports a familiar missing-card violation rather
+    than a new missing-kind one). Glob-matched rather than an exact
+    <slug>.* filename so a slug-mismatched manifest file is still
+    classified — and then reported as a slug-mismatch below, not silently
+    treated as missing.
 
     AS OF T196, this precedence exactly mirrors tools/build_index.py's own
     resolve_manifest — both derive kind from the identical
-    persona-then-theme-then-font manifest-filename convention the app
-    itself gates entry file-refs on (GenWave.Host, T176/T195). Before T196,
-    that function mirrored only the persona/theme two-thirds of this
-    precedence, so a directory this function classified kind:"font"
-    validated here but build_index.py silently never emitted an index entry
-    for it; resolve_manifest's own comment in tools/build_index.py records
-    that history. "This module accepts a font pack" and "build_index.py
-    will actually ship it" are the same claim again."""
+    persona-then-theme-then-font(-then-show, T253) manifest-filename
+    convention the app itself gates entry file-refs on (GenWave.Host,
+    T176/T195). Before T196, that function mirrored only the persona/theme
+    two-thirds of this precedence, so a directory this function classified
+    kind:"font" validated here but build_index.py silently never emitted an
+    index entry for it; resolve_manifest's own comment in
+    tools/build_index.py records that history. "This module accepts a font
+    pack" and "build_index.py will actually ship it" are the same claim
+    again."""
     for kind, spec in kind_specs.items():
         if any(entry_dir.glob(f"*{spec.suffix}")):
             return kind
@@ -618,13 +632,14 @@ def validate_entries(entries_dir: Path, kind_specs: dict[str, KindSpec]) -> list
 def validate_golden_fixture(fixtures_dir: Path, kind_specs: dict[str, KindSpec]) -> list[str]:
     """Only called for the real repo (see main()) — fixtures/ must exist
     there; a testdata root never carries a copy and is never routed here.
-    Checks all three parity artifacts: golden.persona.json (the app card
+    Checks all four parity artifacts: golden.persona.json (the app card
     serializer) against the card schema, golden.theme.json (the app manifest
-    serializer) against the theme-manifest schema, and golden.font.json (the
-    app CatalogFontManifestSerializer) against the font-manifest schema —
-    any one silently drifting from what it's supposed to validate against
-    would mean this repo's copy of the app's format has rotted out from
-    under it.
+    serializer) against the theme-manifest schema, golden.font.json (the
+    app CatalogFontManifestSerializer) against the font-manifest schema, and
+    golden.show.json (the app's future show-manifest serializer, PLAN T254)
+    against the show-manifest schema — any one silently drifting from what
+    it's supposed to validate against would mean this repo's copy of the
+    app's format has rotted out from under it.
 
     Deliberately shape-only, not AA-checked (T180 scoping decision):
     golden.theme.json is a byte-for-byte round-trip parity fixture pinned
@@ -643,7 +658,14 @@ def validate_golden_fixture(fixtures_dir: Path, kind_specs: dict[str, KindSpec])
     subject to validate_font_pack's own asset/ceiling/license gates — it
     carries no sibling asset files of its own (this is a manifest-shape
     parity artifact, not a real catalog entry), so those gates are scoped to
-    actual font ENTRIES under entries/, same split as the theme AA gate."""
+    actual font ENTRIES under entries/, same split as the theme AA gate.
+    golden.show.json is the same idea for the show kind (SPEC F118.1, T253):
+    a manifest-shape parity fixture this repo pins ahead of the app side —
+    T254 is what will add the app's own copy under
+    tests/GenWave.Host.Tests/Fixtures/golden.show.json and prove the
+    round-trip; until then this check only proves this repo's own manifest
+    stays schema-valid, the same starting posture golden.theme.json/
+    golden.font.json had before their own app-side counterparts landed."""
     if not fixtures_dir.is_dir():
         return [f"{rel(REPO_ROOT, fixtures_dir)}: missing-file: fixtures/ directory not found"]
 
@@ -666,6 +688,12 @@ def validate_golden_fixture(fixtures_dir: Path, kind_specs: dict[str, KindSpec])
         violations.append(f"{rel(REPO_ROOT, golden_font_path)}: missing-file: golden font fixture not found")
     else:
         violations.extend(validate_json_against(golden_font_path, kind_specs["font"].manifest_schema))
+
+    golden_show_path = fixtures_dir / "golden.show.json"
+    if not golden_show_path.is_file():
+        violations.append(f"{rel(REPO_ROOT, golden_show_path)}: missing-file: golden show fixture not found")
+    else:
+        violations.extend(validate_json_against(golden_show_path, kind_specs["show"].manifest_schema))
 
     return violations
 
