@@ -223,6 +223,24 @@
     {
       "audience": "everyone",
       "bestFor": [
+        "punk",
+        "rock",
+        "drive time"
+      ],
+      "kind": "show",
+      "manifest": {
+        "path": "entries/redline/redline.show.json",
+        "sha256": "2e3eacd8446ab0d22dcc6e2a62233237400c56647c6ada3357d63496479a3c2c"
+      },
+      "meta": {
+        "path": "entries/redline/redline.meta.json",
+        "sha256": "a3effc459982dab9ac6a808019f20ed88050d9b04834ce896476d130107a7218"
+      },
+      "slug": "redline"
+    },
+    {
+      "audience": "everyone",
+      "bestFor": [
         "blues",
         "country",
         "evening"
@@ -371,5 +389,5 @@
       "slug": "wow-and-flutter"
     }
   ],
-  "generatedAt": "2026-08-05"
+  "generatedAt": "2026-08-11"
 }
