@@ -1,0 +1,7 @@
+{
+  "author": "Test Fixture",
+  "description": "Red-variant fixture for tools/run_selftest.sh (gh-33) — the persona half of a slug held by two different kind folders at once (also entries/themes/shared-slug/), to exercise validate_slug_uniqueness. Not a real catalog entry.",
+  "samplePatter": ["Line one.", "Line two."],
+  "audience": "everyone",
+  "added": "2026-08-12"
+}

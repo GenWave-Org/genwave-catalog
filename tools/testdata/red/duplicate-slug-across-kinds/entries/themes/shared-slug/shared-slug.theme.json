@@ -1,0 +1,45 @@
+{
+  "slug": "shared-slug",
+  "name": "Shared Slug Theme",
+  "author": "Test Fixture",
+  "fonts": {
+    "display": {
+      "family": "Fraunces",
+      "assets": [
+        { "src": "/fonts/fraunces-variable-latin.woff2", "weight": "400 600", "style": "normal" }
+      ]
+    },
+    "sans": {
+      "family": "Source Sans 3",
+      "assets": [
+        { "src": "/fonts/source-sans-3-variable-latin.woff2", "weight": "400 600", "style": "normal" }
+      ]
+    }
+  },
+  "modes": {
+    "light": {
+      "bg": "#f7ecd2",
+      "surface": "#fff8e6",
+      "surface-2": "#f0e2b4",
+      "ink": "#2c2410",
+      "mute": "#5c4d24",
+      "accent": "#b8860b",
+      "accent-ink": "#2c2410",
+      "accent-2": "#4f6b52",
+      "danger": "#a83e2c",
+      "danger-ink": "#fff8e6"
+    },
+    "dark": {
+      "bg": "#171205",
+      "surface": "#241c09",
+      "surface-2": "#1e1707",
+      "ink": "#f4ecce",
+      "mute": "#c9b98a",
+      "accent": "#e0a52c",
+      "accent-ink": "#171205",
+      "accent-2": "#7fa382",
+      "danger": "#e0836a",
+      "danger-ink": "#171205"
+    }
+  }
+}

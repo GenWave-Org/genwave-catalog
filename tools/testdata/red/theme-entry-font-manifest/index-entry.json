@@ -3,11 +3,11 @@
   "kind": "theme",
   "audience": "everyone",
   "manifest": {
-    "path": "entries/theme-entry-font-manifest/theme-entry-font-manifest.font.json",
+    "path": "entries/themes/theme-entry-font-manifest/theme-entry-font-manifest.font.json",
     "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
   },
   "meta": {
-    "path": "entries/theme-entry-font-manifest/theme-entry-font-manifest.meta.json",
+    "path": "entries/themes/theme-entry-font-manifest/theme-entry-font-manifest.meta.json",
     "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
   }
 }

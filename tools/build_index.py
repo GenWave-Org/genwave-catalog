@@ -31,8 +31,13 @@ to the show kind by F118.1 / T253).
 carries — <slug>.persona.json means kind="persona", <slug>.theme.json means
 kind="theme", <slug>.font.json means kind="font", <slug>.show.json means
 kind="show" (resolve_manifest below) — never from a field inside meta.json,
-so it can't drift from the file that's really on disk. A persona entry gets
-no `kind` key at all (rather than an explicit "persona"): the app already
+so it can't drift from the file that's really on disk, and never from the
+entry's kind FOLDER either (entries/<kind-folder>/<slug>/, gh-33) — the
+folder is where the entry lives, not what it is; tools/validate.py is what
+gates the two agreeing (`kind-folder-mismatch`), this module doesn't repeat
+that check, it just keeps reading kind off the manifest filename same as
+always. A persona entry gets no `kind` key at all (rather than an explicit
+"persona"): the app already
 defaults a missing `kind` to persona (GenWave.Host, T176), so every entry
 that existed before T178 keeps its exact pre-existing shape and rebuilds
 byte-identical; only a theme, font, or show entry gains the new `kind` and
@@ -93,12 +98,13 @@ def resolve_manifest(entry_dir: Path, slug: str) -> tuple[Path | None, str]:
     drift apart on either the suffix spelling or the precedence order, T196
     review M3). This is the single source of truth for kind — the same
     filename-per-kind convention the app itself gates entry file-refs on
-    (GenWave.Host, T176: persona -> entries/<slug>/<slug>.persona.json,
-    theme -> entries/<slug>/<slug>.theme.json, font ->
-    entries/<slug>/<slug>.font.json, show ->
-    entries/<slug>/<slug>.show.json) — rather than a second, parallel `kind`
-    value recorded in meta.json that could drift from the manifest file
-    actually on disk.
+    (GenWave.Host, T176: persona -> <slug>.persona.json, theme ->
+    <slug>.theme.json, font -> <slug>.font.json, show -> <slug>.show.json,
+    each inside its own entry directory — entries/personas/<slug>/,
+    entries/themes/<slug>/, entries/fonts/<slug>/, entries/shows/<slug>/
+    since gh-33's per-kind folder nesting) — rather than a second, parallel
+    `kind` value recorded in meta.json that could drift from the manifest
+    file actually on disk.
 
     Returns (None, "persona") when none of the four files are present; the
     caller skips the directory in that case (tools/validate.py is the
@@ -170,9 +176,14 @@ def resolve_manifest(entry_dir: Path, slug: str) -> tuple[Path | None, str]:
 
 
 def discover_entries(root: Path) -> tuple[list[dict], list[str]]:
-    """Every entries/<slug>/ under root except EXCLUDED_SLUGS, sorted by
-    slug, plus the `added` date of each included entry's meta.json (the
-    source for generatedAt)."""
+    """Every entries/<kind-folder>/<slug>/ under root (gh-33) except
+    EXCLUDED_SLUGS, sorted by slug, plus the `added` date of each included
+    entry's meta.json (the source for generatedAt). The kind folder itself
+    is never consulted here — `kind` is (and always has been) read off which
+    manifest filename is actually present (resolve_manifest, below), not off
+    which directory an entry happens to sit under; tools/validate.py is what
+    gates a mismatch between the two, this module just indexes whatever
+    validated clean."""
     entries_dir = root / "entries"
 
     symlinks = find_symlinks(entries_dir)
@@ -183,7 +194,7 @@ def discover_entries(root: Path) -> tuple[list[dict], list[str]]:
     records: list[dict] = []
     added_dates: list[str] = []
 
-    for entry_dir in discover_entry_dirs(entries_dir):
+    for _kind_folder, entry_dir in discover_entry_dirs(entries_dir):
         slug = entry_dir.name
         if slug in EXCLUDED_SLUGS:
             continue

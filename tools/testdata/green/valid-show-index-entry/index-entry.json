@@ -7,11 +7,11 @@
     "drive-time"
   ],
   "manifest": {
-    "path": "entries/valid-show-index-entry/valid-show-index-entry.show.json",
+    "path": "entries/shows/valid-show-index-entry/valid-show-index-entry.show.json",
     "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
   },
   "meta": {
-    "path": "entries/valid-show-index-entry/valid-show-index-entry.meta.json",
+    "path": "entries/shows/valid-show-index-entry/valid-show-index-entry.meta.json",
     "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
   }
 }

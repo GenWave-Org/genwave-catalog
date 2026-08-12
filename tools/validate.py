@@ -70,13 +70,28 @@ per SPEC F103.2 / T179):
   - The directory name itself matches ^[a-z0-9]+(-[a-z0-9]+)*$, anchored to
     the absolute end of the string — a trailing newline in the name fails
     this, unlike a bare `$` in Python's re would let through.
-  - entries/ contains only <slug>/ directories — no loose files.
+  - entries/ is nested by kind (gh-33): it may only contain the four known
+    kind folders (`tools/catalog_lib.py`'s `KIND_FOLDERS` — personas/,
+    themes/, fonts/, shows/), as directories, nothing else; each kind folder
+    may in turn only contain <slug>/ directories, no loose files. A missing
+    or empty kind folder is not itself a violation.
+  - An entry's kind FOLDER agrees with the kind its manifest filename suffix
+    implies — a `.persona.json` manifest sitting under `entries/shows/`
+    (say) is a `kind-folder-mismatch` violation, even though the manifest
+    itself is otherwise perfectly valid. The manifest filename suffix stays
+    kind's actual source of truth (unchanged by gh-33); the folder is
+    metadata ABOUT that truth, and the two must agree.
+  - A slug is unique across every kind folder — two kind folders each
+    holding a `<the-same-slug>/` directory is a hard violation, since
+    `index.json`'s entries (and the app importing them) key an entry on its
+    slug alone, never on slug+kind.
   - An entry directory contains only its manifest file (<slug>.persona.json,
     <slug>.theme.json, <slug>.font.json, or <slug>.show.json) and
     <slug>.meta.json — plus, ONLY for a font entry, its own asset files
     (woff2 faces + OFL.txt) — any other file is a violation.
   - Nothing under entries/ is a symlink, at any depth (checked before any
-    file is read).
+    file is read) — including a kind folder itself, one level above where a
+    <slug> entry directory sits since gh-33's nesting.
   - <slug>.persona.json is <= 256 KiB and <slug>.meta.json is <= 64 KiB. No
     size cap is enforced on <slug>.theme.json, <slug>.font.json, or
     <slug>.show.json — SPEC F103.2/F104.2/F118.1 don't define one on the
@@ -93,11 +108,12 @@ per SPEC F103.2 / T179):
     schemas/index.schema.json — this and the fixtures/ check above only ever
     run against the real repo (see --root below), never a testdata root.
   - Every index.json entry's `card`/`manifest`/`meta`/`assets[]` path
-    resolves under `entries/<that entry's own slug>/` — nothing dangling,
-    nothing borrowed from a sibling entry's directory (T196, SPEC F104.1 —
-    draft-07 JSON Schema has no way to express a cross-sibling-property
-    constraint like this, so validate_index_slug_ownership is the actual
-    gate; schemas/index.schema.json's own patterns can only pin path SHAPE).
+    resolves under `entries/<that entry's own kind folder>/<that entry's own
+    slug>/` — nothing dangling, nothing borrowed from a sibling entry's
+    directory (T196, SPEC F104.1, folder segment added gh-33 — draft-07 JSON
+    Schema has no way to express a cross-sibling-property constraint like
+    this, so validate_index_slug_ownership is the actual gate;
+    schemas/index.schema.json's own patterns can only pin path SHAPE).
   - No two assets within one index.json entry's `assets[]` share the same
     `path` (T196 review M2): schemas/index.schema.json's `uniqueItems` on
     `assets` is FULL-OBJECT uniqueness — it only rejects a duplicate when
@@ -139,6 +155,7 @@ import jsonschema
 
 from catalog_lib import (
     FONT_ASSET_NAME_PATTERN,
+    KIND_FOLDERS,
     KIND_SUFFIXES,
     REPO_ROOT,
     SCHEMAS_DIR,
@@ -524,13 +541,21 @@ def resolve_kind(entry_dir: Path, kind_specs: dict[str, KindSpec]) -> str:
     return "persona"
 
 
-def validate_entry(entry_dir: Path, kind_specs: dict[str, KindSpec]) -> list[str]:
+def validate_entry(entry_dir: Path, kind_specs: dict[str, KindSpec], kind_folder: str) -> list[str]:
     slug = entry_dir.name
     label = rel(REPO_ROOT, entry_dir)
 
     # Symlinks are never trusted — checked, and bailed out on, before any
     # file in this entry is opened (tools/catalog_lib.py: find_symlinks).
+    # entry_dir.parent (the kind folder, entries/<kind-folder>/) is checked
+    # too, not just entry_dir itself — gh-33 nested entries/ one level
+    # deeper, and discover_entry_dirs happily walks THROUGH a symlinked kind
+    # folder (Path.iterdir() follows it), so without this a symlinked kind
+    # folder would let a perfectly real-looking entry_dir sitting inside it
+    # have its files opened and trusted.
     symlinks = find_symlinks(entry_dir)
+    if entry_dir.parent.is_symlink():
+        symlinks = [entry_dir.parent, *symlinks]
     if symlinks:
         return [f"{rel(REPO_ROOT, p)}: symlink: symlinks are not allowed under entries/" for p in symlinks]
 
@@ -545,6 +570,22 @@ def validate_entry(entry_dir: Path, kind_specs: dict[str, KindSpec]) -> list[str
 
     kind = resolve_kind(entry_dir, kind_specs)
     spec = kind_specs[kind]
+
+    # gh-33: the FOLDER this entry lives under (entries/<kind_folder>/<slug>/)
+    # must agree with the kind its manifest filename suffix implies — the
+    # manifest filename stays kind's actual source of truth (resolve_kind,
+    # above, unchanged), the folder is metadata ABOUT that truth. Checked
+    # even when the manifest itself is missing/malformed (resolve_kind's own
+    # "none present -> persona" default still yields a real KIND_FOLDERS
+    # entry to compare against), so a wrongly-shelved entry is named as such
+    # rather than only ever surfacing as an unrelated missing-file violation.
+    expected_folder = KIND_FOLDERS[kind]
+    if kind_folder != expected_folder:
+        violations.append(
+            f"{label}: kind-folder-mismatch: entry's manifest implies kind '{kind}' (expected under "
+            f"'entries/{expected_folder}/'), but it lives under 'entries/{kind_folder}/' — an entry's "
+            "kind folder and its manifest filename suffix must agree"
+        )
 
     allowed_names = {f"{slug}{spec.suffix}", f"{slug}.meta.json"}
     unexpected = sorted(
@@ -602,21 +643,81 @@ def validate_entry(entry_dir: Path, kind_specs: dict[str, KindSpec]) -> list[str
 
 
 def validate_entries_top_level(entries_dir: Path) -> list[str]:
-    """entries/ itself may only contain <slug>/ directories — a loose file
-    directly under entries/ (entries/README.md, a stray entries/loose-link
-    symlink) is invisible to validate_entry, which only ever sees what
-    discover_entry_dirs hands it (directories only). Non-recursive by design:
-    a directory that's itself a symlink is deliberately left to
-    validate_entry's own find_symlinks(entry_dir) call, so it's reported
-    exactly once, not twice."""
+    """entries/ may only contain the four known kind folders (`KIND_FOLDERS`'
+    values — personas/, themes/, fonts/, shows/, gh-33), as directories,
+    nothing else — a loose file directly under entries/ (entries/README.md),
+    or a directory whose name isn't one of the four, is a violation
+    (checked regardless of whether that directory happens to itself be a
+    symlink: a name violation and a symlink violation are different
+    problems, and an unknown-named symlinked directory is still
+    unknown-named). A missing or empty kind folder is NOT itself a
+    violation — discover_entry_dirs simply finds nothing under it.
+
+    One level deeper, each correctly-named kind folder may in turn only
+    contain <slug>/ directories — a loose file sitting directly inside e.g.
+    entries/personas/ is invisible to validate_entry, which only ever sees
+    what discover_entry_dirs hands it (directories only, from both levels).
+
+    Non-recursive at both levels for the symlink-vs-directory question
+    specifically, same posture this function has always taken: a directory
+    that's itself a symlink (a kind folder, or a <slug> directory inside a
+    legitimately-named one) is deliberately left to validate_entry's own
+    guard (tools/catalog_lib.py: find_symlinks, extended by validate_entry to
+    also check an entry directory's PARENT since gh-33's nesting) rather than
+    reported here too."""
     violations: list[str] = []
-    for path in sorted(p for p in entries_dir.iterdir() if not p.is_dir()):
-        if path.is_symlink():
-            violations.append(f"{rel(REPO_ROOT, path)}: symlink: symlinks are not allowed under entries/")
-        else:
+    known_folders = set(KIND_FOLDERS.values())
+
+    for path in sorted(entries_dir.iterdir()):
+        if not path.is_dir():
+            if path.is_symlink():
+                violations.append(f"{rel(REPO_ROOT, path)}: symlink: symlinks are not allowed under entries/")
+            else:
+                violations.append(
+                    f"{rel(REPO_ROOT, path)}: unexpected-file: entries/ may only contain the four known "
+                    f"kind folders ({', '.join(sorted(known_folders))})"
+                )
+        elif path.name not in known_folders:
             violations.append(
-                f"{rel(REPO_ROOT, path)}: unexpected-file: entries/ may only contain <slug>/ directories"
+                f"{rel(REPO_ROOT, path)}: unexpected-file: entries/ may only contain the four known kind "
+                f"folders ({', '.join(sorted(known_folders))})"
             )
+
+    for kind_dir in sorted(p for p in entries_dir.iterdir() if p.is_dir() and p.name in known_folders):
+        for child in sorted(kind_dir.iterdir()):
+            if not child.is_dir():
+                if child.is_symlink():
+                    violations.append(f"{rel(REPO_ROOT, child)}: symlink: symlinks are not allowed under entries/")
+                else:
+                    violations.append(
+                        f"{rel(REPO_ROOT, child)}: unexpected-file: {kind_dir.name}/ may only contain "
+                        "<slug>/ directories"
+                    )
+
+    return violations
+
+
+def validate_slug_uniqueness(pairs: list[tuple[str, Path]]) -> list[str]:
+    """Two kind folders each holding a directory for the SAME slug (e.g.
+    both entries/personas/echo-ellis/ and entries/themes/echo-ellis/) is a
+    hard violation (gh-33): index.json's entries[], and the app importing
+    them, key an entry on its slug ALONE, never on slug+kind — two entries
+    sharing a slug across kind folders would be indistinguishable once
+    flattened into index.json, with tools/build_index.py silently keeping
+    whichever one sorts last and dropping the other with no warning. Takes
+    the (kind_folder, entry_dir) pairs discover_entry_dirs already found,
+    rather than re-walking entries_dir itself."""
+    violations: list[str] = []
+    first_seen: dict[str, Path] = {}
+    for _kind_folder, entry_dir in pairs:
+        slug = entry_dir.name
+        if slug in first_seen:
+            violations.append(
+                f"{rel(REPO_ROOT, entry_dir)}: duplicate-slug: slug '{slug}' is also used by "
+                f"{rel(REPO_ROOT, first_seen[slug])} — a slug must be unique across every kind folder"
+            )
+        else:
+            first_seen[slug] = entry_dir
     return violations
 
 
@@ -624,8 +725,10 @@ def validate_entries(entries_dir: Path, kind_specs: dict[str, KindSpec]) -> list
     if not entries_dir.is_dir():
         return [f"{rel(REPO_ROOT, entries_dir)}: missing-file: entries/ directory not found"]
     violations: list[str] = validate_entries_top_level(entries_dir)
-    for entry_dir in discover_entry_dirs(entries_dir):
-        violations.extend(validate_entry(entry_dir, kind_specs))
+    pairs = discover_entry_dirs(entries_dir)
+    violations.extend(validate_slug_uniqueness(pairs))
+    for kind_folder, entry_dir in pairs:
+        violations.extend(validate_entry(entry_dir, kind_specs, kind_folder))
     return violations
 
 
@@ -700,21 +803,28 @@ def validate_golden_fixture(fixtures_dir: Path, kind_specs: dict[str, KindSpec])
 
 def validate_index_slug_ownership(index_path: Path, index: object) -> list[str]:
     """Every `card`, `manifest`, `meta`, and `assets[]` path an index entry
-    carries must resolve under `entries/<that entry's own slug>/` — nothing
-    dangling, nothing borrowed from a sibling entry's directory (T196
-    obligation 3, SPEC F104.1). draft-07 JSON Schema has no way to express
-    "this string must start with a value computed from a sibling property"
-    — schemas/index.schema.json's own path patterns can only pin SHAPE
-    (character set, extension), never cross-reference the entry's own
-    `slug` — so this Python-side check is the actual home for it. The app's
-    own CatalogIndexValidator rejects the WHOLE index the instant one
-    entry's file-ref resolves outside its own directory, so CI must catch a
-    mismatch here, before it ever reaches the app.
+    carries must resolve under `entries/<that entry's own kind folder>/<that
+    entry's own slug>/` — nothing dangling, nothing borrowed from a sibling
+    entry's directory (T196 obligation 3, SPEC F104.1; folder segment added
+    gh-33). draft-07 JSON Schema has no way to express "this string must
+    start with a value computed from a sibling property" — schemas/
+    index.schema.json's own path patterns can only pin SHAPE (character set,
+    extension), never cross-reference the entry's own `slug` — so this
+    Python-side check is the actual home for it. The app's own
+    CatalogIndexValidator rejects the WHOLE index the instant one entry's
+    file-ref resolves outside its own directory, so CI must catch a mismatch
+    here, before it ever reaches the app.
 
     Defensive throughout (isinstance-guarded at every level): a shape
     violation here is already reported once by the schema check next to
     this call in validate_index, so a malformed `index`/`entries`/entry
-    shape is silently skipped rather than raising or double-reporting."""
+    shape is silently skipped rather than raising or double-reporting. An
+    entry's `kind` (default "persona" when absent, matching every other
+    kind-default posture in this module) resolving to something outside
+    `KIND_FOLDERS` — only possible via a hand-crafted index.json, since
+    schemas/index.schema.json's own `enum` already rejects it — is skipped
+    the same way, rather than raising: the schema check next to this call
+    already names that shape failure once."""
     if not isinstance(index, dict):
         return []
     entries = index.get("entries")
@@ -728,7 +838,12 @@ def validate_index_slug_ownership(index_path: Path, index: object) -> list[str]:
         slug = entry.get("slug")
         if not isinstance(slug, str):
             continue
-        owned_prefix = f"entries/{slug}/"
+        kind_value = entry.get("kind")
+        kind = kind_value if isinstance(kind_value, str) else "persona"
+        kind_folder = KIND_FOLDERS.get(kind)
+        if kind_folder is None:
+            continue
+        owned_prefix = f"entries/{kind_folder}/{slug}/"
 
         refs: list[tuple[str, str]] = []
         for field in ("card", "manifest", "meta"):

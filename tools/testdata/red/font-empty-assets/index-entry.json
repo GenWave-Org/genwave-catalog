@@ -3,11 +3,11 @@
   "kind": "font",
   "audience": "everyone",
   "manifest": {
-    "path": "entries/font-empty-assets/font-empty-assets.font.json",
+    "path": "entries/fonts/font-empty-assets/font-empty-assets.font.json",
     "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
   },
   "meta": {
-    "path": "entries/font-empty-assets/font-empty-assets.meta.json",
+    "path": "entries/fonts/font-empty-assets/font-empty-assets.meta.json",
     "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
   },
   "assets": [],
