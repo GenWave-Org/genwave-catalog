@@ -39,12 +39,13 @@ jobs:
 
   diff-scope:
     name: Diff scope guard
-    # Entry PRs may touch only entries/<slug>/ + index.json. A PR that pairs
-    # an entries/ change with an edit to schemas/, tools/, fixtures/,
-    # .github/, README.md, CONTRIBUTING.md, LICENSE, or .gitattributes fails
-    # here, naming the out-of-scope file. Infra-only PRs (no entries/
-    # changes) pass. One entry directory per PR. Fail-closed: any error in
-    # computing the diff (set -euo pipefail) fails the job.
+    # Entry PRs may touch only entries/<kind-folder>/<slug>/ + index.json
+    # (gh-33). A PR that pairs an entries/ change with an edit to schemas/,
+    # tools/, fixtures/, .github/, README.md, CONTRIBUTING.md, LICENSE, or
+    # .gitattributes fails here, naming the out-of-scope file. Infra-only
+    # PRs (no entries/ changes) pass. One entry directory per PR.
+    # Fail-closed: any error in computing the diff (set -euo pipefail) fails
+    # the job.
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
@@ -54,6 +55,12 @@ jobs:
           fetch-depth: 0
 
       - name: Enforce entry PR diff scope
+        # A maintainer-labeled catalog-wide PR (e.g. a layout migration
+        # touching every entries/ directory at once, gh-33) skips the
+        # one-entry-per-PR rule — the job itself still reports success
+        # rather than being skipped outright, so branch protection never
+        # sees a missing/pending required check.
+        if: ${{ !contains(github.event.pull_request.labels.*.name, 'scope:catalog-wide') }}
         env:
           BASE_REF: ${{ github.base_ref }}
         run: |

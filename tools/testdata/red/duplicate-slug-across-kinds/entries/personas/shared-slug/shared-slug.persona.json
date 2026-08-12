@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "name": "Shared Slug DJ",
+  "tagline": "",
+  "soul": "",
+  "quirks": [],
+  "voice": { "engine": "kokoro", "voiceId": "af_heart", "pace": 1.0, "language": "en" },
+  "energyDisposition": 0,
+  "lore": [],
+  "corrections": []
+}

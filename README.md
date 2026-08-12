@@ -22,20 +22,24 @@ their own licenses — check each entry before assuming CC0.
 
 ```
 entries/
-  <slug>/                          # a persona entry
-    <slug>.persona.json              # the persona card (GenWave app repo SPEC F79.1/F79.2 format)
-    <slug>.meta.json                  # catalog-only metadata (SPEC F89.1)
-  <slug>/                          # a theme entry
-    <slug>.theme.json                # the theme manifest (app repo SPEC F103.2)
-    <slug>.meta.json                  # catalog-only metadata, incl. preview swatches
-  space-grotesk/                   # a font pack entry — e.g. entries/space-grotesk/
-    space-grotesk.font.json          # the font manifest (app repo SPEC F104.1)
-    space-grotesk.meta.json           # catalog-only metadata
-    space-grotesk-variable-latin.woff2 # the vendored, latin-subsetted webfont face(s)
-    OFL.txt                           # the upstream's own licence text, byte-identical
-  <slug>/                          # a show entry
-    <slug>.show.json                 # the show manifest (app repo SPEC F118.1)
-    <slug>.meta.json                  # catalog-only metadata, incl. optional suggestedPersona
+  personas/
+    <slug>/                         # a persona entry
+      <slug>.persona.json              # the persona card (GenWave app repo SPEC F79.1/F79.2 format)
+      <slug>.meta.json                  # catalog-only metadata (SPEC F89.1)
+  themes/
+    <slug>/                         # a theme entry
+      <slug>.theme.json                # the theme manifest (app repo SPEC F103.2)
+      <slug>.meta.json                  # catalog-only metadata, incl. preview swatches
+  fonts/
+    space-grotesk/                  # a font pack entry — e.g. entries/fonts/space-grotesk/
+      space-grotesk.font.json          # the font manifest (app repo SPEC F104.1)
+      space-grotesk.meta.json           # catalog-only metadata
+      space-grotesk-variable-latin.woff2 # the vendored, latin-subsetted webfont face(s)
+      OFL.txt                           # the upstream's own licence text, byte-identical
+  shows/
+    <slug>/                         # a show entry
+      <slug>.show.json                 # the show manifest (app repo SPEC F118.1)
+      <slug>.meta.json                  # catalog-only metadata, incl. optional suggestedPersona
 schemas/
   persona-card.schema.json  # validates <slug>.persona.json
   persona-meta.schema.json  # validates a persona's <slug>.meta.json
@@ -69,7 +73,11 @@ README.md
 An entry's kind is read off which manifest filename its directory carries — `<slug>.persona.json`,
 `<slug>.theme.json`, `<slug>.font.json`, or `<slug>.show.json` (`tools/catalog_lib.py`'s
 `KIND_SUFFIXES`); persona wins if, bizarrely, more than one is present, then theme, then font,
-then show. A font pack's `OFL.txt` is tracked `-text` in
+then show. An entry's kind FOLDER — which of `entries/personas/`, `entries/themes/`,
+`entries/fonts/`, or `entries/shows/` it lives under (`tools/catalog_lib.py`'s `KIND_FOLDERS`) —
+must agree with what its manifest filename implies; a mismatch (say, a `.persona.json` manifest
+sitting under `entries/shows/`) is a hard `tools/validate.py` violation even though the manifest
+itself is otherwise valid. A font pack's `OFL.txt` is tracked `-text` in
 [`.gitattributes`](./.gitattributes) — licence text is byte-hashed into `index.json`, so
 its line endings are never normalized on checkout, keeping that hash stable across platforms.
 
@@ -90,7 +98,7 @@ is the same idea for the show kind, but pinned ahead of the app side for now: th
 PLAN T254, which is what will prove the round-trip both ways — until then this fixture only proves
 this repo's own manifest stays schema-valid.
 
-`entries/example-dj/` is a working example — a real, schema-valid entry pair, clearly marked in
+`entries/personas/example-dj/` is a working example — a real, schema-valid entry pair, clearly marked in
 its `meta.json` as the format reference rather than a genuine submission — and is deliberately a
 *different* card from the golden fixture (different name/tagline/content) so the two are never
 mistaken for the same artifact. Copy that directory as your starting point.
@@ -202,15 +210,18 @@ CI (`tools/validate.py`) validates every PR before merge:
   one shipped by this same catalog
 - font-pack gates: `OFL.txt` present, `license` in the permitted SPDX set (`OFL-1.1`,
   `Apache-2.0`), and no orphan/duplicate/stowaway asset references
-- `index.json` slug-ownership (every entry's paths resolve under its own `entries/<slug>/`, never
-  a sibling's) and duplicate-asset-path checks
+- `index.json` slug-ownership (every entry's paths resolve under its own
+  `entries/<kind-folder>/<slug>/`, never a sibling's) and duplicate-asset-path checks
+- entries/ is nested by kind: only the four known kind folders directly under `entries/`, only
+  `<slug>/` directories inside each; a slug used by more than one kind folder, or a kind folder
+  that disagrees with what an entry's own manifest filename implies, is a violation
 - no unexpected files in an entry directory, and no symlinks anywhere under `entries/`
 
 `tools/lint.py` additionally checks every persona card's submission-length budgets and
 pronunciation-rule sanity, and every show manifest's `name`/`tagline`/`flavor` budgets
 (60/120/400 chars at 1x, SPEC F115.1) — warn-first past 1x, red only at or past 2x (SPEC F118.4).
-The diff-scope guard (`.github/diff_scope_guard.sh`) separately enforces one `entries/<slug>/` +
-`index.json` per PR.
+The diff-scope guard (`.github/diff_scope_guard.sh`) separately enforces one
+`entries/<kind-folder>/<slug>/` + `index.json` per PR.
 `tools/run_selftest.sh` mirrors this whole set locally, including a red-variant fixture per rule
 (some are whole `index.json` fixtures, for the two index-level cross-checks above), so you can
 confirm your PR is clean before pushing.
@@ -223,10 +234,11 @@ submission-length lint, scoped diff) and the PR template. **Personas, themes, an
 to community submission; font packs are Dean-curated only** — see CONTRIBUTING's Font packs
 section.
 
-Short version, personas: copy `entries/example-dj/` to `entries/<your-slug>/`, rename both files
-to match your slug, write your card and metadata, and open a PR. Themes follow the same shape
-with a `<slug>.theme.json` manifest in place of the persona card; shows follow the same shape with
-a `<slug>.show.json` manifest. CI validates the shape; a maintainer reviews the content.
+Short version, personas: copy `entries/personas/example-dj/` to `entries/personas/<your-slug>/`,
+rename both files to match your slug, write your card and metadata, and open a PR. Themes follow
+the same shape under `entries/themes/<your-slug>/` with a `<slug>.theme.json` manifest in place of
+the persona card; shows follow the same shape under `entries/shows/<your-slug>/` with a
+`<slug>.show.json` manifest. CI validates the shape; a maintainer reviews the content.
 
 ## 📥 Using an entry
 

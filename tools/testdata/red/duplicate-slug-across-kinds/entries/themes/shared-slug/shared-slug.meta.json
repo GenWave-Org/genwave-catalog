@@ -1,0 +1,22 @@
+{
+  "author": "Test Fixture",
+  "description": "Red-variant fixture for tools/run_selftest.sh (gh-33) — the theme half of a slug held by two different kind folders at once (also entries/personas/shared-slug/), to exercise validate_slug_uniqueness. Not a real catalog entry.",
+  "audience": "everyone",
+  "added": "2026-08-12",
+  "preview": {
+    "light": {
+      "bg": "#f7ecd2",
+      "surface": "#fff8e6",
+      "ink": "#2c2410",
+      "accent": "#b8860b",
+      "accent-2": "#4f6b52"
+    },
+    "dark": {
+      "bg": "#171205",
+      "surface": "#241c09",
+      "ink": "#f4ecce",
+      "accent": "#e0a52c",
+      "accent-2": "#7fa382"
+    }
+  }
+}

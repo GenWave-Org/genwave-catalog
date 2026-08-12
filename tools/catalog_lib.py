@@ -1,15 +1,22 @@
 """Shared helpers for genwave-catalog's tools/ scripts.
 
-The ONE mechanism `tools/validate.py` and `tools/build_index.py` both use for:
+The ONE mechanism `tools/validate.py`, `tools/build_index.py`, and
+`tools/lint.py` all use for:
 
   - locating the repo root (`REPO_ROOT`, `SCHEMAS_DIR`)
   - repo/tree-relative POSIX paths (`rel`)
-  - discovering entries/<slug>/ directories under an arbitrary root (`discover_entry_dirs`)
+  - discovering entries/<kind-folder>/<slug>/ directories under an arbitrary
+    root (`discover_entry_dirs`) — nested per-kind since gh-33 (previously a
+    flat entries/<slug>/)
   - refusing to trust symlinks under entries/ (`find_symlinks`)
   - which sibling files inside a kind:"font" entry directory count as its
     OWN asset files (`FONT_ASSET_NAME_PATTERN`, `font_asset_paths`)
   - the kind -> manifest-filename-suffix mapping, in precedence order
     (`KIND_SUFFIXES`)
+  - the kind -> entries/ subfolder name mapping (`KIND_FOLDERS`), the
+    physical-layout counterpart to `KIND_SUFFIXES` — a kind's manifest
+    filename suffix says what file identifies it; `KIND_FOLDERS` says which
+    directory it lives under (gh-33)
 
 Keeping these in one file means a rule like "entries/ is discovered this way" or
 "symlinks are never trusted" is defined exactly once, not once per tool and
@@ -50,6 +57,28 @@ KIND_SUFFIXES: dict[str, str] = {
     "show": ".show.json",
 }
 
+# Kind -> entries/ subfolder name (gh-33: entries/<slug>/ moved to
+# entries/<kind-folder>/<slug>/, one folder per kind, nested-only — no more
+# flat entries/<slug>/). This is the SINGLE SOURCE OF TRUTH for that
+# mapping: tools/validate.py reads it to check a physical kind folder agrees
+# with the kind its manifest filename suffix implies (KIND_SUFFIXES, above)
+# and to compute an index entry's `owned_prefix` for the slug-ownership
+# cross-check; tools/build_index.py and tools/lint.py never need the folder
+# name itself (they walk whatever discover_entry_dirs hands them, and derive
+# `kind` purely from the manifest filename, same as always), but read it
+# from here rather than a private copy so a future kind is one dict entry,
+# not a dict entry plus N hand-spelled string literals scattered across the
+# module. Same key set, same order as KIND_SUFFIXES by construction (no
+# runtime assert like KindSpec's own order pin in tools/validate.py — the
+# literal dict below is trivially eyeballed against KIND_SUFFIXES two lines
+# up).
+KIND_FOLDERS: dict[str, str] = {
+    "persona": "personas",
+    "theme": "themes",
+    "font": "fonts",
+    "show": "shows",
+}
+
 
 def rel(root: Path, path: Path) -> str:
     """`path` as a POSIX string relative to `root`, falling back to the plain
@@ -61,12 +90,33 @@ def rel(root: Path, path: Path) -> str:
         return str(path)
 
 
-def discover_entry_dirs(entries_dir: Path) -> list[Path]:
-    """Every immediate subdirectory of entries_dir, sorted by name. Empty
-    list when entries_dir doesn't exist."""
+def discover_entry_dirs(entries_dir: Path) -> list[tuple[str, Path]]:
+    """Every entry directory two levels under entries_dir —
+    entries/<kind-folder>/<slug>/ (gh-33; before it, a flat entries/<slug>/,
+    one level) — as (kind_folder, entry_dir) pairs, sorted by (kind folder
+    name, slug name). Empty list when entries_dir doesn't exist.
+
+    Walks whatever directories are really there at both levels; it does NOT
+    filter to KIND_FOLDERS' four known names. That allowlist is
+    tools/validate.py's validate_entries_top_level's job, run as a separate
+    check — tools/build_index.py and tools/lint.py never call it, and still
+    need to see (and, for build_index.py, still index) every entry
+    regardless of what its kind folder happens to be named: kind has always
+    been derived from the manifest FILENAME inside an entry directory
+    (KIND_SUFFIXES), never from the folder it sits in. Keeping this function
+    a dumb, symmetric two-level walk — rather than baking KIND_FOLDERS'
+    allowlist into it — means those two callers keep behaving exactly as
+    they did on the old flat tree: they see every entry, and leave
+    "is this directory name actually legal" to validate.py, which is the
+    only caller that has ever owned that judgment."""
     if not entries_dir.is_dir():
         return []
-    return sorted(p for p in entries_dir.iterdir() if p.is_dir())
+    pairs: list[tuple[str, Path]] = []
+    for kind_dir in sorted(p for p in entries_dir.iterdir() if p.is_dir()):
+        pairs.extend(
+            (kind_dir.name, entry_dir) for entry_dir in sorted(p for p in kind_dir.iterdir() if p.is_dir())
+        )
+    return pairs
 
 
 def find_symlinks(path: Path) -> list[Path]:

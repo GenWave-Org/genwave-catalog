@@ -47,24 +47,27 @@ line is printed for that field+check, never both.
 Every message states the measured value against its budget, e.g.
 "soul is 1301 chars (warn 600, hard 1200)".
 
-Scope: every entries/<slug>/<slug>.persona.json AND every
-entries/<slug>/<slug>.show.json under --root, INCLUDING example-dj (it's the
-template people copy, and must stay within budget too — example-dj carries
-no show manifest, so only the persona checks apply to it). A card/manifest
-that fails to parse as JSON, or whose relevant fields are missing or not the
-expected type, is SKIPPED SILENTLY — malformed JSON/shape is
-tools/validate.py's law, not this lint's, and this tool must never crash on
-garbage input (every field is read with .get() plus a type check). The same
-silent-skip contract applies to pronunciations independently of the rest of
-the card: missing, null, or not a list skips dead-rule/word-repeat entirely;
-a non-dict list item, or a rule whose pattern/ipa/word is present but
-wrong-typed, skips that one rule — wrong types are schema law
-(tools/validate.py + the bad-pronunciations-type red fixture), not this
-lint's. An entries/<slug> directory that is itself a symlink (or a symlink
-anywhere under it) is SKIPPED SILENTLY too, before any file inside it is
-opened (tools/catalog_lib.py: find_symlinks) — trusting a symlinked entry
-could make this lint read bytes from outside the tree being checked, and
-validate.py already owns the loud violation for that case.
+Scope: every entries/<kind-folder>/<slug>/<slug>.persona.json AND every
+entries/<kind-folder>/<slug>/<slug>.show.json under --root (nested per kind
+since gh-33), INCLUDING example-dj (it's the template people copy, and must
+stay within budget too — example-dj carries no show manifest, so only the
+persona checks apply to it). A card/manifest that fails to parse as JSON, or
+whose relevant fields are missing or not the expected type, is SKIPPED
+SILENTLY — malformed JSON/shape is tools/validate.py's law, not this lint's,
+and this tool must never crash on garbage input (every field is read with
+.get() plus a type check). The same silent-skip contract applies to
+pronunciations independently of the rest of the card: missing, null, or not
+a list skips dead-rule/word-repeat entirely; a non-dict list item, or a rule
+whose pattern/ipa/word is present but wrong-typed, skips that one rule —
+wrong types are schema law (tools/validate.py + the bad-pronunciations-type
+red fixture), not this lint's. An entries/<kind-folder>/<slug> directory
+that is itself a symlink (or a symlink anywhere under it), OR whose kind
+folder itself is a symlink (gh-33 nested entries/ one level deeper, so a
+symlinked kind folder could otherwise put a perfectly real-looking entry
+directory in front of this lint), is SKIPPED SILENTLY too, before any file
+inside it is opened (tools/catalog_lib.py: find_symlinks) — trusting a
+symlinked entry could make this lint read bytes from outside the tree being
+checked, and validate.py already owns the loud violation for that case.
 
 Output: WARN findings print as `::warning file=<repo-relative
 path>::<rule>: <message>` when the GITHUB_ACTIONS environment variable is
@@ -403,14 +406,19 @@ def lint_entries(entries_dir: Path) -> list[tuple[str, str, str, str]]:
     double-lints a single manifest, it just avoids a second directory walk
     for the show budgets added at SPEC F118.4 / T253."""
     results: list[tuple[str, str, str, str]] = []
-    for entry_dir in discover_entry_dirs(entries_dir):
+    for _kind_folder, entry_dir in discover_entry_dirs(entries_dir):
         # Symlinks are never trusted (tools/catalog_lib.py: find_symlinks) —
         # checked before any file in this entry is opened. A symlinked entry
         # dir or persona card could otherwise make this lint read bytes from
-        # outside the tree being checked. validate.py owns the loud
-        # violation for this; the lint's contract is silent-skip, matching
-        # how a malformed card is already handled below.
-        if find_symlinks(entry_dir):
+        # outside the tree being checked. Also checks entry_dir.parent (the
+        # kind folder, entries/<kind-folder>/) — gh-33 nested entries/ one
+        # level deeper, and discover_entry_dirs walks THROUGH a symlinked
+        # kind folder, so a symlinked kind folder could otherwise put a
+        # perfectly real (non-symlinked) entry_dir in front of this check.
+        # validate.py owns the loud violation for either case; the lint's
+        # contract is silent-skip, matching how a malformed card is already
+        # handled below.
+        if entry_dir.parent.is_symlink() or find_symlinks(entry_dir):
             continue
         slug = entry_dir.name
 

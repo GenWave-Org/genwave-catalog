@@ -49,8 +49,8 @@
       "properties": {
         "path": {
           "type": "string",
-          "pattern": "^entries/[a-z0-9]+(-[a-z0-9]+)*/[A-Za-z0-9][A-Za-z0-9._-]*\\.(?:woff2|txt)(?![\\s\\S])",
-          "description": "Repo-root-relative POSIX path under entries/<slug>/ — no leading slash, no .., no URL scheme; the pattern's own shape rules all three out. UNLIKE the manifest/meta path patterns above (whose filename segment must equal the slug), an asset's filename is the pack's OWN file name (e.g. \"space-grotesk-variable-latin.woff2\", \"OFL.txt\") — this pattern constrains character set and extension only, the same closed set (woff2|txt) GenWave.Host.Catalog.CatalogIndexValidator.AssetFileNameText enforces app-side."
+          "pattern": "^entries/fonts/[a-z0-9]+(-[a-z0-9]+)*/[A-Za-z0-9][A-Za-z0-9._-]*\\.(?:woff2|txt)(?![\\s\\S])",
+          "description": "Repo-root-relative POSIX path under entries/fonts/<slug>/ (the fixed kind folder every asset lives under, gh-33 — an asset only ever belongs to a kind:\"font\" entry) — no leading slash, no .., no URL scheme; the pattern's own shape rules all three out. UNLIKE the manifest/meta path patterns above (whose filename segment must equal the slug), an asset's filename is the pack's OWN file name (e.g. \"space-grotesk-variable-latin.woff2\", \"OFL.txt\") — this pattern constrains character set and extension only, the same closed set (woff2|txt) GenWave.Host.Catalog.CatalogIndexValidator.AssetFileNameText enforces app-side."
         },
         "sha256": { "$ref": "#/definitions/sha256" },
         "bytes": {
@@ -101,8 +101,8 @@
           "properties": {
             "path": {
               "type": "string",
-              "pattern": "^entries/[a-z0-9]+(-[a-z0-9]+)*/[a-z0-9]+(-[a-z0-9]+)*\\.persona\\.json(?![\\s\\S])",
-              "description": "Repo-root-relative POSIX path under entries/<slug>/ — no leading slash, no .., no URL scheme; the pattern's own shape rules all three out."
+              "pattern": "^entries/personas/[a-z0-9]+(-[a-z0-9]+)*/[a-z0-9]+(-[a-z0-9]+)*\\.persona\\.json(?![\\s\\S])",
+              "description": "Repo-root-relative POSIX path under entries/personas/<slug>/ (the fixed kind folder every persona entry lives under, gh-33) — no leading slash, no .., no URL scheme; the pattern's own shape rules all three out."
             },
             "sha256": { "$ref": "#/definitions/sha256" }
           }
@@ -114,8 +114,8 @@
           "properties": {
             "path": {
               "type": "string",
-              "pattern": "^entries/[a-z0-9]+(-[a-z0-9]+)*/[a-z0-9]+(-[a-z0-9]+)*\\.[a-z]+\\.json(?![\\s\\S])",
-              "description": "Repo-root-relative POSIX path under entries/<slug>/ to the kind:\"theme\", kind:\"font\", or kind:\"show\" manifest file (SPEC F103.2 / F104.1 / F118.1) — no leading slash, no .., no URL scheme; the pattern's own shape rules all three out. The exact required extension (`*.theme.json` for a theme entry, `*.font.json` for a font entry, `*.show.json` for a show entry) is deliberately NOT enforced here — it's pinned per-kind by the `manifest.path` pattern nested in each `if`/`then`/`else` branch below instead, so a theme entry naming a `.font.json` manifest (or vice versa) fails there rather than validating against this shared, kind-blind definition (a prior version of this pattern accepted either extension regardless of `kind`, letting the two cross-dress). The one `manifest` key every non-persona kind targets (F103.2's generalised `{manifest, meta}` model); persona entries keep using `card` (see the `kind` description above) rather than this key — and, as of the persona `else` branch's own `allOf` (T195 review N7), are schema-rejected from carrying this key at all: an entry with no `kind` (or `kind: \"persona\"`) that names both `card` and `manifest` validated clean before that addition even though it's a shape GenWave.Host's own kind resolution never produces and would reject the whole index over app-side (exactly one of `card`/`manifest` is ever expected, never both)."
+              "pattern": "^entries/(?:personas|themes|fonts|shows)/[a-z0-9]+(-[a-z0-9]+)*/[a-z0-9]+(-[a-z0-9]+)*\\.[a-z]+\\.json(?![\\s\\S])",
+              "description": "Repo-root-relative POSIX path under entries/<kind-folder>/<slug>/ to the kind:\"theme\", kind:\"font\", or kind:\"show\" manifest file (SPEC F103.2 / F104.1 / F118.1) — no leading slash, no .., no URL scheme; the pattern's own shape rules all three out. The kind-folder segment is the four-way alternation (personas|themes|fonts|shows, gh-33) since this definition is shared kind-blind — the SPECIFIC folder a given kind actually lives under (themes/ for a theme entry, and so on) is pinned by the `manifest.path` pattern nested in each `if`/`then`/`else` branch below instead, same posture as the extension. The exact required extension (`*.theme.json` for a theme entry, `*.font.json` for a font entry, `*.show.json` for a show entry) is likewise deliberately NOT enforced here — it's pinned per-kind by that same nested pattern, so a theme entry naming a `.font.json` manifest (or vice versa) fails there rather than validating against this shared, kind-blind definition (a prior version of this pattern accepted either extension regardless of `kind`, letting the two cross-dress). The one `manifest` key every non-persona kind targets (F103.2's generalised `{manifest, meta}` model); persona entries keep using `card` (see the `kind` description above) rather than this key — and, as of the persona `else` branch's own `allOf` (T195 review N7), are schema-rejected from carrying this key at all: an entry with no `kind` (or `kind: \"persona\"`) that names both `card` and `manifest` validated clean before that addition even though it's a shape GenWave.Host's own kind resolution never produces and would reject the whole index over app-side (exactly one of `card`/`manifest` is ever expected, never both)."
             },
             "sha256": { "$ref": "#/definitions/sha256" }
           }
@@ -140,8 +140,8 @@
           "properties": {
             "path": {
               "type": "string",
-              "pattern": "^entries/[a-z0-9]+(-[a-z0-9]+)*/[a-z0-9]+(-[a-z0-9]+)*\\.meta\\.json(?![\\s\\S])",
-              "description": "Repo-root-relative POSIX path under entries/<slug>/ — no leading slash, no .., no URL scheme; the pattern's own shape rules all three out."
+              "pattern": "^entries/(?:personas|themes|fonts|shows)/[a-z0-9]+(-[a-z0-9]+)*/[a-z0-9]+(-[a-z0-9]+)*\\.meta\\.json(?![\\s\\S])",
+              "description": "Repo-root-relative POSIX path under entries/<kind-folder>/<slug>/ — no leading slash, no .., no URL scheme; the pattern's own shape rules all three out. Every kind carries a meta.json, so unlike `card`/`manifest` above this definition stays kind-blind at the folder segment too — the four-way alternation (personas|themes|fonts|shows, gh-33), never narrowed to one specific folder by an `if`/`then`/`else` branch below."
             },
             "sha256": { "$ref": "#/definitions/sha256" }
           }
@@ -157,7 +157,7 @@
           "manifest": {
             "properties": {
               "path": {
-                "pattern": "^entries/[a-z0-9]+(-[a-z0-9]+)*/[a-z0-9]+(-[a-z0-9]+)*\\.theme\\.json(?![\\s\\S])"
+                "pattern": "^entries/themes/[a-z0-9]+(-[a-z0-9]+)*/[a-z0-9]+(-[a-z0-9]+)*\\.theme\\.json(?![\\s\\S])"
               }
             }
           }
@@ -178,7 +178,7 @@
             "manifest": {
               "properties": {
                 "path": {
-                  "pattern": "^entries/[a-z0-9]+(-[a-z0-9]+)*/[a-z0-9]+(-[a-z0-9]+)*\\.font\\.json(?![\\s\\S])"
+                  "pattern": "^entries/fonts/[a-z0-9]+(-[a-z0-9]+)*/[a-z0-9]+(-[a-z0-9]+)*\\.font\\.json(?![\\s\\S])"
                 }
               }
             }
@@ -196,7 +196,7 @@
               "manifest": {
                 "properties": {
                   "path": {
-                    "pattern": "^entries/[a-z0-9]+(-[a-z0-9]+)*/[a-z0-9]+(-[a-z0-9]+)*\\.show\\.json(?![\\s\\S])"
+                    "pattern": "^entries/shows/[a-z0-9]+(-[a-z0-9]+)*/[a-z0-9]+(-[a-z0-9]+)*\\.show\\.json(?![\\s\\S])"
                   }
                 }
               }

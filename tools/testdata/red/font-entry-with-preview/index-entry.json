@@ -3,21 +3,21 @@
   "kind": "font",
   "audience": "everyone",
   "manifest": {
-    "path": "entries/font-entry-with-preview/font-entry-with-preview.font.json",
+    "path": "entries/fonts/font-entry-with-preview/font-entry-with-preview.font.json",
     "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
   },
   "meta": {
-    "path": "entries/font-entry-with-preview/font-entry-with-preview.meta.json",
+    "path": "entries/fonts/font-entry-with-preview/font-entry-with-preview.meta.json",
     "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
   },
   "assets": [
     {
-      "path": "entries/font-entry-with-preview/font-entry-with-preview-variable-latin.woff2",
+      "path": "entries/fonts/font-entry-with-preview/font-entry-with-preview-variable-latin.woff2",
       "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
       "bytes": 7844
     },
     {
-      "path": "entries/font-entry-with-preview/OFL.txt",
+      "path": "entries/fonts/font-entry-with-preview/OFL.txt",
       "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
       "bytes": 4500
     }

@@ -1,0 +1,7 @@
+{
+  "author": "Test Fixture",
+  "description": "Red-variant fixture for tools/run_selftest.sh (gh-33) — an otherwise schema-valid persona card+meta pair deliberately shelved under entries/shows/ instead of entries/personas/, to exercise validate_entry's kind-folder-mismatch check. Not a real catalog entry.",
+  "samplePatter": ["Line one.", "Line two."],
+  "audience": "everyone",
+  "added": "2026-08-12"
+}

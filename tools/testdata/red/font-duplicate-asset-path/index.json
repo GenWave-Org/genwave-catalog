@@ -4,17 +4,17 @@
       "assets": [
         {
           "bytes": 7844,
-          "path": "entries/font-duplicate-asset-path/font-duplicate-asset-path-variable-latin.woff2",
+          "path": "entries/fonts/font-duplicate-asset-path/font-duplicate-asset-path-variable-latin.woff2",
           "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
         },
         {
           "bytes": 9999,
-          "path": "entries/font-duplicate-asset-path/font-duplicate-asset-path-variable-latin.woff2",
+          "path": "entries/fonts/font-duplicate-asset-path/font-duplicate-asset-path-variable-latin.woff2",
           "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
         },
         {
           "bytes": 4500,
-          "path": "entries/font-duplicate-asset-path/OFL.txt",
+          "path": "entries/fonts/font-duplicate-asset-path/OFL.txt",
           "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
         }
       ],
@@ -22,11 +22,11 @@
       "family": "Font Duplicate Asset Path",
       "kind": "font",
       "manifest": {
-        "path": "entries/font-duplicate-asset-path/font-duplicate-asset-path.font.json",
+        "path": "entries/fonts/font-duplicate-asset-path/font-duplicate-asset-path.font.json",
         "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
       },
       "meta": {
-        "path": "entries/font-duplicate-asset-path/font-duplicate-asset-path.meta.json",
+        "path": "entries/fonts/font-duplicate-asset-path/font-duplicate-asset-path.meta.json",
         "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
       },
       "slug": "font-duplicate-asset-path"

@@ -2,15 +2,15 @@
   "slug": "persona-entry-with-manifest",
   "audience": "everyone",
   "card": {
-    "path": "entries/persona-entry-with-manifest/persona-entry-with-manifest.persona.json",
+    "path": "entries/personas/persona-entry-with-manifest/persona-entry-with-manifest.persona.json",
     "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
   },
   "manifest": {
-    "path": "entries/persona-entry-with-manifest/persona-entry-with-manifest.theme.json",
+    "path": "entries/themes/persona-entry-with-manifest/persona-entry-with-manifest.theme.json",
     "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
   },
   "meta": {
-    "path": "entries/persona-entry-with-manifest/persona-entry-with-manifest.meta.json",
+    "path": "entries/personas/persona-entry-with-manifest/persona-entry-with-manifest.meta.json",
     "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
   }
 }

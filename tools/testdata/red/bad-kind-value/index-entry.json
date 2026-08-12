@@ -3,11 +3,11 @@
   "kind": "villain",
   "audience": "everyone",
   "card": {
-    "path": "entries/bad-kind-value/bad-kind-value.persona.json",
+    "path": "entries/personas/bad-kind-value/bad-kind-value.persona.json",
     "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
   },
   "meta": {
-    "path": "entries/bad-kind-value/bad-kind-value.meta.json",
+    "path": "entries/personas/bad-kind-value/bad-kind-value.meta.json",
     "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
   }
 }

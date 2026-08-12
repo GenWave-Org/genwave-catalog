@@ -19,8 +19,8 @@ at all — see [Font packs](#font-packs-kind-font).
    `.github/workflows/ci.yml` installs). A different `jsonschema` version can validate
    differently than CI does, so match the pin, not just "some jsonschema".
 2. **Fork and clone** this repo.
-3. **Copy `entries/example-dj/`** to `entries/<your-slug>/`, then rename both files to
-   `<your-slug>.persona.json` and `<your-slug>.meta.json`. `<your-slug>` must match
+3. **Copy `entries/personas/example-dj/`** to `entries/personas/<your-slug>/`, then rename both
+   files to `<your-slug>.persona.json` and `<your-slug>.meta.json`. `<your-slug>` must match
    `^[a-z0-9]+(-[a-z0-9]+)*$` — see README.md's [Slug format](./README.md#slug-format) for the
    exact rule.
 4. **Author the card and metadata** — replace every placeholder field. README.md's
@@ -76,8 +76,8 @@ CI enforces shape. A human enforces character. Both matter, and both are law her
 7. **Keep the card's prompt weight tight** — CI-checked by `tools/lint.py`, warnings first, red
    only for the absurd.
 8. **Scoped diff, one entry per PR** — CI-enforced (diff-scope guard): an entry PR touches
-   only its own `entries/<slug>/` directory plus the regenerated `index.json` — never a
-   second entry, and never `schemas/`, `tools/`, `fixtures/`, `.github/`, `README.md`,
+   only its own `entries/<kind-folder>/<slug>/` directory plus the regenerated `index.json` —
+   never a second entry, and never `schemas/`, `tools/`, `fixtures/`, `.github/`, `README.md`,
    `CONTRIBUTING.md`, `LICENSE`, or `.gitattributes`. Infra changes go in their own PR
    (with no `entries/` edits), where they get reviewed as infra.
 
@@ -175,9 +175,9 @@ Themes are open to community submission, same as personas — the mechanics abov
 `tools/validate.py`, `tools/build_index.py`, `tools/run_selftest.sh`, the PR template) all apply.
 Only the files and gates below are theme-specific.
 
-1. **Copy an existing theme entry** — e.g. `entries/graveyard-shift/` — to `entries/<your-slug>/`,
-   then rename both files to `<your-slug>.theme.json` and `<your-slug>.meta.json`. Same slug rule
-   as personas: `^[a-z0-9]+(-[a-z0-9]+)*$` (README.md's
+1. **Copy an existing theme entry** — e.g. `entries/themes/graveyard-shift/` — to
+   `entries/themes/<your-slug>/`, then rename both files to `<your-slug>.theme.json` and
+   `<your-slug>.meta.json`. Same slug rule as personas: `^[a-z0-9]+(-[a-z0-9]+)*$` (README.md's
    [Slug format](./README.md#slug-format)).
 2. **Author the manifest** (`<slug>.theme.json`) — validates against
    `schemas/theme-manifest.schema.json`. The shape is owned by the
@@ -219,7 +219,7 @@ Shows are open to community submission, same as personas and themes — the mech
 (prerequisites, `tools/validate.py`, `tools/build_index.py`, `tools/run_selftest.sh`, the PR
 template) all apply. Only the files and gates below are show-specific.
 
-1. **Create `entries/<your-slug>/`** — there's no existing show entry to copy yet (the seed
+1. **Create `entries/shows/<your-slug>/`** — there's no existing show entry to copy yet (the seed
    lineup ships separately, PLAN T256), so author `<slug>.show.json` and `<slug>.meta.json` from
    scratch, following the shapes below. Same slug rule as every other kind:
    `^[a-z0-9]+(-[a-z0-9]+)*$` (README.md's [Slug format](./README.md#slug-format)).
@@ -284,6 +284,6 @@ pyftsubset UpstreamFont.ttf \
 
 `--name-IDs='*'` keeps the face's own OFL notice/URL name records (IDs 13/14) in the shipped
 woff2 — attribution travels inside the binary, not only in the pack's `OFL.txt`. An entry is
-`entries/<slug>/` holding `<slug>.font.json`, `<slug>.meta.json`, the woff2 face(s), and the
+`entries/fonts/<slug>/` holding `<slug>.font.json`, `<slug>.meta.json`, the woff2 face(s), and the
 upstream's own `OFL.txt` byte-identical. CI enforces the schemas, the 200 KiB pack ceiling,
 licence allowlist, and stowaway/orphan/duplicate checks (`tools/validate.py`).

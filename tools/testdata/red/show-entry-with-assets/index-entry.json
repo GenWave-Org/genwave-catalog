@@ -3,16 +3,16 @@
   "kind": "show",
   "audience": "everyone",
   "manifest": {
-    "path": "entries/show-entry-with-assets/show-entry-with-assets.show.json",
+    "path": "entries/shows/show-entry-with-assets/show-entry-with-assets.show.json",
     "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
   },
   "meta": {
-    "path": "entries/show-entry-with-assets/show-entry-with-assets.meta.json",
+    "path": "entries/shows/show-entry-with-assets/show-entry-with-assets.meta.json",
     "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
   },
   "assets": [
     {
-      "path": "entries/show-entry-with-assets/stowaway.woff2",
+      "path": "entries/fonts/show-entry-with-assets/stowaway.woff2",
       "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
       "bytes": 7844
     }

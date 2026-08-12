@@ -38,6 +38,11 @@
 #      manifest only, no card/assets/family/preview), and tools/lint.py's
 #      show budget lint (WARN>1x on every field, HARD>=2x on flavor at
 #      exactly the 2x boundary)
+#  13. per-kind entries/ folder layout invariants (gh-33): a manifest whose
+#      kind folder disagrees with its own manifest-filename suffix
+#      (kind-folder-mismatch), and the same slug held by two different kind
+#      folders at once (duplicate-slug) are each rejected, naming the
+#      offending entry
 #
 
 # Every python3/build_index.py invocation below has its exit status checked
@@ -58,7 +63,7 @@ cd "$REPO_ROOT"
 RED_DIR="tools/testdata/red"
 GREEN_FIXTURE="tools/testdata/green/valid-dj"
 HEAVY_CARD_DIR="tools/testdata/warn/heavy-card"
-OVERSIZE_CARD="$RED_DIR/oversize-card/entries/oversize-card/oversize-card.persona.json"
+OVERSIZE_CARD="$RED_DIR/oversize-card/entries/personas/oversize-card/oversize-card.persona.json"
 
 FAILURES=0
 pass() { printf 'PASS  %s\n' "$1"; }
@@ -97,7 +102,7 @@ KIND_GREEN_FIXTURE="tools/testdata/green/valid-theme"
 KIND_RED_DIR="tools/testdata/red"
 
 FONT_GREEN_FIXTURE="tools/testdata/green/valid-font"
-FONT_OVER_CEILING_ASSET="$RED_DIR/font-over-ceiling/entries/font-over-ceiling/font-over-ceiling-variable-latin.woff2"
+FONT_OVER_CEILING_ASSET="$RED_DIR/font-over-ceiling/entries/fonts/font-over-ceiling/font-over-ceiling-variable-latin.woff2"
 
 SHOW_GREEN_FIXTURE="tools/testdata/green/valid-show"
 HEAVY_SHOW_DIR="tools/testdata/warn/heavy-show"
@@ -220,9 +225,9 @@ echo
 
 echo "== validate.py: green fixture pronunciations[] validate against a schema that knows the field (SPEC F89.5 / T151) =="
 TMP_PRON_TREE="$(mktemp -d)"
-mkdir -p "$TMP_PRON_TREE/entries/valid-dj"
-cp "$GREEN_FIXTURE/valid-dj.persona.json" "$TMP_PRON_TREE/entries/valid-dj/valid-dj.persona.json"
-cp "$GREEN_FIXTURE/valid-dj.meta.json" "$TMP_PRON_TREE/entries/valid-dj/valid-dj.meta.json"
+mkdir -p "$TMP_PRON_TREE/entries/personas/valid-dj"
+cp "$GREEN_FIXTURE/valid-dj.persona.json" "$TMP_PRON_TREE/entries/personas/valid-dj/valid-dj.persona.json"
+cp "$GREEN_FIXTURE/valid-dj.meta.json" "$TMP_PRON_TREE/entries/personas/valid-dj/valid-dj.meta.json"
 output=$(python3 tools/validate.py --root "$TMP_PRON_TREE" 2>&1)
 status=$?
 echo "$output"
@@ -246,13 +251,21 @@ check_red_variant bad-json "json-parse"
 check_red_variant bad-date "bad-date"
 check_red_variant bad-pronunciations-type "schema: pronunciations/0/"
 
+echo "== validate.py: per-kind entries/ folder layout invariants (gh-33) =="
+
+echo "-- red kind-folder-mismatch: a .persona.json manifest sitting under entries/shows/ (the wrong kind folder) is rejected, naming both the implied and actual folder --"
+check_red_variant kind-folder-mismatch "kind-folder-mismatch"
+
+echo "-- red duplicate-slug-across-kinds: the SAME slug held by two different kind folders (entries/personas/shared-slug/ and entries/themes/shared-slug/) is rejected — index.json and the app key an entry on slug alone --"
+check_red_variant duplicate-slug-across-kinds "duplicate-slug"
+
 echo "== validate.py: kind-aware theme-entry validation (schemas/theme-manifest.schema.json + schemas/theme-meta.schema.json, SPEC F103.2 / T179) =="
 
 echo "-- green valid-theme fixture validates clean end-to-end as a kind:\"theme\" entry --"
 TMP_THEME_TREE="$(mktemp -d)"
-mkdir -p "$TMP_THEME_TREE/entries/valid-theme"
-cp "$KIND_GREEN_FIXTURE/valid-theme.theme.json" "$TMP_THEME_TREE/entries/valid-theme/valid-theme.theme.json"
-cp "$KIND_GREEN_FIXTURE/valid-theme.meta.json" "$TMP_THEME_TREE/entries/valid-theme/valid-theme.meta.json"
+mkdir -p "$TMP_THEME_TREE/entries/themes/valid-theme"
+cp "$KIND_GREEN_FIXTURE/valid-theme.theme.json" "$TMP_THEME_TREE/entries/themes/valid-theme/valid-theme.theme.json"
+cp "$KIND_GREEN_FIXTURE/valid-theme.meta.json" "$TMP_THEME_TREE/entries/themes/valid-theme/valid-theme.meta.json"
 output=$(python3 tools/validate.py --root "$TMP_THEME_TREE" 2>&1)
 status=$?
 echo "$output"
@@ -329,11 +342,11 @@ echo "== validate.py: kind-aware font-entry validation (schemas/font-manifest.sc
 
 echo "-- green valid-font fixture validates clean end-to-end as a kind:\"font\" entry --"
 TMP_FONT_TREE="$(mktemp -d)"
-mkdir -p "$TMP_FONT_TREE/entries/valid-font"
-cp "$FONT_GREEN_FIXTURE/valid-font.font.json" "$TMP_FONT_TREE/entries/valid-font/valid-font.font.json"
-cp "$FONT_GREEN_FIXTURE/valid-font.meta.json" "$TMP_FONT_TREE/entries/valid-font/valid-font.meta.json"
-cp "$FONT_GREEN_FIXTURE/valid-font-variable-latin.woff2" "$TMP_FONT_TREE/entries/valid-font/valid-font-variable-latin.woff2"
-cp "$FONT_GREEN_FIXTURE/OFL.txt" "$TMP_FONT_TREE/entries/valid-font/OFL.txt"
+mkdir -p "$TMP_FONT_TREE/entries/fonts/valid-font"
+cp "$FONT_GREEN_FIXTURE/valid-font.font.json" "$TMP_FONT_TREE/entries/fonts/valid-font/valid-font.font.json"
+cp "$FONT_GREEN_FIXTURE/valid-font.meta.json" "$TMP_FONT_TREE/entries/fonts/valid-font/valid-font.meta.json"
+cp "$FONT_GREEN_FIXTURE/valid-font-variable-latin.woff2" "$TMP_FONT_TREE/entries/fonts/valid-font/valid-font-variable-latin.woff2"
+cp "$FONT_GREEN_FIXTURE/OFL.txt" "$TMP_FONT_TREE/entries/fonts/valid-font/OFL.txt"
 output=$(python3 tools/validate.py --root "$TMP_FONT_TREE" 2>&1)
 status=$?
 echo "$output"
@@ -382,9 +395,9 @@ echo "== validate.py: kind-aware show-entry validation (schemas/show-manifest.sc
 
 echo "-- green valid-show fixture validates clean end-to-end as a kind:\"show\" entry --"
 TMP_SHOW_TREE="$(mktemp -d)"
-mkdir -p "$TMP_SHOW_TREE/entries/valid-show"
-cp "$SHOW_GREEN_FIXTURE/valid-show.show.json" "$TMP_SHOW_TREE/entries/valid-show/valid-show.show.json"
-cp "$SHOW_GREEN_FIXTURE/valid-show.meta.json" "$TMP_SHOW_TREE/entries/valid-show/valid-show.meta.json"
+mkdir -p "$TMP_SHOW_TREE/entries/shows/valid-show"
+cp "$SHOW_GREEN_FIXTURE/valid-show.show.json" "$TMP_SHOW_TREE/entries/shows/valid-show/valid-show.show.json"
+cp "$SHOW_GREEN_FIXTURE/valid-show.meta.json" "$TMP_SHOW_TREE/entries/shows/valid-show/valid-show.meta.json"
 output=$(python3 tools/validate.py --root "$TMP_SHOW_TREE" 2>&1)
 status=$?
 echo "$output"
@@ -415,9 +428,9 @@ check_golden_fixture "fixtures/golden.show.json" "schemas/show-manifest.schema.j
 
 echo "== build_index.py + schemas/index.schema.json: show kind projects manifest only — no card/assets/family/preview (SPEC F118.1, T253) =="
 TMP_SHOW_INDEX_TREE="$(mktemp -d)"
-mkdir -p "$TMP_SHOW_INDEX_TREE/entries/valid-show"
-cp "$SHOW_GREEN_FIXTURE/valid-show.show.json" "$TMP_SHOW_INDEX_TREE/entries/valid-show/valid-show.show.json"
-cp "$SHOW_GREEN_FIXTURE/valid-show.meta.json" "$TMP_SHOW_INDEX_TREE/entries/valid-show/valid-show.meta.json"
+mkdir -p "$TMP_SHOW_INDEX_TREE/entries/shows/valid-show"
+cp "$SHOW_GREEN_FIXTURE/valid-show.show.json" "$TMP_SHOW_INDEX_TREE/entries/shows/valid-show/valid-show.show.json"
+cp "$SHOW_GREEN_FIXTURE/valid-show.meta.json" "$TMP_SHOW_INDEX_TREE/entries/shows/valid-show/valid-show.meta.json"
 
 tmp_show_index="$(mktemp)"
 show_index_build_ok=1
@@ -633,7 +646,7 @@ import json
 import sys
 from pathlib import Path
 
-card = json.loads((Path(sys.argv[1]) / "entries/heavy-card/heavy-card.persona.json").read_text(encoding="utf-8"))
+card = json.loads((Path(sys.argv[1]) / "entries/personas/heavy-card/heavy-card.persona.json").read_text(encoding="utf-8"))
 longest3 = sorted((len(q) for q in card["quirks"]), reverse=True)[:3]
 print(len(card["soul"]) + sum(longest3) + len(card["name"]))
 PY
@@ -700,15 +713,15 @@ echo
 
 echo "== lint.py: symlinked entries are never read, even when their target would otherwise warn (SPEC F89.6 guard · mutant M15) =="
 TMP_SYMLINK_TREE="$(mktemp -d)"
-mkdir -p "$TMP_SYMLINK_TREE/entries/good-entry" "$TMP_SYMLINK_TREE/real/symlinked-heavy"
-cp "$GREEN_FIXTURE/valid-dj.persona.json" "$TMP_SYMLINK_TREE/entries/good-entry/good-entry.persona.json"
-cp "$GREEN_FIXTURE/valid-dj.meta.json" "$TMP_SYMLINK_TREE/entries/good-entry/good-entry.meta.json"
+mkdir -p "$TMP_SYMLINK_TREE/entries/personas/good-entry" "$TMP_SYMLINK_TREE/real/symlinked-heavy"
+cp "$GREEN_FIXTURE/valid-dj.persona.json" "$TMP_SYMLINK_TREE/entries/personas/good-entry/good-entry.persona.json"
+cp "$GREEN_FIXTURE/valid-dj.meta.json" "$TMP_SYMLINK_TREE/entries/personas/good-entry/good-entry.meta.json"
 # The symlink target is a COPY of heavy-card's entry (not valid-dj) — a
 # guard-less lint would emit warnings naming this slug, so a missing guard
 # is actually observable here rather than indistinguishable from a clean run.
-cp "$HEAVY_CARD_DIR/entries/heavy-card/heavy-card.persona.json" "$TMP_SYMLINK_TREE/real/symlinked-heavy/symlinked-heavy.persona.json"
-cp "$HEAVY_CARD_DIR/entries/heavy-card/heavy-card.meta.json" "$TMP_SYMLINK_TREE/real/symlinked-heavy/symlinked-heavy.meta.json"
-ln -s "$TMP_SYMLINK_TREE/real/symlinked-heavy" "$TMP_SYMLINK_TREE/entries/symlinked-heavy"
+cp "$HEAVY_CARD_DIR/entries/personas/heavy-card/heavy-card.persona.json" "$TMP_SYMLINK_TREE/real/symlinked-heavy/symlinked-heavy.persona.json"
+cp "$HEAVY_CARD_DIR/entries/personas/heavy-card/heavy-card.meta.json" "$TMP_SYMLINK_TREE/real/symlinked-heavy/symlinked-heavy.meta.json"
+ln -s "$TMP_SYMLINK_TREE/real/symlinked-heavy" "$TMP_SYMLINK_TREE/entries/personas/symlinked-heavy"
 
 output=$(python3 tools/lint.py --root "$TMP_SYMLINK_TREE" 2>&1)
 status=$?
@@ -817,15 +830,15 @@ echo
 
 echo "== build_index.py: green fixture exercises index shape =="
 TMP_GREEN_TREE="$(mktemp -d)"
-mkdir -p "$TMP_GREEN_TREE/entries/valid-dj" "$TMP_GREEN_TREE/entries/aardvark-dj" "$TMP_GREEN_TREE/entries/example-dj"
-cp "$GREEN_FIXTURE/valid-dj.persona.json" "$TMP_GREEN_TREE/entries/valid-dj/valid-dj.persona.json"
-cp "$GREEN_FIXTURE/valid-dj.meta.json" "$TMP_GREEN_TREE/entries/valid-dj/valid-dj.meta.json"
+mkdir -p "$TMP_GREEN_TREE/entries/personas/valid-dj" "$TMP_GREEN_TREE/entries/personas/aardvark-dj" "$TMP_GREEN_TREE/entries/personas/example-dj"
+cp "$GREEN_FIXTURE/valid-dj.persona.json" "$TMP_GREEN_TREE/entries/personas/valid-dj/valid-dj.persona.json"
+cp "$GREEN_FIXTURE/valid-dj.meta.json" "$TMP_GREEN_TREE/entries/personas/valid-dj/valid-dj.meta.json"
 # A second copy under a slug that sorts before valid-dj, so the sorted-slugs
 # assertion below exercises a real reorder rather than a single-item no-op.
-cp "$GREEN_FIXTURE/valid-dj.persona.json" "$TMP_GREEN_TREE/entries/aardvark-dj/aardvark-dj.persona.json"
-cp "$GREEN_FIXTURE/valid-dj.meta.json" "$TMP_GREEN_TREE/entries/aardvark-dj/aardvark-dj.meta.json"
-cp entries/example-dj/example-dj.persona.json "$TMP_GREEN_TREE/entries/example-dj/example-dj.persona.json"
-cp entries/example-dj/example-dj.meta.json "$TMP_GREEN_TREE/entries/example-dj/example-dj.meta.json"
+cp "$GREEN_FIXTURE/valid-dj.persona.json" "$TMP_GREEN_TREE/entries/personas/aardvark-dj/aardvark-dj.persona.json"
+cp "$GREEN_FIXTURE/valid-dj.meta.json" "$TMP_GREEN_TREE/entries/personas/aardvark-dj/aardvark-dj.meta.json"
+cp entries/personas/example-dj/example-dj.persona.json "$TMP_GREEN_TREE/entries/personas/example-dj/example-dj.persona.json"
+cp entries/personas/example-dj/example-dj.meta.json "$TMP_GREEN_TREE/entries/personas/example-dj/example-dj.meta.json"
 
 tmp_green_index="$(mktemp)"
 green_build_ok=1
@@ -886,10 +899,10 @@ echo
 
 echo "== build_index.py + schemas/index.schema.json: kind discriminator (SPEC F103.2 / T178) =="
 # kind is a property of the built INDEX entry, not of anything inside
-# entries/<slug>/*.meta.json — so unlike the red/green fixtures above (which
-# are entries/ trees fed through validate.py or build_index.py), the checks
-# below either (a) build a small mixed persona+theme entries/ tree and
-# inspect build_index.py's output shape, or (b) hand-author a bare index
+# entries/<kind-folder>/<slug>/*.meta.json — so unlike the red/green fixtures
+# above (which are entries/ trees fed through validate.py or build_index.py),
+# the checks below either (a) build a small mixed persona+theme entries/ tree
+# and inspect build_index.py's output shape, or (b) hand-author a bare index
 # entry object (tools/testdata/red/bad-kind-*/index-entry.json — deliberately
 # NOT an entries/ tree, since build_index.py itself can only ever emit
 # kind "persona" or "theme": it derives kind from which manifest filename is
@@ -898,11 +911,11 @@ echo "== build_index.py + schemas/index.schema.json: kind discriminator (SPEC F1
 # against schemas/index.schema.json's entry definition via the jsonschema
 # library, the same way the pronunciations[] schema check above does.
 TMP_KIND_TREE="$(mktemp -d)"
-mkdir -p "$TMP_KIND_TREE/entries/valid-dj" "$TMP_KIND_TREE/entries/valid-theme"
-cp "$GREEN_FIXTURE/valid-dj.persona.json" "$TMP_KIND_TREE/entries/valid-dj/valid-dj.persona.json"
-cp "$GREEN_FIXTURE/valid-dj.meta.json" "$TMP_KIND_TREE/entries/valid-dj/valid-dj.meta.json"
-cp "$KIND_GREEN_FIXTURE/valid-theme.theme.json" "$TMP_KIND_TREE/entries/valid-theme/valid-theme.theme.json"
-cp "$KIND_GREEN_FIXTURE/valid-theme.meta.json" "$TMP_KIND_TREE/entries/valid-theme/valid-theme.meta.json"
+mkdir -p "$TMP_KIND_TREE/entries/personas/valid-dj" "$TMP_KIND_TREE/entries/themes/valid-theme"
+cp "$GREEN_FIXTURE/valid-dj.persona.json" "$TMP_KIND_TREE/entries/personas/valid-dj/valid-dj.persona.json"
+cp "$GREEN_FIXTURE/valid-dj.meta.json" "$TMP_KIND_TREE/entries/personas/valid-dj/valid-dj.meta.json"
+cp "$KIND_GREEN_FIXTURE/valid-theme.theme.json" "$TMP_KIND_TREE/entries/themes/valid-theme/valid-theme.theme.json"
+cp "$KIND_GREEN_FIXTURE/valid-theme.meta.json" "$TMP_KIND_TREE/entries/themes/valid-theme/valid-theme.meta.json"
 
 tmp_kind_index="$(mktemp)"
 kind_build_ok=1
@@ -984,7 +997,7 @@ else:
     # card renders zero shelf chips (T185's contract). Compared against the
     # SAME meta.json build_index.py itself just read, not a hardcoded literal,
     # so a future edit to the fixture can't silently desync this assertion.
-    meta_path = tree_root / "entries" / "valid-theme" / "valid-theme.meta.json"
+    meta_path = tree_root / "entries" / "themes" / "valid-theme" / "valid-theme.meta.json"
     meta = json.loads(meta_path.read_text(encoding="utf-8"))
     if theme.get("preview") != meta.get("preview"):
         errors.append(
@@ -1025,11 +1038,11 @@ echo "== build_index.py + schemas/index.schema.json: font kind projects assets[]
 # just read — not hardcoded numbers — plus a schema-validity check against
 # schemas/index.schema.json's font branch (T196 obligation 6).
 TMP_FONT_INDEX_TREE="$(mktemp -d)"
-mkdir -p "$TMP_FONT_INDEX_TREE/entries/valid-font"
-cp "$FONT_GREEN_FIXTURE/valid-font.font.json" "$TMP_FONT_INDEX_TREE/entries/valid-font/valid-font.font.json"
-cp "$FONT_GREEN_FIXTURE/valid-font.meta.json" "$TMP_FONT_INDEX_TREE/entries/valid-font/valid-font.meta.json"
-cp "$FONT_GREEN_FIXTURE/valid-font-variable-latin.woff2" "$TMP_FONT_INDEX_TREE/entries/valid-font/valid-font-variable-latin.woff2"
-cp "$FONT_GREEN_FIXTURE/OFL.txt" "$TMP_FONT_INDEX_TREE/entries/valid-font/OFL.txt"
+mkdir -p "$TMP_FONT_INDEX_TREE/entries/fonts/valid-font"
+cp "$FONT_GREEN_FIXTURE/valid-font.font.json" "$TMP_FONT_INDEX_TREE/entries/fonts/valid-font/valid-font.font.json"
+cp "$FONT_GREEN_FIXTURE/valid-font.meta.json" "$TMP_FONT_INDEX_TREE/entries/fonts/valid-font/valid-font.meta.json"
+cp "$FONT_GREEN_FIXTURE/valid-font-variable-latin.woff2" "$TMP_FONT_INDEX_TREE/entries/fonts/valid-font/valid-font-variable-latin.woff2"
+cp "$FONT_GREEN_FIXTURE/OFL.txt" "$TMP_FONT_INDEX_TREE/entries/fonts/valid-font/OFL.txt"
 
 tmp_font_index="$(mktemp)"
 font_index_build_ok=1
@@ -1069,7 +1082,7 @@ else:
     # family: projected straight off the manifest build_index.py itself just
     # read, not a hardcoded literal (mirrors the theme "preview" precedent
     # above) — so a future edit to the fixture can't silently desync this.
-    manifest_data = json.loads((tree_root / "entries/valid-font/valid-font.font.json").read_text(encoding="utf-8"))
+    manifest_data = json.loads((tree_root / "entries/fonts/valid-font/valid-font.font.json").read_text(encoding="utf-8"))
     if font.get("family") != manifest_data.get("family"):
         errors.append(
             f"valid-font: index 'family' {font.get('family')!r} does not match the manifest's own "
@@ -1080,7 +1093,7 @@ else:
     # manifest/meta themselves — the same font_asset_paths selection
     # build_index.py itself uses (tools/catalog_lib.py) — recomputed here
     # independently rather than assumed.
-    entry_dir = tree_root / "entries" / "valid-font"
+    entry_dir = tree_root / "entries" / "fonts" / "valid-font"
     on_disk = sorted(
         p for p in entry_dir.iterdir()
         if p.is_file() and p.name not in ("valid-font.font.json", "valid-font.meta.json")
@@ -1154,8 +1167,8 @@ echo "== build_index.py: a font manifest's declared files[].bytes never reaches 
 # face, asserting the emitted index carries the REAL on-disk stat() size,
 # never the manifest's hostile claim.
 TMP_HOSTILE_BYTES_TREE="$(mktemp -d)"
-mkdir -p "$TMP_HOSTILE_BYTES_TREE/entries/valid-font"
-python3 - "$FONT_GREEN_FIXTURE/valid-font.font.json" "$TMP_HOSTILE_BYTES_TREE/entries/valid-font/valid-font.font.json" <<'PY'
+mkdir -p "$TMP_HOSTILE_BYTES_TREE/entries/fonts/valid-font"
+python3 - "$FONT_GREEN_FIXTURE/valid-font.font.json" "$TMP_HOSTILE_BYTES_TREE/entries/fonts/valid-font/valid-font.font.json" <<'PY'
 import json
 import sys
 from pathlib import Path
@@ -1165,9 +1178,9 @@ manifest = json.loads(src.read_text(encoding="utf-8"))
 manifest["files"][0]["bytes"] = 999999  # app-rejecting: over the 262144-byte fetch-transport ceiling
 dst.write_text(json.dumps(manifest), encoding="utf-8")
 PY
-cp "$FONT_GREEN_FIXTURE/valid-font.meta.json" "$TMP_HOSTILE_BYTES_TREE/entries/valid-font/valid-font.meta.json"
-cp "$FONT_GREEN_FIXTURE/valid-font-variable-latin.woff2" "$TMP_HOSTILE_BYTES_TREE/entries/valid-font/valid-font-variable-latin.woff2"
-cp "$FONT_GREEN_FIXTURE/OFL.txt" "$TMP_HOSTILE_BYTES_TREE/entries/valid-font/OFL.txt"
+cp "$FONT_GREEN_FIXTURE/valid-font.meta.json" "$TMP_HOSTILE_BYTES_TREE/entries/fonts/valid-font/valid-font.meta.json"
+cp "$FONT_GREEN_FIXTURE/valid-font-variable-latin.woff2" "$TMP_HOSTILE_BYTES_TREE/entries/fonts/valid-font/valid-font-variable-latin.woff2"
+cp "$FONT_GREEN_FIXTURE/OFL.txt" "$TMP_HOSTILE_BYTES_TREE/entries/fonts/valid-font/OFL.txt"
 
 tmp_hostile_bytes_index="$(mktemp)"
 if python3 tools/build_index.py --root "$TMP_HOSTILE_BYTES_TREE" --out "$tmp_hostile_bytes_index"; then
@@ -1186,7 +1199,7 @@ font = by_slug.get("valid-font")
 if font is None:
     errors.append("valid-font entry missing from built index")
 else:
-    woff2_path = tree_root / "entries/valid-font/valid-font-variable-latin.woff2"
+    woff2_path = tree_root / "entries/fonts/valid-font/valid-font-variable-latin.woff2"
     real_bytes = woff2_path.stat().st_size
     declared_bytes = 999999
 

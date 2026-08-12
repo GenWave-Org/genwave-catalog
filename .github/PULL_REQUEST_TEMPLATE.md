@@ -47,9 +47,9 @@ entry on the shelf, in one line — the format/vibe, not a DJ's personality or a
       SPEC F115.1 1x budget locally: `python3 tools/lint.py` reports no `show-name-budget` /
       `show-tagline-budget` / `show-flavor-budget` violation (warnings are fine; red is not).
 - [ ] `suggestedPersona`, if present in `<slug>.meta.json`, is a persona slug already **on this
-      shelf** (`entries/<slug>/`) — the import modal only offers "also hire" when it resolves to a
-      real, on-shelf persona entry (SPEC F118.3; an unknown or already-hired slug is fine too, it
-      just means no offer, never a rejected import).
+      shelf** (`entries/personas/<slug>/`) — the import modal only offers "also hire" when it
+      resolves to a real, on-shelf persona entry (SPEC F118.3; an unknown or already-hired slug is
+      fine too, it just means no offer, never a rejected import).
 
 ## ✅ Mechanical checks
 

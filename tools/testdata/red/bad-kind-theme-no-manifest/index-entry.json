@@ -3,11 +3,11 @@
   "kind": "theme",
   "audience": "everyone",
   "card": {
-    "path": "entries/bad-kind-theme-no-manifest/bad-kind-theme-no-manifest.persona.json",
+    "path": "entries/personas/bad-kind-theme-no-manifest/bad-kind-theme-no-manifest.persona.json",
     "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
   },
   "meta": {
-    "path": "entries/bad-kind-theme-no-manifest/bad-kind-theme-no-manifest.meta.json",
+    "path": "entries/themes/bad-kind-theme-no-manifest/bad-kind-theme-no-manifest.meta.json",
     "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
   }
 }
