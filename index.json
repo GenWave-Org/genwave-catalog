@@ -8,11 +8,11 @@
         "evening"
       ],
       "card": {
-        "path": "entries/big-tony-marconi/big-tony-marconi.persona.json",
+        "path": "entries/personas/big-tony-marconi/big-tony-marconi.persona.json",
         "sha256": "d4125ed5afc2e2f2e3a0006e8b0a86287f06af362692b19247995373ecf46ced"
       },
       "meta": {
-        "path": "entries/big-tony-marconi/big-tony-marconi.meta.json",
+        "path": "entries/personas/big-tony-marconi/big-tony-marconi.meta.json",
         "sha256": "0a44abf8fd4c744ff535a921e3e12b28ab3dba2277fd686096e987bb66240984"
       },
       "slug": "big-tony-marconi"
@@ -25,11 +25,11 @@
         "drive time"
       ],
       "card": {
-        "path": "entries/captain-flip/captain-flip.persona.json",
+        "path": "entries/personas/captain-flip/captain-flip.persona.json",
         "sha256": "2deffa19c1346c774c1dea3e671689ffec5d26609e94d34d10965aed69a02374"
       },
       "meta": {
-        "path": "entries/captain-flip/captain-flip.meta.json",
+        "path": "entries/personas/captain-flip/captain-flip.meta.json",
         "sha256": "a4b9f32d7b22d36bbc223eb146921525e239c34dad0252205e2cebd33a7967cc"
       },
       "slug": "captain-flip"
@@ -43,11 +43,11 @@
       ],
       "kind": "show",
       "manifest": {
-        "path": "entries/crate-diggers-hour/crate-diggers-hour.show.json",
+        "path": "entries/shows/crate-diggers-hour/crate-diggers-hour.show.json",
         "sha256": "c03700cc71e4c32a3ad999cfafb9c0fef2dcc53b94399efbdfc4b2f1c49f25a4"
       },
       "meta": {
-        "path": "entries/crate-diggers-hour/crate-diggers-hour.meta.json",
+        "path": "entries/shows/crate-diggers-hour/crate-diggers-hour.meta.json",
         "sha256": "425cd1a8a8b639b0dd8ea2a83b396cbf507456bb6c1439b1a412fd3009328734"
       },
       "slug": "crate-diggers-hour"
@@ -60,11 +60,11 @@
         "deep cuts"
       ],
       "card": {
-        "path": "entries/dusty-groves/dusty-groves.persona.json",
+        "path": "entries/personas/dusty-groves/dusty-groves.persona.json",
         "sha256": "214b035c14e04aa2a5571cd1f65aaff9c07c6f2ceb2f213a50d39f4c42a14893"
       },
       "meta": {
-        "path": "entries/dusty-groves/dusty-groves.meta.json",
+        "path": "entries/personas/dusty-groves/dusty-groves.meta.json",
         "sha256": "3961197ed1886f92a94b67e7c8c9a9ff9481ad62ee0c351b6b69ba4f697e0b05"
       },
       "slug": "dusty-groves"
@@ -77,11 +77,11 @@
         "late night"
       ],
       "card": {
-        "path": "entries/echo-ellis/echo-ellis.persona.json",
+        "path": "entries/personas/echo-ellis/echo-ellis.persona.json",
         "sha256": "345d9c4ed15c481891ee334edd35020f36aa272f6c79b192c60f4f7158570135"
       },
       "meta": {
-        "path": "entries/echo-ellis/echo-ellis.meta.json",
+        "path": "entries/personas/echo-ellis/echo-ellis.meta.json",
         "sha256": "c1cd7a83d27d75f18612550bb6096a65956f926276d12356c8e1a9c03f85bc46"
       },
       "slug": "echo-ellis"
@@ -94,11 +94,11 @@
         "afternoon"
       ],
       "card": {
-        "path": "entries/granny-static/granny-static.persona.json",
+        "path": "entries/personas/granny-static/granny-static.persona.json",
         "sha256": "6f673d4d473abd159d50cdb50f3c572b80d3ae8715167c19987e2b5a1e5d17a5"
       },
       "meta": {
-        "path": "entries/granny-static/granny-static.meta.json",
+        "path": "entries/personas/granny-static/granny-static.meta.json",
         "sha256": "2d0eb38344ab53bcb54a50ddd5966696c98a2e3c856986a92bf681ec245bcf30"
       },
       "slug": "granny-static"
@@ -112,11 +112,11 @@
       ],
       "kind": "theme",
       "manifest": {
-        "path": "entries/graveyard-shift/graveyard-shift.theme.json",
+        "path": "entries/themes/graveyard-shift/graveyard-shift.theme.json",
         "sha256": "8aed5c0b8c166b6225d48da35aefebcdaf6bc980c327faf87506a15f36cb3cab"
       },
       "meta": {
-        "path": "entries/graveyard-shift/graveyard-shift.meta.json",
+        "path": "entries/themes/graveyard-shift/graveyard-shift.meta.json",
         "sha256": "fe68e1aeda69f6a6311ee99db01af3971bad20aed6796269a3173b6c9ee2db26"
       },
       "preview": {
@@ -146,11 +146,11 @@
       ],
       "kind": "show",
       "manifest": {
-        "path": "entries/liner-notes/liner-notes.show.json",
+        "path": "entries/shows/liner-notes/liner-notes.show.json",
         "sha256": "ecadf37860e0abbe7eded3c96939f504ee67eeee28182bca1a3b5757fe417bf7"
       },
       "meta": {
-        "path": "entries/liner-notes/liner-notes.meta.json",
+        "path": "entries/shows/liner-notes/liner-notes.meta.json",
         "sha256": "1193099d41181f5f0703bc5588cbb789c0fd299aa51859dcdc13a50d45a55940"
       },
       "slug": "liner-notes"
@@ -163,11 +163,11 @@
         "night drive"
       ],
       "card": {
-        "path": "entries/luna-vex/luna-vex.persona.json",
+        "path": "entries/personas/luna-vex/luna-vex.persona.json",
         "sha256": "b69d4301921173e28275a58e6d3c24e106e96428f93e00f96f998676454be0f7"
       },
       "meta": {
-        "path": "entries/luna-vex/luna-vex.meta.json",
+        "path": "entries/personas/luna-vex/luna-vex.meta.json",
         "sha256": "35846e0ba9f7a3713adc8fb5bc66af8fb7bcba6ecf9d27f58ff99b026e79e649"
       },
       "slug": "luna-vex"
@@ -180,11 +180,11 @@
         "weekend"
       ],
       "card": {
-        "path": "entries/maxxie-volt/maxxie-volt.persona.json",
+        "path": "entries/personas/maxxie-volt/maxxie-volt.persona.json",
         "sha256": "66ee8d3173f66a00040d478de532f0175ef0524ddcb120640b623031d0cba141"
       },
       "meta": {
-        "path": "entries/maxxie-volt/maxxie-volt.meta.json",
+        "path": "entries/personas/maxxie-volt/maxxie-volt.meta.json",
         "sha256": "73e9bcd3691de110d52a013d092727e3bb86ca5a36255252a716fb0612fe950e"
       },
       "slug": "maxxie-volt"
@@ -197,11 +197,11 @@
         "late night"
       ],
       "card": {
-        "path": "entries/midnight-mabel/midnight-mabel.persona.json",
+        "path": "entries/personas/midnight-mabel/midnight-mabel.persona.json",
         "sha256": "9054f87ed678d66905948612f914d24722f08156e9a132882da0807fc8a65da1"
       },
       "meta": {
-        "path": "entries/midnight-mabel/midnight-mabel.meta.json",
+        "path": "entries/personas/midnight-mabel/midnight-mabel.meta.json",
         "sha256": "7269e5099e86339173ac2b877ef8e8202b4c0d0468983ff6f88c385351258dc6"
       },
       "slug": "midnight-mabel"
@@ -215,11 +215,11 @@
       ],
       "kind": "show",
       "manifest": {
-        "path": "entries/neon-hours/neon-hours.show.json",
+        "path": "entries/shows/neon-hours/neon-hours.show.json",
         "sha256": "27a2a1072a61069d3262a087a4b9c887e3f2c70dae343f802f1c4f0ef43ca17c"
       },
       "meta": {
-        "path": "entries/neon-hours/neon-hours.meta.json",
+        "path": "entries/shows/neon-hours/neon-hours.meta.json",
         "sha256": "b85c69c5fb4b9e93ee36270936b062b24b50897fccdfb0d4da97a8036294030e"
       },
       "slug": "neon-hours"
@@ -232,11 +232,11 @@
       ],
       "kind": "theme",
       "manifest": {
-        "path": "entries/pirate/pirate.theme.json",
+        "path": "entries/themes/pirate/pirate.theme.json",
         "sha256": "eef3858b7f022fb350babf04aae0195aea1771ceb76ac8edef62020dc49e7a3e"
       },
       "meta": {
-        "path": "entries/pirate/pirate.meta.json",
+        "path": "entries/themes/pirate/pirate.meta.json",
         "sha256": "8b2ac7feae8d4a45ac1e7d6ad7dea95e7edbd77eed026959f1cd65ddfd456082"
       },
       "preview": {
@@ -265,11 +265,11 @@
         "evening"
       ],
       "card": {
-        "path": "entries/professor-b/professor-b.persona.json",
+        "path": "entries/personas/professor-b/professor-b.persona.json",
         "sha256": "140347c4f89553c7f367012dc263ee1c6c80eeaa733495ec6b9c2e887d465ddf"
       },
       "meta": {
-        "path": "entries/professor-b/professor-b.meta.json",
+        "path": "entries/personas/professor-b/professor-b.meta.json",
         "sha256": "21dd5e21fb7fa2221e60d65e05b5f4993cef61df9cb519d656a5a980272d6aff"
       },
       "slug": "professor-b"
@@ -283,11 +283,11 @@
       ],
       "kind": "show",
       "manifest": {
-        "path": "entries/redline/redline.show.json",
+        "path": "entries/shows/redline/redline.show.json",
         "sha256": "2e3eacd8446ab0d22dcc6e2a62233237400c56647c6ada3357d63496479a3c2c"
       },
       "meta": {
-        "path": "entries/redline/redline.meta.json",
+        "path": "entries/shows/redline/redline.meta.json",
         "sha256": "a3effc459982dab9ac6a808019f20ed88050d9b04834ce896476d130107a7218"
       },
       "slug": "redline"
@@ -301,11 +301,11 @@
       ],
       "kind": "show",
       "manifest": {
-        "path": "entries/roomtone/roomtone.show.json",
+        "path": "entries/shows/roomtone/roomtone.show.json",
         "sha256": "1863b4be12c676c9886402f9200a3320ad36aeb3f7cae89217b424e6490ba40e"
       },
       "meta": {
-        "path": "entries/roomtone/roomtone.meta.json",
+        "path": "entries/shows/roomtone/roomtone.meta.json",
         "sha256": "f50367593489b281647e9f4b668ad5788cabb45af065da4ea0cffd1494a1ede5"
       },
       "slug": "roomtone"
@@ -318,11 +318,11 @@
         "evening"
       ],
       "card": {
-        "path": "entries/rusty-strings/rusty-strings.persona.json",
+        "path": "entries/personas/rusty-strings/rusty-strings.persona.json",
         "sha256": "1de941166e37695e41feadf46d03c830a2829b605db989cdf55e3bfc47429650"
       },
       "meta": {
-        "path": "entries/rusty-strings/rusty-strings.meta.json",
+        "path": "entries/personas/rusty-strings/rusty-strings.meta.json",
         "sha256": "9b1524d500e729f69b68ad4938382a89399881f20e14822db48e8d7bfed3c99d"
       },
       "slug": "rusty-strings"
@@ -336,11 +336,11 @@
       ],
       "kind": "show",
       "manifest": {
-        "path": "entries/screen-door-sessions/screen-door-sessions.show.json",
+        "path": "entries/shows/screen-door-sessions/screen-door-sessions.show.json",
         "sha256": "b0eb87ac199a5bbfe2786e2449f66c1dedf7abc7f922cd68311cb267e2c3ec3d"
       },
       "meta": {
-        "path": "entries/screen-door-sessions/screen-door-sessions.meta.json",
+        "path": "entries/shows/screen-door-sessions/screen-door-sessions.meta.json",
         "sha256": "1a4fbf51f9a60dd771b750efa3ebf18c27cba5f932ac9b8e5e40bb8672a7f195"
       },
       "slug": "screen-door-sessions"
@@ -354,11 +354,11 @@
       ],
       "kind": "theme",
       "manifest": {
-        "path": "entries/skip/skip.theme.json",
+        "path": "entries/themes/skip/skip.theme.json",
         "sha256": "3ba7da3167804af55db6e55f6435cbcdfc363973b593957639c17ec48ccac2d0"
       },
       "meta": {
-        "path": "entries/skip/skip.meta.json",
+        "path": "entries/themes/skip/skip.meta.json",
         "sha256": "8c24d8e8a33c4ac14ab1523f83278ee617aa37d36dd4ce30ed70035a55cea4d8"
       },
       "preview": {
@@ -383,12 +383,12 @@
       "assets": [
         {
           "bytes": 4495,
-          "path": "entries/space-grotesk/OFL.txt",
+          "path": "entries/fonts/space-grotesk/OFL.txt",
           "sha256": "564ce565c371c5e5bbf286006565a7c9aa55a9f56e7ca58d56e05d649dd61a72"
         },
         {
           "bytes": 26656,
-          "path": "entries/space-grotesk/space-grotesk-variable-latin.woff2",
+          "path": "entries/fonts/space-grotesk/space-grotesk-variable-latin.woff2",
           "sha256": "8e8d3355bb47afec9b61b5bd631b66f40567eec10a244fcc5eae3eb76369f8fc"
         }
       ],
@@ -401,11 +401,11 @@
       "family": "Space Grotesk",
       "kind": "font",
       "manifest": {
-        "path": "entries/space-grotesk/space-grotesk.font.json",
+        "path": "entries/fonts/space-grotesk/space-grotesk.font.json",
         "sha256": "72ec2c79da75de481c3b935121b285b1f5ed0cf523b1cac04641fa046c7e8d38"
       },
       "meta": {
-        "path": "entries/space-grotesk/space-grotesk.meta.json",
+        "path": "entries/fonts/space-grotesk/space-grotesk.meta.json",
         "sha256": "703d9dc1b64b1f135e50972ab4c5eada91423e9725b72d140517db149ccaee04"
       },
       "slug": "space-grotesk"
@@ -419,11 +419,11 @@
       ],
       "kind": "show",
       "manifest": {
-        "path": "entries/special-collections/special-collections.show.json",
+        "path": "entries/shows/special-collections/special-collections.show.json",
         "sha256": "5b379d89ffd6a498576bf2e189a8ee584287d39e4986decceef8d305306f6020"
       },
       "meta": {
-        "path": "entries/special-collections/special-collections.meta.json",
+        "path": "entries/shows/special-collections/special-collections.meta.json",
         "sha256": "677c50a121f2b60c945726a7644b23312d57b34364c51b7690619ab0b6b7e2b2"
       },
       "slug": "special-collections"
@@ -437,11 +437,11 @@
       ],
       "kind": "show",
       "manifest": {
-        "path": "entries/sugar-rush/sugar-rush.show.json",
+        "path": "entries/shows/sugar-rush/sugar-rush.show.json",
         "sha256": "7b4a17b777c676b12b6e311c79b82d6c94e0522d08d88d611ff5baca57794060"
       },
       "meta": {
-        "path": "entries/sugar-rush/sugar-rush.meta.json",
+        "path": "entries/shows/sugar-rush/sugar-rush.meta.json",
         "sha256": "fc7d1ed6cb0825ec34db9526c93b1a7136794f4d0c0c024ab778854c2fbdfc5b"
       },
       "slug": "sugar-rush"
@@ -454,11 +454,11 @@
         "morning"
       ],
       "card": {
-        "path": "entries/sunrise-sal/sunrise-sal.persona.json",
+        "path": "entries/personas/sunrise-sal/sunrise-sal.persona.json",
         "sha256": "7b48a8b7274d720a61662cbb8926c7ba5a3dce71aa16e140a70cbfe2fc2af637"
       },
       "meta": {
-        "path": "entries/sunrise-sal/sunrise-sal.meta.json",
+        "path": "entries/personas/sunrise-sal/sunrise-sal.meta.json",
         "sha256": "51eecdd6930b9e2e14b8c68009f6324d219b11ddc64c0ceb673b085813609f43"
       },
       "slug": "sunrise-sal"
@@ -471,11 +471,11 @@
         "sunday"
       ],
       "card": {
-        "path": "entries/the-archivist/the-archivist.persona.json",
+        "path": "entries/personas/the-archivist/the-archivist.persona.json",
         "sha256": "d0c783ef6f9c89d8a965d741bee29c3907630c5423fb4c39a1cabdc7290a9de3"
       },
       "meta": {
-        "path": "entries/the-archivist/the-archivist.meta.json",
+        "path": "entries/personas/the-archivist/the-archivist.meta.json",
         "sha256": "997bcf8b4dffbff256c1373907db628925fe445fdbc01ab861163906ea90d6b1"
       },
       "slug": "the-archivist"
@@ -489,11 +489,11 @@
       ],
       "kind": "show",
       "manifest": {
-        "path": "entries/the-ballroom-sessions/the-ballroom-sessions.show.json",
+        "path": "entries/shows/the-ballroom-sessions/the-ballroom-sessions.show.json",
         "sha256": "748fbf75addd44a8173bfcda70e9915260027215b10d5316e1472a206d47a8bc"
       },
       "meta": {
-        "path": "entries/the-ballroom-sessions/the-ballroom-sessions.meta.json",
+        "path": "entries/shows/the-ballroom-sessions/the-ballroom-sessions.meta.json",
         "sha256": "1368024944b55264bbf591e9eb43b89ee48b745010c71b03638485775f39a966"
       },
       "slug": "the-ballroom-sessions"
@@ -507,11 +507,11 @@
       ],
       "kind": "show",
       "manifest": {
-        "path": "entries/the-rocking-chair-revue/the-rocking-chair-revue.show.json",
+        "path": "entries/shows/the-rocking-chair-revue/the-rocking-chair-revue.show.json",
         "sha256": "6d23594139e7f59d0f9aa9ae30e7c0e747a9655d00886c1deb95742fce250cb0"
       },
       "meta": {
-        "path": "entries/the-rocking-chair-revue/the-rocking-chair-revue.meta.json",
+        "path": "entries/shows/the-rocking-chair-revue/the-rocking-chair-revue.meta.json",
         "sha256": "921fe9fd666defa90f9dd8b937eaea4c7b5bc20ee80a0321be43d15777a96b74"
       },
       "slug": "the-rocking-chair-revue"
@@ -525,11 +525,11 @@
       ],
       "kind": "show",
       "manifest": {
-        "path": "entries/the-wake-up-call/the-wake-up-call.show.json",
+        "path": "entries/shows/the-wake-up-call/the-wake-up-call.show.json",
         "sha256": "a5cb9b5157fb01b5fb817090a4bf6d5e6bd89e4e3e71687b29f358aad5721c74"
       },
       "meta": {
-        "path": "entries/the-wake-up-call/the-wake-up-call.meta.json",
+        "path": "entries/shows/the-wake-up-call/the-wake-up-call.meta.json",
         "sha256": "31e35217cc3d1391ea7a6b7fbee91758cd4af8838428d67788f74d5cd21a2091"
       },
       "slug": "the-wake-up-call"
@@ -543,11 +543,11 @@
       ],
       "kind": "show",
       "manifest": {
-        "path": "entries/til-sunrise/til-sunrise.show.json",
+        "path": "entries/shows/til-sunrise/til-sunrise.show.json",
         "sha256": "8b1feb48d219e78fd14370c90dd7a4f6f63f39fb1cff0407b0dea1329661d2c5"
       },
       "meta": {
-        "path": "entries/til-sunrise/til-sunrise.meta.json",
+        "path": "entries/shows/til-sunrise/til-sunrise.meta.json",
         "sha256": "23b98e6e175767290fee1a7b00d30f57f1fd6bc1339218d9678401dcd6b14d31"
       },
       "slug": "til-sunrise"
@@ -561,11 +561,11 @@
       ],
       "kind": "theme",
       "manifest": {
-        "path": "entries/wow-and-flutter/wow-and-flutter.theme.json",
+        "path": "entries/themes/wow-and-flutter/wow-and-flutter.theme.json",
         "sha256": "2f68fac164a74fb60e67c25070880861a247a77b88ae8d87a6cf30785fb9066f"
       },
       "meta": {
-        "path": "entries/wow-and-flutter/wow-and-flutter.meta.json",
+        "path": "entries/themes/wow-and-flutter/wow-and-flutter.meta.json",
         "sha256": "79cde9246a3aaaee76ce3665c678669f205d03a4f6c7b2ddd80f1cdc855720cd"
       },
       "preview": {
