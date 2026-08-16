@@ -325,6 +325,13 @@
       "slug": "big-tony-marconi"
     },
     {
+      "assets": [
+        {
+          "bytes": 414607,
+          "path": "entries/personas/captain-flip/captain-flip.avatar.png",
+          "sha256": "fb94f2b8a1df386b9d926f1819c0be32dad6dbe1dd468db11c1d46e6d0abc5dc"
+        }
+      ],
       "audience": "everyone",
       "bestFor": [
         "punk",
