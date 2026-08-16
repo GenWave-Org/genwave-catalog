@@ -1,0 +1,14 @@
+{
+  "author": "GenWave",
+  "description": "Hero Solids — filled solid icons converted from Heroicons (MIT), the style-free ruling's variety case: a filled counterpart to Tabler Lines' stroke language. All 24 admin-chrome icon slots covered.",
+  "audience": "everyone",
+  "license": "MIT",
+  "sourceUrl": "https://github.com/tailwindlabs/heroicons",
+  "version": "v2.2.0",
+  "added": "2026-08-16",
+  "bestFor": [
+    "solid",
+    "filled",
+    "admin chrome"
+  ]
+}

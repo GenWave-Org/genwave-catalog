@@ -475,6 +475,24 @@
     {
       "audience": "everyone",
       "bestFor": [
+        "solid",
+        "filled",
+        "admin chrome"
+      ],
+      "kind": "icon",
+      "manifest": {
+        "path": "entries/icons/hero-solids/hero-solids.icon.json",
+        "sha256": "843adaaeef4fd187bb74fdf4df40e62e1ef98b31a8df903935d83c55e765ac3b"
+      },
+      "meta": {
+        "path": "entries/icons/hero-solids/hero-solids.meta.json",
+        "sha256": "bf9b4f64434c1e6b572231d8d69d0fb06cb31304abe66ba232ebc0bc5e159be3"
+      },
+      "slug": "hero-solids"
+    },
+    {
+      "audience": "everyone",
+      "bestFor": [
         "jazz",
         "classical",
         "evening"
