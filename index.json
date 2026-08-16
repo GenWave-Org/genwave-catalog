@@ -415,6 +415,13 @@
       "slug": "echo-ellis"
     },
     {
+      "assets": [
+        {
+          "bytes": 378488,
+          "path": "entries/personas/granny-static/granny-static.avatar.png",
+          "sha256": "67ec46264cf185483bc92b549fe3f6d603224c3f3b0cfa45dffd0ab7217ecb8d"
+        }
+      ],
       "audience": "everyone",
       "bestFor": [
         "doo-wop",
