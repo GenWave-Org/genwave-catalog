@@ -674,6 +674,13 @@
       "slug": "roomtone"
     },
     {
+      "assets": [
+        {
+          "bytes": 413301,
+          "path": "entries/personas/rusty-strings/rusty-strings.avatar.png",
+          "sha256": "26dab28c0dedee663c04c5043ad6165355db1911b5328ae53a5c145a687d6257"
+        }
+      ],
       "audience": "everyone",
       "bestFor": [
         "blues",
