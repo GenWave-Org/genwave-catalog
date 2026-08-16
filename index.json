@@ -817,6 +817,13 @@
       "slug": "sugar-rush"
     },
     {
+      "assets": [
+        {
+          "bytes": 290703,
+          "path": "entries/personas/sunrise-sal/sunrise-sal.avatar.png",
+          "sha256": "352c9a27abd993631a680c6a48948e548ebedaee9ecda565dd54241de5a10cd8"
+        }
+      ],
       "audience": "everyone",
       "bestFor": [
         "folk",
