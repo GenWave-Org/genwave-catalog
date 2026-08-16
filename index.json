@@ -301,6 +301,13 @@
       "slug": "avatar-pack-two"
     },
     {
+      "assets": [
+        {
+          "bytes": 355898,
+          "path": "entries/personas/big-tony-marconi/big-tony-marconi.avatar.png",
+          "sha256": "de5a3c103b1338d199b20b6db0d95d995925e326f6e6986175363b039a8235eb"
+        }
+      ],
       "audience": "everyone",
       "bestFor": [
         "swing",
