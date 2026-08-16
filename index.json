@@ -841,6 +841,13 @@
       "slug": "sunrise-sal"
     },
     {
+      "assets": [
+        {
+          "bytes": 429267,
+          "path": "entries/personas/the-archivist/the-archivist.avatar.png",
+          "sha256": "9c67616ace88490ba93c252855a06adb70d71c844255ea4256b2411399f48145"
+        }
+      ],
       "audience": "everyone",
       "bestFor": [
         "instrumental",
