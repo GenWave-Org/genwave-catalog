@@ -1,0 +1,17 @@
+{
+  "packName": "Faces, Take Four",
+  "items": [
+    { "name": "Big Tony Marconi", "file": "big-tony-marconi.png", "suggestedPersona": "big-tony-marconi" },
+    { "name": "Captain Flip", "file": "captain-flip.png", "suggestedPersona": "captain-flip" },
+    { "name": "Dusty Groves", "file": "dusty-groves.png", "suggestedPersona": "dusty-groves" },
+    { "name": "Echo Ellis", "file": "echo-ellis.png", "suggestedPersona": "echo-ellis" },
+    { "name": "Granny Static", "file": "granny-static.png", "suggestedPersona": "granny-static" },
+    { "name": "Luna Vex", "file": "luna-vex.png", "suggestedPersona": "luna-vex" },
+    { "name": "Maxxie Volt", "file": "maxxie-volt.png", "suggestedPersona": "maxxie-volt" },
+    { "name": "Midnight Mabel", "file": "midnight-mabel.png", "suggestedPersona": "midnight-mabel" },
+    { "name": "Professor B", "file": "professor-b.png", "suggestedPersona": "professor-b" },
+    { "name": "Rusty Strings", "file": "rusty-strings.png", "suggestedPersona": "rusty-strings" },
+    { "name": "Sunrise Sal", "file": "sunrise-sal.png", "suggestedPersona": "sunrise-sal" },
+    { "name": "The Archivist", "file": "the-archivist.png", "suggestedPersona": "the-archivist" }
+  ]
+}

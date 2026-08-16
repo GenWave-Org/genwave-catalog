@@ -3,6 +3,81 @@
     {
       "assets": [
         {
+          "bytes": 407067,
+          "path": "entries/avatars/avatar-pack-four/big-tony-marconi.png",
+          "sha256": "9af6904884c13546af5f56245365af234f3d5ab46874f3b17224c5e3db9c78c2"
+        },
+        {
+          "bytes": 398652,
+          "path": "entries/avatars/avatar-pack-four/captain-flip.png",
+          "sha256": "568208695a7e10cfade8599f51cfd252ad8054bc6633f524f9622d0660e3cf3a"
+        },
+        {
+          "bytes": 449054,
+          "path": "entries/avatars/avatar-pack-four/dusty-groves.png",
+          "sha256": "9afd4b8a558c3279f63c03a27668360ea61499e71c5e3a699a4a288cd3c9b071"
+        },
+        {
+          "bytes": 315969,
+          "path": "entries/avatars/avatar-pack-four/echo-ellis.png",
+          "sha256": "905300b6046f4e2d34c1f31fb9368e57c7f6ae819d088fb95409feb945e04099"
+        },
+        {
+          "bytes": 462866,
+          "path": "entries/avatars/avatar-pack-four/granny-static.png",
+          "sha256": "7122e016a652e26eecbaa44ccc1d04ad9785793c6b8987b2cf9f322267abab4e"
+        },
+        {
+          "bytes": 410534,
+          "path": "entries/avatars/avatar-pack-four/luna-vex.png",
+          "sha256": "3250cbb9e85ba99175609228ed4ef7f9d620426e7a080cee14eb30537b96f474"
+        },
+        {
+          "bytes": 378271,
+          "path": "entries/avatars/avatar-pack-four/maxxie-volt.png",
+          "sha256": "9767524b19e13fd5d7f78a600a1b3da6708fba7b93160fe5cf69672d4ecd3322"
+        },
+        {
+          "bytes": 414375,
+          "path": "entries/avatars/avatar-pack-four/midnight-mabel.png",
+          "sha256": "ad7118873501aa239f22eeced2147f9e1851c46ed7f63ab12538459d006b81ea"
+        },
+        {
+          "bytes": 405846,
+          "path": "entries/avatars/avatar-pack-four/professor-b.png",
+          "sha256": "a546f0483797238fe00d1a048c98cd69043f31ac69e18308608226264cd6661a"
+        },
+        {
+          "bytes": 421475,
+          "path": "entries/avatars/avatar-pack-four/rusty-strings.png",
+          "sha256": "8c4fedd5ce6857403691c979adeb936390175cad8ac043094f8f9aa55a35129b"
+        },
+        {
+          "bytes": 384165,
+          "path": "entries/avatars/avatar-pack-four/sunrise-sal.png",
+          "sha256": "63035a700c5c0c9e6a0ab7cf56f470855b7985c8d24d10460c23383e30f43e0b"
+        },
+        {
+          "bytes": 449464,
+          "path": "entries/avatars/avatar-pack-four/the-archivist.png",
+          "sha256": "de7891d1e9b89abf62516e48e302c79667aa040ba885a6d9ad2128715075e271"
+        }
+      ],
+      "audience": "everyone",
+      "kind": "avatar",
+      "manifest": {
+        "path": "entries/avatars/avatar-pack-four/avatar-pack-four.avatar.json",
+        "sha256": "ce473df74103d275eaf5b1942ffcbe7c31d93d4d9a897ccc203e993e2460165f"
+      },
+      "meta": {
+        "path": "entries/avatars/avatar-pack-four/avatar-pack-four.meta.json",
+        "sha256": "35e29db578ed6f71cd1b01688c4f872f40f8387c3c4b387e80ad0e9f7d8bb25a"
+      },
+      "slug": "avatar-pack-four"
+    },
+    {
+      "assets": [
+        {
           "bytes": 355898,
           "path": "entries/avatars/avatar-pack-one/big-tony-marconi.png",
           "sha256": "de5a3c103b1338d199b20b6db0d95d995925e326f6e6986175363b039a8235eb"
