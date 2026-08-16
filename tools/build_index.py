@@ -1,11 +1,17 @@
 #!/usr/bin/env python3
 """Build index.json at the repo root from entries/ (SPEC F89.2, kind-aware
 per SPEC F103.2 / T178, widened to the font kind by F104.1 / T196, widened
-to the show kind by F118.1 / T253).
+to the show kind by F118.1 / T253, widened to the avatar and icon kinds
+(plus a persona's own optional avatar sidecar) by F128.1/F128.2/F130.6 / T309).
 
     { "generatedAt": <ISO date>, "entries": [
         { "slug", "audience", "bestFor" (when present),
-          "card": {"path", "sha256"}, "meta": {"path", "sha256"} },
+          "card": {"path", "sha256"}, "meta": {"path", "sha256"},
+          "assets" (when present, SPEC F128.2 — a SINGLE-element array
+          carrying the persona's own optional <slug>.avatar.png sidecar
+          face, same {path, sha256, bytes} shape every other kind's own
+          assets[] uses; absent means no face, no key at all — never an
+          empty array) },
         { "slug", "audience", "kind": "theme", "bestFor" (when present),
           "preview" (when present, T191 — mirrors "bestFor"; a theme's meta.json
           always carries it, theme-meta.schema.json requires it, but the
@@ -24,34 +30,48 @@ to the show kind by F118.1 / T253).
           it; `suggestedPersona`, when present in meta.json, is deliberately
           NOT projected here — it's read directly off the meta file at
           import time, PLAN T254, not needed for a zero-fetch shelf listing),
+        { "slug", "audience", "kind": "avatar", "bestFor" (when present),
+          "manifest": {"path", "sha256"}, "meta": {"path", "sha256"},
+          "assets": [{"path", "sha256", "bytes"}, ...] }
+          (sorted, real on-disk bytes — the pack's own PNG items; SPEC
+          F128.1 — no `family` equivalent: the shelf card renders from the
+          manifest's own `packName` instead, never a projected index field),
+        { "slug", "audience", "kind": "icon", "bestFor" (when present),
+          "manifest": {"path", "sha256"}, "meta": {"path", "sha256"} }
+          (SPEC F130.6 — no `assets`/`family`/`preview`, the same minimal
+          shape a show entry gets: licence/provenance live only in
+          meta.json, read directly at install time),
         ...
     ] }
 
 `kind` is derived from which manifest filename an entry directory actually
 carries — <slug>.persona.json means kind="persona", <slug>.theme.json means
 kind="theme", <slug>.font.json means kind="font", <slug>.show.json means
-kind="show" (resolve_manifest below) — never from a field inside meta.json,
-so it can't drift from the file that's really on disk, and never from the
-entry's kind FOLDER either (entries/<kind-folder>/<slug>/, gh-33) — the
-folder is where the entry lives, not what it is; tools/validate.py is what
-gates the two agreeing (`kind-folder-mismatch`), this module doesn't repeat
-that check, it just keeps reading kind off the manifest filename same as
-always. A persona entry gets no `kind` key at all (rather than an explicit
-"persona"): the app already
-defaults a missing `kind` to persona (GenWave.Host, T176), so every entry
-that existed before T178 keeps its exact pre-existing shape and rebuilds
-byte-identical; only a theme, font, or show entry gains the new `kind` and
-`manifest` keys (a font entry additionally gains `assets` and, when present
-in the manifest, `family`).
+kind="show", <slug>.avatar.json means kind="avatar", <slug>.icon.json means
+kind="icon" (resolve_manifest below, walking tools/catalog_lib.py's own
+KIND_SUFFIXES) — never from a field inside meta.json, so it can't drift from
+the file that's really on disk, and never from the entry's kind FOLDER
+either (entries/<kind-folder>/<slug>/, gh-33) — the folder is where the
+entry lives, not what it is; tools/validate.py is what gates the two
+agreeing (`kind-folder-mismatch`), this module doesn't repeat that check, it
+just keeps reading kind off the manifest filename same as always. A persona
+entry gets no `kind` key at all (rather than an explicit "persona"): the app
+already defaults a missing `kind` to persona (GenWave.Host, T176), so every
+entry that existed before T178 keeps its exact pre-existing shape and
+rebuilds byte-identical; only a theme, font, show, avatar, or icon entry
+gains the new `kind` and `manifest` keys (a font or avatar entry
+additionally gains `assets`; a font entry alone additionally gains `family`
+when present in its manifest).
 
 Deterministic by construction: entries are sorted by slug, sha256 is computed
 over each file's raw bytes, paths are repo-root-relative (never absolute —
 F90.2 consumers reject an absolute path), and JSON is serialized with sorted
-keys and fixed separators plus a trailing newline. A font entry's own
-`assets[]` is itself sorted (font_asset_paths, tools/catalog_lib.py) so this
-determinism holds for it too. `example-dj` is excluded (README.md: it's
-documentation, never shelf stock). Symlinks anywhere under entries/ abort the
-build rather than being trusted (tools/catalog_lib.py).
+keys and fixed separators plus a trailing newline. A font or avatar entry's
+own `assets[]` is itself sorted (font_asset_paths/avatar_asset_paths,
+tools/catalog_lib.py) so this determinism holds for it too. `example-dj` is
+excluded (README.md: it's documentation, never shelf stock). Symlinks
+anywhere under entries/ abort the build rather than being trusted
+(tools/catalog_lib.py).
 
 `generatedAt` is derived entirely from the tree being indexed: the max
 `added` date across every INCLUDED entry's meta.json, or "1970-01-01" when
@@ -74,7 +94,15 @@ import json
 import sys
 from pathlib import Path
 
-from catalog_lib import KIND_SUFFIXES, REPO_ROOT, discover_entry_dirs, find_symlinks, font_asset_paths, rel
+from catalog_lib import (
+    KIND_SUFFIXES,
+    REPO_ROOT,
+    avatar_asset_paths,
+    discover_entry_dirs,
+    find_symlinks,
+    font_asset_paths,
+    rel,
+)
 
 EXCLUDED_SLUGS = {"example-dj"}  # documentation entry, never shelf stock (README.md)
 EMPTY_GENERATED_AT = "1970-01-01"
@@ -84,29 +112,39 @@ def sha256_of(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def asset_ref(root: Path, path: Path) -> dict:
+    """The one {path, sha256, bytes} shape every kind's assets[] entry uses
+    (font, avatar, and now a persona's own optional sidecar face) — sha256
+    and bytes are ALWAYS recomputed from the file on disk, never trusted
+    from a manifest's own declared claims (the same "a pack IS its files"
+    posture font's own assets[] projection has always held). Factored out
+    once three call sites needed the identical three-line dict literal."""
+    return {"path": rel(root, path), "sha256": sha256_of(path), "bytes": path.stat().st_size}
+
+
 def resolve_manifest(entry_dir: Path, slug: str) -> tuple[Path | None, str]:
     """Which manifest file this entry carries, and the `kind` that implies.
 
     `kind` is read off the filesystem, not off a field inside meta.json:
-    <slug>.persona.json present means kind="persona" (the default,
-    pre-F103.2 shape), <slug>.theme.json present means kind="theme",
-    <slug>.font.json present means kind="font" (SPEC F104.1, T196),
-    <slug>.show.json present means kind="show" (SPEC F118.1, T253 — walks
-    tools/catalog_lib.py's KIND_SUFFIXES in ITS OWN insertion order: persona,
-    then theme, then font, then show — the same ordered mapping
-    tools/validate.py's own resolve_kind walks, so the two can no longer
-    drift apart on either the suffix spelling or the precedence order, T196
-    review M3). This is the single source of truth for kind — the same
-    filename-per-kind convention the app itself gates entry file-refs on
-    (GenWave.Host, T176: persona -> <slug>.persona.json, theme ->
-    <slug>.theme.json, font -> <slug>.font.json, show -> <slug>.show.json,
-    each inside its own entry directory — entries/personas/<slug>/,
-    entries/themes/<slug>/, entries/fonts/<slug>/, entries/shows/<slug>/
-    since gh-33's per-kind folder nesting) — rather than a second, parallel
-    `kind` value recorded in meta.json that could drift from the manifest
-    file actually on disk.
+    which of `tools/catalog_lib.py`'s own `KIND_SUFFIXES` filename suffixes
+    is present decides it (the single source of truth for the kind set
+    itself — read it there rather than trusting a kind list hand-copied
+    into this prose, the exact staleness T196 review M3 already paid for
+    once) — walked in `KIND_SUFFIXES`' OWN insertion order (persona wins if,
+    bizarrely, more than one manifest file is present, then every other
+    kind in that mapping's own order — SPEC F104.1/F118.1/F128.1/F130.6,
+    T196/T253/T309), the same ordered mapping tools/validate.py's own
+    resolve_kind walks, so the two can no longer drift apart on either the
+    suffix spelling or the precedence order (T196 review M3). This is the
+    single source of truth for kind — the same filename-per-kind convention
+    the app itself gates entry file-refs on (GenWave.Host, T176 — a suffix
+    like `.font.json` means kind="font", each inside its own kind-folder
+    entry directory, `entries/<KIND_FOLDERS[kind]>/<slug>/` since gh-33's
+    per-kind folder nesting) — rather than a second, parallel `kind` value
+    recorded in meta.json that could drift from the manifest file actually
+    on disk.
 
-    Returns (None, "persona") when none of the four files are present; the
+    Returns (None, "persona") when none of the six files are present; the
     caller skips the directory in that case (tools/validate.py is the
     source of truth for that shape error, not this function).
 
@@ -230,6 +268,16 @@ def discover_entries(root: Path) -> tuple[list[dict], list[str]]:
             # byte-identical rather than gratuitously stamping "persona"
             # onto all of them.
             record["card"] = manifest_ref
+            # SPEC F128.2: a persona entry MAY carry exactly one
+            # <slug>.avatar.png sidecar face — projected as a single-element
+            # assets[] (the same {path, sha256, bytes} shape font/avatar
+            # packs use) ONLY when tools/validate.py's own KindSpec.allows_extra
+            # for the persona kind found it on disk; absent means no key at
+            # all, the ordinary pre-F128 shape, same "only stamp what's
+            # really there" posture `bestFor`/`preview` already follow below.
+            sidecar_path = entry_dir / f"{slug}.avatar.png"
+            if sidecar_path.is_file():
+                record["assets"] = [asset_ref(root, sidecar_path)]
         else:
             record["kind"] = kind
             record["manifest"] = manifest_ref
@@ -239,14 +287,7 @@ def discover_entries(root: Path) -> tuple[list[dict], list[str]]:
                 # merely-typed) files[].bytes — sorted for determinism
                 # (font_asset_paths, tools/catalog_lib.py, shared with
                 # tools/validate.py's validate_font_pack gates).
-                record["assets"] = [
-                    {
-                        "path": rel(root, asset_path),
-                        "sha256": sha256_of(asset_path),
-                        "bytes": asset_path.stat().st_size,
-                    }
-                    for asset_path in font_asset_paths(entry_dir)
-                ]
+                record["assets"] = [asset_ref(root, asset_path) for asset_path in font_asset_paths(entry_dir)]
                 # `family` is copied straight off the manifest (STORY-281
                 # AC1, T196 obligation 5) — required by
                 # schemas/font-manifest.schema.json, so, like `audience`
@@ -255,6 +296,21 @@ def discover_entries(root: Path) -> tuple[list[dict], list[str]]:
                 # posture this module already takes throughout.
                 manifest_data = json.loads(manifest_path.read_text(encoding="utf-8"))
                 record["family"] = manifest_data["family"]
+            elif kind == "avatar":
+                # Same "real on-disk bytes, never the manifest's own
+                # declared claims" posture as font's own assets[] above —
+                # avatar_asset_paths (tools/catalog_lib.py) is the same
+                # "what's really on disk is the source of truth" selection
+                # tools/validate.py's validate_avatar_pack already uses. No
+                # `family` equivalent (SPEC F128.1 has none) — an avatar
+                # pack's shelf card renders from `packName` in the manifest
+                # itself plus author/description/byte total, never a
+                # projected field.
+                record["assets"] = [asset_ref(root, asset_path) for asset_path in avatar_asset_paths(entry_dir)]
+            # kind == "icon" projects nothing further — the same minimal
+            # {kind, manifest, meta} shape a show entry gets (SPEC F130.6):
+            # licence/provenance live only in meta.json, read directly at
+            # install time, never needed for a zero-fetch shelf listing.
         if "bestFor" in meta:
             record["bestFor"] = meta["bestFor"]
         if "preview" in meta:

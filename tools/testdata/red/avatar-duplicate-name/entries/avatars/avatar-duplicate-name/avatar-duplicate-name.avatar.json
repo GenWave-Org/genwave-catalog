@@ -1,0 +1,13 @@
+{
+  "packName": "Duplicate Name Pack",
+  "items": [
+    {
+      "name": "Same Name",
+      "file": "face-one.png"
+    },
+    {
+      "name": "Same Name",
+      "file": "face-two.png"
+    }
+  ]
+}

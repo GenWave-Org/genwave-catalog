@@ -1,0 +1,14 @@
+{
+  "style": {
+    "strokeWidth": 1,
+    "fill": "none"
+  },
+  "icons": {
+    "restore": [
+      {
+        "tag": "script",
+        "d": "M0 0"
+      }
+    ]
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "packName": "Animated Pack",
+  "items": [
+    {
+      "name": "Animated Face",
+      "file": "animated-face.png"
+    }
+  ]
+}

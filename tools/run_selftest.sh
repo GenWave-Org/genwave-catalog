@@ -43,6 +43,32 @@
 #      (kind-folder-mismatch), and the same slug held by two different kind
 #      folders at once (duplicate-slug) are each rejected, naming the
 #      offending entry
+#  14. kind-aware avatar-entry validation (schemas/avatar-manifest.schema.json
+#      + schemas/avatar-meta.schema.json, SPEC F128.1, T309): a green
+#      valid-avatar fixture end to end, the deep PNG gates ported from the
+#      app's own PngImageHeader (magic bytes, IHDR 512x512, acTL/APNG
+#      reject), the per-item (512 KiB) and per-pack (6 MiB) byte ceilings
+#      (generated at test time, not committed — the oversize-card/
+#      font-over-ceiling precedent), item-name uniqueness, and orphan/
+#      stowaway asset accounting; a persona entry's own optional
+#      <slug>.avatar.png sidecar face rides the identical PNG gates (SPEC
+#      F128.2); build_index.py projects an avatar entry's assets[] (no
+#      family) and a persona's own single-element assets[] only when the
+#      sidecar is actually on disk
+#  15. kind-aware icon-entry validation (schemas/icon-manifest.schema.json +
+#      schemas/icon-meta.schema.json, SPEC F130.1/F130.6, T309): a green
+#      valid-icon fixture exercising every whitelisted primitive tag, the
+#      closed seven-tag whitelist + per-tag closed attribute sets + d/points
+#      character grammars (all pinned in the JSON Schema itself, ported from
+#      GenWave.Host.Icons.IconPackDefinitionParser), the icon-name map-KEY
+#      pattern/length gate, the 512-icon/64-element-per-icon bounds, the
+#      256 KiB definition-size cap (generated at test time), the
+#      finite-numeric-attribute walk (a `1e400` JSON literal overflows to a
+#      non-finite float — no JSON Schema keyword can catch this), and the F1
+#      ruling (a `license`/`licence` member inside the manifest is a HARD
+#      reject; the companion meta.json REQUIRES `license`+`sourceUrl`);
+#      build_index.py projects an icon entry's kind+manifest only, the same
+#      minimal shape a show entry gets
 #
 
 # Every python3/build_index.py invocation below has its exit status checked
@@ -107,6 +133,12 @@ FONT_OVER_CEILING_ASSET="$RED_DIR/font-over-ceiling/entries/fonts/font-over-ceil
 SHOW_GREEN_FIXTURE="tools/testdata/green/valid-show"
 HEAVY_SHOW_DIR="tools/testdata/warn/heavy-show"
 
+AVATAR_GREEN_FIXTURE="tools/testdata/green/valid-avatar"
+PERSONA_AVATAR_GREEN_FIXTURE="tools/testdata/green/valid-dj-with-avatar"
+ICON_GREEN_FIXTURE="tools/testdata/green/valid-icon"
+AVATAR_ITEM_OVERSIZE_PNG="$RED_DIR/avatar-item-oversize/entries/avatars/avatar-item-oversize/too-heavy.png"
+ICON_OVER_CEILING_DIR="$RED_DIR/icon-over-ceiling/entries/icons/icon-over-ceiling"
+
 TMP_GREEN_TREE=""
 TMP_PRON_TREE=""
 TMP_SYMLINK_TREE=""
@@ -118,9 +150,18 @@ TMP_HOSTILE_BYTES_TREE=""
 TMP_SCHEMA_HELPERS_DIR=""
 TMP_SHOW_TREE=""
 TMP_SHOW_INDEX_TREE=""
+TMP_AVATAR_TREE=""
+TMP_PERSONA_AVATAR_TREE=""
+TMP_PERSONA_AVATAR_INDEX_TREE=""
+TMP_ICON_TREE=""
+TMP_ICON_INDEX_TREE=""
+TMP_AVATAR_INDEX_TREE=""
 cleanup() {
     rm -f "$OVERSIZE_CARD"
     rm -f "$FONT_OVER_CEILING_ASSET"
+    rm -f "$AVATAR_ITEM_OVERSIZE_PNG"
+    rm -f "$RED_DIR"/avatar-pack-ceiling/entries/avatars/avatar-pack-ceiling/face-*.png
+    rm -f "$ICON_OVER_CEILING_DIR"/icon-over-ceiling.icon.json "$ICON_OVER_CEILING_DIR"/icon-over-ceiling.meta.json
     [[ -n "$TMP_GREEN_TREE" ]] && rm -rf "$TMP_GREEN_TREE"
     [[ -n "$TMP_PRON_TREE" ]] && rm -rf "$TMP_PRON_TREE"
     [[ -n "$TMP_SYMLINK_TREE" ]] && rm -rf "$TMP_SYMLINK_TREE"
@@ -132,6 +173,12 @@ cleanup() {
     [[ -n "$TMP_SCHEMA_HELPERS_DIR" ]] && rm -rf "$TMP_SCHEMA_HELPERS_DIR"
     [[ -n "$TMP_SHOW_TREE" ]] && rm -rf "$TMP_SHOW_TREE"
     [[ -n "$TMP_SHOW_INDEX_TREE" ]] && rm -rf "$TMP_SHOW_INDEX_TREE"
+    [[ -n "$TMP_AVATAR_TREE" ]] && rm -rf "$TMP_AVATAR_TREE"
+    [[ -n "$TMP_PERSONA_AVATAR_TREE" ]] && rm -rf "$TMP_PERSONA_AVATAR_TREE"
+    [[ -n "$TMP_PERSONA_AVATAR_INDEX_TREE" ]] && rm -rf "$TMP_PERSONA_AVATAR_INDEX_TREE"
+    [[ -n "$TMP_ICON_TREE" ]] && rm -rf "$TMP_ICON_TREE"
+    [[ -n "$TMP_ICON_INDEX_TREE" ]] && rm -rf "$TMP_ICON_INDEX_TREE"
+    [[ -n "$TMP_AVATAR_INDEX_TREE" ]] && rm -rf "$TMP_AVATAR_INDEX_TREE"
 }
 trap cleanup EXIT
 
@@ -425,6 +472,236 @@ check_red_variant show-stowaway-asset "unexpected-file"
 
 echo "-- fixtures/golden.show.json (the cross-repo show-manifest parity fixture, PLAN T254) validates against schemas/show-manifest.schema.json --"
 check_golden_fixture "fixtures/golden.show.json" "schemas/show-manifest.schema.json"
+
+echo "== validate.py: kind-aware avatar-entry validation (schemas/avatar-manifest.schema.json + schemas/avatar-meta.schema.json, SPEC F128.1, T309) =="
+
+echo "-- green valid-avatar fixture validates clean end-to-end as a kind:\"avatar\" entry --"
+TMP_AVATAR_TREE="$(mktemp -d)"
+mkdir -p "$TMP_AVATAR_TREE/entries/avatars/valid-avatar"
+cp "$AVATAR_GREEN_FIXTURE/valid-avatar.avatar.json" "$TMP_AVATAR_TREE/entries/avatars/valid-avatar/valid-avatar.avatar.json"
+cp "$AVATAR_GREEN_FIXTURE/valid-avatar.meta.json" "$TMP_AVATAR_TREE/entries/avatars/valid-avatar/valid-avatar.meta.json"
+cp "$AVATAR_GREEN_FIXTURE/warm-grin.png" "$TMP_AVATAR_TREE/entries/avatars/valid-avatar/warm-grin.png"
+cp "$AVATAR_GREEN_FIXTURE/cool-smirk.png" "$TMP_AVATAR_TREE/entries/avatars/valid-avatar/cool-smirk.png"
+output=$(python3 tools/validate.py --root "$TMP_AVATAR_TREE" 2>&1)
+status=$?
+echo "$output"
+if [[ $status -eq 0 ]]; then
+    pass "green valid-avatar fixture validates clean as a kind:\"avatar\" entry"
+else
+    fail "green valid-avatar fixture did not validate clean as a kind:\"avatar\" entry (expected exit 0, got $status)"
+fi
+echo
+
+echo "-- red avatar-manifest-missing-file: schema-shape gate, an items[] element missing the required 'file' field --"
+check_red_variant avatar-manifest-missing-file "'file' is a required property"
+
+echo "-- red avatar-too-many-items: schema-shape gate, 65 items[] elements is one over GenWave.Host.Api.AvatarPackController.MaxPackItems (F1, T309) — the app 400s the whole pack at 65, a catalog-green/app-red divergence this maxItems closes --"
+check_red_variant avatar-too-many-items "is too long"
+
+echo "-- red avatar-item-name-too-long: schema-shape gate, a 65-character item name is one over AvatarPackController.MaxItemNameLength (F2, T309) --"
+check_red_variant avatar-item-name-too-long "is too long"
+
+echo "-- red avatar-item-name-control-char: schema-shape gate, an item name carrying a control character fails the pattern mirroring AvatarPackController.IsValidItemName's char.IsControl gate (F2, T309) --"
+check_red_variant avatar-item-name-control-char "does not match"
+
+echo "-- red avatar-bad-magic: a .png-named file that isn't PNG bytes at all — extension is never trusted --"
+check_red_variant avatar-bad-magic "avatar-png-magic"
+
+echo "-- red avatar-bad-dimensions: a 256x256 PNG is rejected — the item must be exactly 512x512 --"
+check_red_variant avatar-bad-dimensions "avatar-png-dimensions: 'too-small.png' is 256x256, not exactly 512x512"
+
+echo "-- red avatar-actl-reject: an animated PNG (acTL chunk before the first IDAT) is rejected (APNG) --"
+check_red_variant avatar-actl-reject "avatar-png-actl"
+
+echo "-- red avatar-duplicate-name: two items declaring the same display 'name' --"
+check_red_variant avatar-duplicate-name "avatar-duplicate-name: manifest declares item name 'Same Name' more than once"
+
+echo "-- red avatar-orphan-item-file: items[] names a PNG the entry never ships --"
+check_red_variant avatar-orphan-item-file "avatar-orphan-item-file"
+
+echo "-- red avatar-stowaway-asset: a shipped PNG no item references — the reverse of the orphan check --"
+check_red_variant avatar-stowaway-asset "avatar-stowaway-asset"
+
+echo "-- red avatar-item-oversize: a single PNG item over the 512 KiB per-item ceiling (SPEC F128.1) --"
+if python3 - "$AVATAR_ITEM_OVERSIZE_PNG" <<'PY'
+import struct
+import sys
+import zlib
+from pathlib import Path
+
+
+def chunk(tag: bytes, data: bytes) -> bytes:
+    return struct.pack(">I", len(data)) + tag + data + struct.pack(">I", zlib.crc32(tag + data) & 0xFFFFFFFF)
+
+
+path = Path(sys.argv[1])
+path.parent.mkdir(parents=True, exist_ok=True)
+signature = bytes([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A])
+ihdr = chunk(b"IHDR", struct.pack(">IIBBBBB", 512, 512, 8, 2, 0, 0, 0))
+# Junk IDAT payload well past the 524,288-byte (512 KiB) per-item cap — this
+# validator never decodes pixel data (mirrors the app's own PngImageHeader),
+# so the bytes need not be real deflate data, only chunk-shaped.
+idat = chunk(b"IDAT", b"\x00" * 530000)
+iend = chunk(b"IEND", b"")
+path.write_bytes(signature + ihdr + idat + iend)
+print(f"generated {path} ({path.stat().st_size} bytes)")
+PY
+then
+    check_red_variant avatar-item-oversize "avatar-png-oversize"
+else
+    fail "failed to generate the avatar-item-oversize fixture asset"
+fi
+rm -f "$AVATAR_ITEM_OVERSIZE_PNG"
+
+echo "-- red avatar-pack-ceiling: 13 PNGs, each under the per-item cap, summing past the 6 MiB per-pack ceiling (SPEC F128.1) --"
+if python3 - "$RED_DIR/avatar-pack-ceiling/entries/avatars/avatar-pack-ceiling" <<'PY'
+import struct
+import sys
+import zlib
+from pathlib import Path
+
+
+def chunk(tag: bytes, data: bytes) -> bytes:
+    return struct.pack(">I", len(data)) + tag + data + struct.pack(">I", zlib.crc32(tag + data) & 0xFFFFFFFF)
+
+
+directory = Path(sys.argv[1])
+directory.mkdir(parents=True, exist_ok=True)
+signature = bytes([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A])
+ihdr = chunk(b"IHDR", struct.pack(">IIBBBBB", 512, 512, 8, 2, 0, 0, 0))
+iend = chunk(b"IEND", b"")
+# 13 faces at ~510 KiB each (under the 524,288-byte per-item cap alone) sum
+# to ~6.63 MiB, past the 6,291,456-byte (6 MiB) per-pack ceiling — proves
+# the PACK ceiling fires independently of the per-item one.
+idat = chunk(b"IDAT", b"\x00" * 510000)
+total = 0
+for i in range(13):
+    data = signature + ihdr + idat + iend
+    (directory / f"face-{i:02d}.png").write_bytes(data)
+    total += len(data)
+print(f"generated 13 faces under {directory} (summed {total} bytes)")
+PY
+then
+    check_red_variant avatar-pack-ceiling "avatar-pack-ceiling"
+else
+    fail "failed to generate the avatar-pack-ceiling fixture assets"
+fi
+rm -f "$RED_DIR"/avatar-pack-ceiling/entries/avatars/avatar-pack-ceiling/face-*.png
+
+echo "== validate.py: a persona entry's own optional avatar sidecar face (SPEC F128.2, T309) =="
+
+echo "-- green valid-dj-with-avatar fixture validates clean — the sidecar face rides the same PNG rules as a pack item --"
+TMP_PERSONA_AVATAR_TREE="$(mktemp -d)"
+mkdir -p "$TMP_PERSONA_AVATAR_TREE/entries/personas/valid-dj-with-avatar"
+cp "$PERSONA_AVATAR_GREEN_FIXTURE"/*.persona.json "$TMP_PERSONA_AVATAR_TREE/entries/personas/valid-dj-with-avatar/"
+cp "$PERSONA_AVATAR_GREEN_FIXTURE"/*.meta.json "$TMP_PERSONA_AVATAR_TREE/entries/personas/valid-dj-with-avatar/"
+cp "$PERSONA_AVATAR_GREEN_FIXTURE"/*.avatar.png "$TMP_PERSONA_AVATAR_TREE/entries/personas/valid-dj-with-avatar/"
+output=$(python3 tools/validate.py --root "$TMP_PERSONA_AVATAR_TREE" 2>&1)
+status=$?
+echo "$output"
+if [[ $status -eq 0 ]]; then
+    pass "green valid-dj-with-avatar fixture validates clean with its sidecar face"
+else
+    fail "green valid-dj-with-avatar fixture did not validate clean (expected exit 0, got $status)"
+fi
+echo
+
+echo "-- red persona-avatar-bad-dimensions: a persona's own sidecar face is held to the SAME 512x512 rule as a pack item --"
+check_red_variant persona-avatar-bad-dimensions "persona-avatar-png-dimensions"
+
+echo "== validate.py: kind-aware icon-entry validation (schemas/icon-manifest.schema.json + schemas/icon-meta.schema.json, SPEC F130.1/F130.6, T309) =="
+
+echo "-- green valid-icon fixture (every whitelisted primitive tag) validates clean end-to-end as a kind:\"icon\" entry --"
+TMP_ICON_TREE="$(mktemp -d)"
+mkdir -p "$TMP_ICON_TREE/entries/icons/valid-icon"
+cp "$ICON_GREEN_FIXTURE/valid-icon.icon.json" "$TMP_ICON_TREE/entries/icons/valid-icon/valid-icon.icon.json"
+cp "$ICON_GREEN_FIXTURE/valid-icon.meta.json" "$TMP_ICON_TREE/entries/icons/valid-icon/valid-icon.meta.json"
+output=$(python3 tools/validate.py --root "$TMP_ICON_TREE" 2>&1)
+status=$?
+echo "$output"
+if [[ $status -eq 0 ]]; then
+    pass "green valid-icon fixture validates clean as a kind:\"icon\" entry"
+else
+    fail "green valid-icon fixture did not validate clean as a kind:\"icon\" entry (expected exit 0, got $status)"
+fi
+echo
+
+echo "-- red icon-bad-tag: an element tag outside the closed seven-primitive whitelist --"
+check_red_variant icon-bad-tag "is not one of ['path', 'rect', 'circle', 'ellipse', 'line', 'polyline', 'polygon']"
+
+echo "-- red icon-bad-d-grammar: a path 'd' attribute outside PathDataText's character grammar --"
+check_red_variant icon-bad-d-grammar "does not match"
+
+echo "-- red icon-bad-points-grammar: a polyline 'points' attribute outside PointsText's character grammar --"
+check_red_variant icon-bad-points-grammar "does not match"
+
+echo "-- red icon-bad-fill: a literal colour ('red') where only none|currentColor is expressible --"
+check_red_variant icon-bad-fill "'red' is not one of ['none', 'currentColor']"
+
+echo "-- red icon-strokewidth-out-of-range: style.strokeWidth outside the [0.5, 3] SPEC F130.1 range --"
+check_red_variant icon-strokewidth-out-of-range "is greater than the maximum of 3"
+
+echo "-- red icon-name-bad-pattern: an icon-map key outside ^[a-z][a-z0-9-]*\$ (the map-KEY gate, not just element values) --"
+check_red_variant icon-name-bad-pattern "does not match"
+
+echo "-- red icon-name-too-long: an icon-map key at 65 chars, one over the 64-char cap --"
+check_red_variant icon-name-too-long "is too long"
+
+echo "-- red icon-attr-not-finite: a JSON-legal '1e400' geometry literal overflows to a non-finite float once parsed — no JSON Schema keyword can catch this, so tools/validate.py's own numeric walk is the actual gate --"
+check_red_variant icon-attr-not-finite "icon-attr-not-finite"
+
+echo "-- red icon-licence-in-manifest: the F1 ruling — a 'license' member inside <slug>.icon.json is a HARD reject (the app's own serializer would silently drop it), licence/provenance belongs in meta.json only (SPEC F130.6) --"
+check_red_variant icon-licence-in-manifest "icon-licence-in-manifest"
+
+echo "-- red icon-meta-missing-license: the F1 ruling's other half — an icon entry's meta.json REQUIRES 'license' (and 'sourceUrl') --"
+check_red_variant icon-meta-missing-license "'license' is a required property"
+
+echo "-- red icon-elements-per-icon-over-cap: 65 elements on one icon, over the 64-element-per-icon cap (SPEC F130.1) --"
+check_red_variant icon-elements-per-icon-over-cap "is too long"
+
+echo "-- red icon-too-many-icons: 513 icons in one pack, over the 512-icon-per-pack cap (SPEC F130.1) --"
+check_red_variant icon-too-many-icons "has too many properties"
+
+echo "-- red icon-over-ceiling: the definition exceeds the 256 KiB SPEC F130.1 size cap --"
+if python3 - "$ICON_OVER_CEILING_DIR" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+directory = Path(sys.argv[1])
+directory.mkdir(parents=True, exist_ok=True)
+slug = directory.name
+
+# 300 icons x 20 circle elements each (well under the 512-icon/64-element
+# caps individually) comfortably clears the 262,144-byte definition cap on
+# its own — an otherwise fully schema-valid document, so ONLY the size-cap
+# rule fires, not the icon-count or elements-per-icon ones.
+icons = {
+    f"icon-{i:03d}": [{"tag": "circle", "cx": j % 16, "cy": j % 16, "r": 1} for j in range(20)]
+    for i in range(300)
+}
+manifest = {"style": {"strokeWidth": 1, "fill": "none"}, "icons": icons}
+(directory / f"{slug}.icon.json").write_text(json.dumps(manifest))
+
+meta = {
+    "author": "GenWave",
+    "description": "Red-variant fixture.",
+    "audience": "everyone",
+    "added": "2026-08-16",
+    "license": "MIT",
+    "sourceUrl": "https://example.com/upstream",
+    "version": None,
+}
+(directory / f"{slug}.meta.json").write_text(json.dumps(meta))
+size = (directory / f"{slug}.icon.json").stat().st_size
+print(f"generated {directory}/{slug}.icon.json ({size} bytes)")
+PY
+then
+    check_red_variant icon-over-ceiling "size-cap"
+else
+    fail "failed to generate the icon-over-ceiling fixture"
+fi
+rm -f "$ICON_OVER_CEILING_DIR"/icon-over-ceiling.icon.json "$ICON_OVER_CEILING_DIR"/icon-over-ceiling.meta.json
 
 echo "== build_index.py + schemas/index.schema.json: show kind projects manifest only — no card/assets/family/preview (SPEC F118.1, T253) =="
 TMP_SHOW_INDEX_TREE="$(mktemp -d)"
@@ -1237,6 +1514,258 @@ fi
 rm -f "$tmp_hostile_bytes_index"
 echo
 
+echo "== build_index.py + schemas/index.schema.json: avatar kind projects assets[], no family (SPEC F128.1, T309) =="
+TMP_AVATAR_INDEX_TREE="$(mktemp -d)"
+mkdir -p "$TMP_AVATAR_INDEX_TREE/entries/avatars/valid-avatar"
+cp "$AVATAR_GREEN_FIXTURE/valid-avatar.avatar.json" "$TMP_AVATAR_INDEX_TREE/entries/avatars/valid-avatar/valid-avatar.avatar.json"
+cp "$AVATAR_GREEN_FIXTURE/valid-avatar.meta.json" "$TMP_AVATAR_INDEX_TREE/entries/avatars/valid-avatar/valid-avatar.meta.json"
+cp "$AVATAR_GREEN_FIXTURE/warm-grin.png" "$TMP_AVATAR_INDEX_TREE/entries/avatars/valid-avatar/warm-grin.png"
+cp "$AVATAR_GREEN_FIXTURE/cool-smirk.png" "$TMP_AVATAR_INDEX_TREE/entries/avatars/valid-avatar/cool-smirk.png"
+
+tmp_avatar_index="$(mktemp)"
+avatar_index_build_ok=1
+if ! python3 tools/build_index.py --root "$TMP_AVATAR_INDEX_TREE" --out "$tmp_avatar_index"; then
+    fail "build_index.py exited non-zero building the avatar-kind fixture tree"
+    avatar_index_build_ok=0
+fi
+
+if [[ $avatar_index_build_ok -eq 1 ]]; then
+    tmp_avatar_index_check="$(mktemp)"
+    cat >"$tmp_avatar_index_check" <<'PY'
+import hashlib
+import json
+import sys
+from pathlib import Path
+
+sys.path.insert(0, sys.argv[4])
+from index_entry_schema import load_entry_validator
+
+index_path, tree_root, schema_path = Path(sys.argv[1]), Path(sys.argv[2]), Path(sys.argv[3])
+data = json.loads(index_path.read_text())
+by_slug = {e["slug"]: e for e in data["entries"]}
+validator = load_entry_validator(schema_path)
+
+errors = []
+
+avatar = by_slug.get("valid-avatar")
+if avatar is None:
+    errors.append("valid-avatar entry missing from built index")
+else:
+    if avatar.get("kind") != "avatar":
+        errors.append(f"valid-avatar: expected kind 'avatar', got {avatar.get('kind')!r}")
+    if "family" in avatar:
+        errors.append("valid-avatar: unexpected 'family' key on an avatar entry (no family equivalent, SPEC F128.1)")
+    manifest = avatar.get("manifest")
+    if not isinstance(manifest, dict) or not str(manifest.get("path", "")).endswith("valid-avatar.avatar.json"):
+        errors.append(f"valid-avatar: manifest missing/unexpected: {manifest!r}")
+
+    entry_dir = tree_root / "entries" / "avatars" / "valid-avatar"
+    on_disk = sorted(
+        p for p in entry_dir.iterdir()
+        if p.is_file() and p.name not in ("valid-avatar.avatar.json", "valid-avatar.meta.json")
+    )
+    assets = avatar.get("assets")
+    if not isinstance(assets, list) or len(assets) != len(on_disk):
+        got_len = len(assets) if isinstance(assets, list) else "n/a"
+        errors.append(f"valid-avatar: assets[] length {got_len} does not match on-disk PNG count {len(on_disk)}")
+    else:
+        asset_paths = [a.get("path") for a in assets]
+        if asset_paths != sorted(asset_paths):
+            errors.append(f"valid-avatar: assets[] paths not sorted: {asset_paths}")
+        for asset, disk_path in zip(assets, on_disk):
+            want_sha = hashlib.sha256(disk_path.read_bytes()).hexdigest()
+            want_bytes = disk_path.stat().st_size
+            if asset.get("sha256") != want_sha:
+                errors.append(f"valid-avatar: {disk_path.name} sha256 mismatch: recomputed {want_sha}, index has {asset.get('sha256')}")
+            if asset.get("bytes") != want_bytes:
+                errors.append(f"valid-avatar: {disk_path.name} bytes mismatch: recomputed {want_bytes}, index has {asset.get('bytes')}")
+
+    avatar_errors = [e.message for e in validator.iter_errors(avatar)]
+    if avatar_errors:
+        errors.append(f"valid-avatar entry does not validate against schemas/index.schema.json: {avatar_errors}")
+
+if errors:
+    for line in errors:
+        print(line)
+    sys.exit(1)
+print(
+    "avatar-kind index shape OK: kind/manifest/assets[] projected (sha256+bytes verified against on-disk "
+    "PNGs, sorted), no family key, entry validates against schemas/index.schema.json"
+)
+PY
+    if python3 "$tmp_avatar_index_check" "$tmp_avatar_index" "$TMP_AVATAR_INDEX_TREE" "schemas/index.schema.json" "$TMP_SCHEMA_HELPERS_DIR"; then
+        pass "build_index.py projects an avatar entry's kind/manifest/assets[] (no family); entry schema-valid"
+    else
+        fail "build_index.py avatar-kind projection assertions failed"
+    fi
+    rm -f "$tmp_avatar_index_check"
+else
+    fail "skipped avatar-kind projection assertions because build_index.py failed above"
+fi
+rm -f "$tmp_avatar_index"
+echo
+
+echo "== build_index.py + schemas/index.schema.json: icon kind projects manifest only — no card/assets/family/preview (SPEC F130.6, T309) =="
+TMP_ICON_INDEX_TREE="$(mktemp -d)"
+mkdir -p "$TMP_ICON_INDEX_TREE/entries/icons/valid-icon"
+cp "$ICON_GREEN_FIXTURE/valid-icon.icon.json" "$TMP_ICON_INDEX_TREE/entries/icons/valid-icon/valid-icon.icon.json"
+cp "$ICON_GREEN_FIXTURE/valid-icon.meta.json" "$TMP_ICON_INDEX_TREE/entries/icons/valid-icon/valid-icon.meta.json"
+
+tmp_icon_index="$(mktemp)"
+icon_index_build_ok=1
+if ! python3 tools/build_index.py --root "$TMP_ICON_INDEX_TREE" --out "$tmp_icon_index"; then
+    fail "build_index.py exited non-zero building the icon-kind fixture tree"
+    icon_index_build_ok=0
+fi
+
+if [[ $icon_index_build_ok -eq 1 ]]; then
+    tmp_icon_index_check="$(mktemp)"
+    cat >"$tmp_icon_index_check" <<'PY'
+import hashlib
+import json
+import sys
+from pathlib import Path
+
+sys.path.insert(0, sys.argv[4])
+from index_entry_schema import load_entry_validator
+
+index_path, tree_root, schema_path = Path(sys.argv[1]), Path(sys.argv[2]), Path(sys.argv[3])
+data = json.loads(index_path.read_text())
+by_slug = {e["slug"]: e for e in data["entries"]}
+validator = load_entry_validator(schema_path)
+
+errors = []
+
+icon = by_slug.get("valid-icon")
+if icon is None:
+    errors.append("valid-icon entry missing from built index")
+else:
+    if icon.get("kind") != "icon":
+        errors.append(f"valid-icon: expected kind 'icon', got {icon.get('kind')!r}")
+    for absent_key in ("card", "assets", "family", "preview"):
+        if absent_key in icon:
+            errors.append(f"valid-icon: unexpected '{absent_key}' key on an icon entry")
+    manifest = icon.get("manifest")
+    if not isinstance(manifest, dict):
+        errors.append("valid-icon: missing 'manifest' key")
+    else:
+        path = manifest.get("path")
+        if not isinstance(path, str) or not path.endswith("valid-icon.icon.json"):
+            errors.append(f"valid-icon.manifest.path unexpected: {path!r}")
+        else:
+            want = hashlib.sha256((tree_root / path).read_bytes()).hexdigest()
+            got = manifest.get("sha256")
+            if want != got:
+                errors.append(f"valid-icon.manifest.sha256 mismatch: recomputed {want}, index has {got}")
+    icon_errors = [e.message for e in validator.iter_errors(icon)]
+    if icon_errors:
+        errors.append(f"valid-icon entry does not validate against schemas/index.schema.json: {icon_errors}")
+
+if errors:
+    for line in errors:
+        print(line)
+    sys.exit(1)
+print(
+    "icon-kind index shape OK: kind/manifest projected (sha256 verified), no card/assets/family/preview, "
+    "entry validates against schemas/index.schema.json"
+)
+PY
+    if python3 "$tmp_icon_index_check" "$tmp_icon_index" "$TMP_ICON_INDEX_TREE" "schemas/index.schema.json" "$TMP_SCHEMA_HELPERS_DIR"; then
+        pass "build_index.py projects an icon entry's kind+manifest only (no card/assets/family/preview); entry schema-valid"
+    else
+        fail "build_index.py icon-kind projection assertions failed"
+    fi
+    rm -f "$tmp_icon_index_check"
+else
+    fail "skipped icon-kind projection assertions because build_index.py failed above"
+fi
+rm -f "$tmp_icon_index"
+echo
+
+echo "== build_index.py + schemas/index.schema.json: a persona entry's own optional avatar sidecar projects a single-element assets[] (SPEC F128.2, T309) =="
+TMP_PERSONA_AVATAR_INDEX_TREE="$(mktemp -d)"
+mkdir -p "$TMP_PERSONA_AVATAR_INDEX_TREE/entries/personas/valid-dj-with-avatar" "$TMP_PERSONA_AVATAR_INDEX_TREE/entries/personas/valid-dj"
+cp "$PERSONA_AVATAR_GREEN_FIXTURE"/*.persona.json "$PERSONA_AVATAR_GREEN_FIXTURE"/*.meta.json "$PERSONA_AVATAR_GREEN_FIXTURE"/*.avatar.png "$TMP_PERSONA_AVATAR_INDEX_TREE/entries/personas/valid-dj-with-avatar/"
+# A SECOND, faceless persona sits alongside it — proves the assets[] key is
+# per-entry (only the one carrying a sidecar gets it), not a build-wide flag.
+cp "$GREEN_FIXTURE/valid-dj.persona.json" "$GREEN_FIXTURE/valid-dj.meta.json" "$TMP_PERSONA_AVATAR_INDEX_TREE/entries/personas/valid-dj/"
+
+tmp_persona_avatar_index="$(mktemp)"
+persona_avatar_index_build_ok=1
+if ! python3 tools/build_index.py --root "$TMP_PERSONA_AVATAR_INDEX_TREE" --out "$tmp_persona_avatar_index"; then
+    fail "build_index.py exited non-zero building the persona-avatar-sidecar fixture tree"
+    persona_avatar_index_build_ok=0
+fi
+
+if [[ $persona_avatar_index_build_ok -eq 1 ]]; then
+    tmp_persona_avatar_index_check="$(mktemp)"
+    cat >"$tmp_persona_avatar_index_check" <<'PY'
+import hashlib
+import json
+import sys
+from pathlib import Path
+
+sys.path.insert(0, sys.argv[4])
+from index_entry_schema import load_entry_validator
+
+index_path, tree_root, schema_path = Path(sys.argv[1]), Path(sys.argv[2]), Path(sys.argv[3])
+data = json.loads(index_path.read_text())
+by_slug = {e["slug"]: e for e in data["entries"]}
+validator = load_entry_validator(schema_path)
+
+errors = []
+
+faced = by_slug.get("valid-dj-with-avatar")
+if faced is None:
+    errors.append("valid-dj-with-avatar entry missing from built index")
+else:
+    if "kind" in faced:
+        errors.append(f"valid-dj-with-avatar: unexpected 'kind' key on a persona entry: {faced['kind']!r}")
+    assets = faced.get("assets")
+    if not isinstance(assets, list) or len(assets) != 1:
+        errors.append(f"valid-dj-with-avatar: expected a single-element assets[], got {assets!r}")
+    else:
+        asset = assets[0]
+        png_path = tree_root / "entries/personas/valid-dj-with-avatar/valid-dj-with-avatar.avatar.png"
+        want_sha = hashlib.sha256(png_path.read_bytes()).hexdigest()
+        want_bytes = png_path.stat().st_size
+        if asset.get("sha256") != want_sha:
+            errors.append(f"valid-dj-with-avatar: sha256 mismatch: recomputed {want_sha}, index has {asset.get('sha256')}")
+        if asset.get("bytes") != want_bytes:
+            errors.append(f"valid-dj-with-avatar: bytes mismatch: recomputed {want_bytes}, index has {asset.get('bytes')}")
+        if asset.get("path") != "entries/personas/valid-dj-with-avatar/valid-dj-with-avatar.avatar.png":
+            errors.append(f"valid-dj-with-avatar: unexpected asset path {asset.get('path')!r}")
+    faced_errors = [e.message for e in validator.iter_errors(faced)]
+    if faced_errors:
+        errors.append(f"valid-dj-with-avatar entry does not validate against schemas/index.schema.json: {faced_errors}")
+
+faceless = by_slug.get("valid-dj")
+if faceless is None:
+    errors.append("valid-dj (faceless) entry missing from built index")
+elif "assets" in faceless:
+    errors.append("valid-dj: unexpected 'assets' key on a persona entry with no sidecar face")
+
+if errors:
+    for line in errors:
+        print(line)
+    sys.exit(1)
+print(
+    "persona-avatar-sidecar index shape OK: the faced persona projects a single-element assets[] "
+    "(sha256+bytes verified), the faceless one carries no assets key at all, both schema-valid"
+)
+PY
+    if python3 "$tmp_persona_avatar_index_check" "$tmp_persona_avatar_index" "$TMP_PERSONA_AVATAR_INDEX_TREE" "schemas/index.schema.json" "$TMP_SCHEMA_HELPERS_DIR"; then
+        pass "build_index.py projects a persona's own optional avatar-sidecar assets[]; faceless entries stay unchanged"
+    else
+        fail "build_index.py persona-avatar-sidecar projection assertions failed"
+    fi
+    rm -f "$tmp_persona_avatar_index_check"
+else
+    fail "skipped persona-avatar-sidecar projection assertions because build_index.py failed above"
+fi
+rm -f "$tmp_persona_avatar_index"
+echo
+
 echo "== validate.py: index.json slug-ownership cross-check (T196 obligation 3, SPEC F104.1 — reviewer probe 8) =="
 echo "-- red font-asset-slug-mismatch: an asset path under ANOTHER entry's slug directory is rejected, naming the offense --"
 # validate_index only ever runs against the real repo root (see validate.py's
@@ -1270,6 +1799,42 @@ else
     fail "validate_index did not reject an asset path under another entry's slug directory (slug-ownership)"
 fi
 rm -f "$tmp_slug_ownership_check"
+echo
+
+echo "-- red persona-avatar-sibling-face: a persona's own avatar sidecar assets[0] resolves under ITS OWN directory prefix but names a SIBLING persona's face file — schemas/index.schema.json's own path pattern is shape-only (F3, T309), so only this Python-side filename==slug check catches it --"
+# schemas/index.schema.json's assetRef.path pattern used to pin filename==
+# directory-slug equality with a Python-only named-group backreference that
+# failed to COMPILE under ECMA-262/.NET (F3) — removed in favour of a
+# shape-only, portable pattern, with the equality check moved here. This
+# fixture's own path resolves under its own owned_prefix (so the PREFIX
+# check above would pass it clean) — proving the new filename==slug check,
+# not the prefix check, is what actually rejects it.
+tmp_slug_ownership_sidecar_check="$(mktemp)"
+cat >"$tmp_slug_ownership_sidecar_check" <<'PY'
+import sys
+from pathlib import Path
+
+sys.path.insert(0, "tools")
+import validate
+
+index_path = Path(sys.argv[1])
+violations = validate.validate_index(index_path)
+if not violations:
+    print(f"{index_path}: expected validate_index to reject it, but it passed")
+    sys.exit(1)
+if not any("slug-ownership" in v and "some-other-persona" in v for v in violations):
+    print(f"{index_path}: violations did not name the sibling-face offense: {violations}")
+    sys.exit(1)
+for v in violations:
+    print(v)
+print(f"{index_path}: validate_index correctly rejected the sibling persona's avatar sidecar filename")
+PY
+if python3 "$tmp_slug_ownership_sidecar_check" "tools/testdata/red/persona-avatar-sibling-face/index.json"; then
+    pass "validate_index rejects a persona avatar sidecar naming a sibling's face file (slug-ownership)"
+else
+    fail "validate_index did not reject a persona avatar sidecar naming a sibling's face file (slug-ownership)"
+fi
+rm -f "$tmp_slug_ownership_sidecar_check"
 echo
 
 echo "-- green: the real repo's own committed index.json passes the slug-ownership cross-check (every real entry is self-consistent) --"
@@ -1439,8 +2004,10 @@ check_kind_entry_red bad-font-family "'Bad<script>Family' does not match"
 
 echo "== schemas/index.schema.json: numeric/length bounds actually reject over-bound values (SPEC F104.1, T195 review finding — these three bounds previously had zero red coverage) =="
 check_kind_entry_red font-family-too-long "is too long"
-check_kind_entry_red font-asset-bytes-over-max "is greater than the maximum of 262144"
 check_kind_entry_red font-empty-assets "is too short"
+
+echo "-- red font-asset-bytes-over-font-max: the font \`then\` branch's OWN narrower assets[].items.bytes ceiling (262144, GenWave.Host.Catalog.CatalogProxyService.MaxAssetBytes) rejects a value comfortably UNDER the shared assetRef's wider 524288 bound — proving the font-specific override, not the generic one, is what's catching it (rider fold 1, T309 review) --"
+check_kind_entry_red font-asset-bytes-over-font-max "is greater than the maximum of 262144"
 
 echo "== schemas/index.schema.json: kind/extension cross-dressing and kind-exclusive fields are rejected off their own kind (SPEC F103.2/F104.1, T195 review findings) =="
 
@@ -1454,6 +2021,23 @@ check_kind_entry_red theme-entry-with-assets "should not be valid under {'requir
 check_kind_entry_red persona-entry-with-manifest "should not be valid under {'required': ['manifest']}"
 check_kind_entry_red font-entry-with-preview "should not be valid under {'required': ['preview']}"
 check_kind_entry_red show-entry-with-assets "should not be valid under {'required': ['assets']}"
+
+echo "== schemas/index.schema.json: avatar kind admits assets[], rejects a malformed one; icon kind admits manifest-only entries (SPEC F128.1/F130.6, T309) =="
+check_kind_entry_green valid-avatar-index-entry "tools/testdata/green/valid-avatar-index-entry"
+check_kind_entry_red bad-kind-avatar-no-assets "'assets' is a required property"
+check_kind_entry_green valid-icon-index-entry "tools/testdata/green/valid-icon-index-entry"
+check_kind_entry_red bad-kind-icon-no-manifest "'manifest' is a required property"
+
+echo "-- red avatar-asset-bytes-over-max: the shared assetRef definition's own GENERIC 524288-byte (512 KiB) ceiling, tested on a kind with no narrower per-kind override (retargeted from a font fixture, rider fold 1, T309 review — a font entry now ALSO trips a narrower 262144 override at this same byte count, which would no longer isolate the generic bound cleanly) --"
+check_kind_entry_red avatar-asset-bytes-over-max "is greater than the maximum of 524288"
+
+echo "-- kind/extension cross-dressing, extended to avatar/icon --"
+check_kind_entry_red avatar-entry-with-preview "should not be valid under {'required': ['preview']}"
+check_kind_entry_red icon-entry-with-assets "should not be valid under {'required': ['assets']}"
+
+echo "== schemas/index.schema.json: a persona entry MAY carry assets[] (SPEC F128.2), capped to exactly one element (T309) =="
+check_kind_entry_green valid-persona-with-avatar-index-entry "tools/testdata/green/valid-persona-with-avatar-index-entry"
+check_kind_entry_red persona-entry-two-avatar-assets "is too long"
 
 echo "=========================================="
 if [[ $FAILURES -eq 0 ]]; then

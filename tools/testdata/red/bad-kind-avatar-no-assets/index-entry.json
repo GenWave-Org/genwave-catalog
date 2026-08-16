@@ -1,0 +1,13 @@
+{
+  "slug": "bad-kind-avatar-no-assets",
+  "kind": "avatar",
+  "audience": "everyone",
+  "manifest": {
+    "path": "entries/avatars/bad-kind-avatar-no-assets/bad-kind-avatar-no-assets.avatar.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "meta": {
+    "path": "entries/avatars/bad-kind-avatar-no-assets/bad-kind-avatar-no-assets.meta.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "author": "GenWave",
+  "description": "A schema-valid icon pack fixture exercising every whitelisted primitive tag.",
+  "audience": "everyone",
+  "added": "2026-08-16",
+  "license": "MIT",
+  "sourceUrl": "https://example.com/upstream-icon-set",
+  "version": null
+}

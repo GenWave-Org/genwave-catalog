@@ -40,9 +40,22 @@ SCHEMAS_DIR = REPO_ROOT / "schemas"
 # validate.py carried its own copy from T195 until then).
 FONT_ASSET_NAME_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*\.(?:woff2|txt)\Z")
 
+# An avatar pack's own asset files (SPEC F128.1) — closed extension set (PNG
+# items only), bare filename only (mirrors the app's own
+# GenWave.Host.Catalog.CatalogIndexValidator.AvatarAssetFileNameText exactly,
+# same posture as FONT_ASSET_NAME_PATTERN immediately above). Shared by
+# tools/validate.py (validate_avatar_pack's own asset-set gates, and the
+# persona-sidecar-face gate) and tools/build_index.py (assets[] index
+# projection) — one definition of "what counts as an avatar-shaped PNG
+# filename", never two drifting copies.
+AVATAR_ASSET_NAME_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*\.png\Z")
+
 # Kind -> manifest filename suffix, in PRECEDENCE order: persona wins if,
 # bizarrely, more than one manifest file is present in an entry directory,
-# then theme, then font, then show (SPEC F103.2 / F104.1 / F118.1).
+# then every other kind in the order below (SPEC F103.2 / F104.1 / F118.1 /
+# F128.1 / F130.6) — the dict's own key order below IS the precedence order;
+# read it here rather than trusting a kind count hand-copied into a comment
+# elsewhere, the exact staleness T196 review M3 already paid for once.
 # tools/build_index.py's resolve_manifest and tools/validate.py's
 # build_kind_specs both walk THIS one ordered mapping to derive kind from the
 # filename actually on disk (T196 review M3) — before this, each tool spelled
@@ -55,6 +68,8 @@ KIND_SUFFIXES: dict[str, str] = {
     "theme": ".theme.json",
     "font": ".font.json",
     "show": ".show.json",
+    "avatar": ".avatar.json",
+    "icon": ".icon.json",
 }
 
 # Kind -> entries/ subfolder name (gh-33: entries/<slug>/ moved to
@@ -77,6 +92,8 @@ KIND_FOLDERS: dict[str, str] = {
     "theme": "themes",
     "font": "fonts",
     "show": "shows",
+    "avatar": "avatars",
+    "icon": "icons",
 }
 
 
@@ -97,7 +114,7 @@ def discover_entry_dirs(entries_dir: Path) -> list[tuple[str, Path]]:
     name, slug name). Empty list when entries_dir doesn't exist.
 
     Walks whatever directories are really there at both levels; it does NOT
-    filter to KIND_FOLDERS' four known names. That allowlist is
+    filter to KIND_FOLDERS' six known names. That allowlist is
     tools/validate.py's validate_entries_top_level's job, run as a separate
     check — tools/build_index.py and tools/lint.py never call it, and still
     need to see (and, for build_index.py, still index) every entry
@@ -153,3 +170,13 @@ def font_asset_paths(entry_dir: Path) -> list[Path]:
     `files[]` value — so they share this one selection here rather than
     each keeping (and risking drifting) their own copy."""
     return sorted(p for p in entry_dir.iterdir() if p.is_file() and FONT_ASSET_NAME_PATTERN.match(p.name))
+
+
+def avatar_asset_paths(entry_dir: Path) -> list[Path]:
+    """Every one of an avatar pack's OWN PNG asset files — every sibling file
+    in its directory matching AVATAR_ASSET_NAME_PATTERN. Sorted for
+    determinism. Mirrors font_asset_paths' own "what's really on disk is the
+    source of truth" posture exactly, shared by tools/validate.py
+    (validate_avatar_pack's own ceiling/orphan/stowaway gates) and
+    tools/build_index.py (the assets[] index projection)."""
+    return sorted(p for p in entry_dir.iterdir() if p.is_file() and AVATAR_ASSET_NAME_PATTERN.match(p.name))

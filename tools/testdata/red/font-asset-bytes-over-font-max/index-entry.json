@@ -1,0 +1,26 @@
+{
+  "slug": "font-asset-bytes-over-font-max",
+  "kind": "font",
+  "audience": "everyone",
+  "manifest": {
+    "path": "entries/fonts/font-asset-bytes-over-font-max/font-asset-bytes-over-font-max.font.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "meta": {
+    "path": "entries/fonts/font-asset-bytes-over-font-max/font-asset-bytes-over-font-max.meta.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "assets": [
+    {
+      "path": "entries/fonts/font-asset-bytes-over-font-max/font-asset-bytes-over-font-max-variable-latin.woff2",
+      "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "bytes": 300000
+    },
+    {
+      "path": "entries/fonts/font-asset-bytes-over-font-max/OFL.txt",
+      "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "bytes": 4500
+    }
+  ],
+  "family": "Bytes Over Font Max"
+}

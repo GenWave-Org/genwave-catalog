@@ -1,0 +1,19 @@
+{
+  "slug": "valid-persona-with-avatar-index-entry",
+  "audience": "everyone",
+  "card": {
+    "path": "entries/personas/valid-persona-with-avatar-index-entry/valid-persona-with-avatar-index-entry.persona.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "meta": {
+    "path": "entries/personas/valid-persona-with-avatar-index-entry/valid-persona-with-avatar-index-entry.meta.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "assets": [
+    {
+      "path": "entries/personas/valid-persona-with-avatar-index-entry/valid-persona-with-avatar-index-entry.avatar.png",
+      "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "bytes": 1902
+    }
+  ]
+}

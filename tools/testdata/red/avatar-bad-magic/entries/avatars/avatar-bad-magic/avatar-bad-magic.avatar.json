@@ -1,0 +1,9 @@
+{
+  "packName": "Bad Magic Pack",
+  "items": [
+    {
+      "name": "Not A PNG",
+      "file": "not-a-png.png"
+    }
+  ]
+}

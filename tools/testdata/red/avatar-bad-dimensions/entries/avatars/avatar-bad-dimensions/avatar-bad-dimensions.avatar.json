@@ -1,0 +1,9 @@
+{
+  "packName": "Bad Dims Pack",
+  "items": [
+    {
+      "name": "Too Small",
+      "file": "too-small.png"
+    }
+  ]
+}

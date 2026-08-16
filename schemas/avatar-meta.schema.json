@@ -1,0 +1,38 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/GenWave-Org/genwave-catalog/main/schemas/avatar-meta.schema.json",
+  "title": "GenWave Avatar Pack Catalog Entry Metadata",
+  "description": "The <slug>.meta.json shape for a kind:\"avatar\" entry (app repo SPEC F128.1, catalog-owned). Mirrors font-meta.schema.json's posture: additionalProperties is false — this document belongs entirely to the catalog, so an unrecognized field is a contributor mistake worth failing CI on, not a forward-compat concern. There is no `preview`/`samplePatter` equivalent (an avatar pack has neither a swatch set nor on-air sample lines); the pack's shelf card renders from `packName` (the manifest's own field) plus author/description/byte total instead.",
+  "$comment": "`added`'s pattern ends in (?![\\s\\S]), the same portable absolute-end-of-string anchor persona-meta.schema.json/theme-meta.schema.json/font-meta.schema.json document in full and repeat verbatim — repeated here too so this file stands alone.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["author", "description", "audience", "added"],
+  "properties": {
+    "author": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Who submitted this pack — third-party avatar-pack PRs are welcome (unlike font packs), gated on the same likeness/CC0 attestation the PR template asks of every image-carrying entry (SPEC F128.1)."
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "description": "A short blurb introducing the pack — shown on the shelf card without fetching the manifest."
+    },
+    "audience": {
+      "type": "string",
+      "enum": ["everyone", "mature"],
+      "description": "Content self-rating, verified at review (mirrors every other kind's own `audience`)."
+    },
+    "added": {
+      "type": "string",
+      "format": "date",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}(?![\\s\\S])",
+      "description": "ISO 8601 date (YYYY-MM-DD) this pack was added to the catalog. `format: date` alone is annotation-only in draft-07 by default, so `pattern` carries the shape enforcement — but pattern alone only checks digit counts, not calendar validity; tools/validate.py separately parses this value with datetime.date.fromisoformat to reject a shape-valid but non-existent date."
+    },
+    "bestFor": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Optional use-case hints, e.g. \"late-night\", \"retro\" — mirrors every other kind's own `bestFor`."
+    }
+  }
+}

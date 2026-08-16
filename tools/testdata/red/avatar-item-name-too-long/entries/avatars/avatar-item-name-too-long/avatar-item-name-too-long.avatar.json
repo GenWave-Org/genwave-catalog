@@ -1,0 +1,9 @@
+{
+  "packName": "Avatar Item Name Too Long",
+  "items": [
+    {
+      "name": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "file": "warm-grin.png"
+    }
+  ]
+}

@@ -1,0 +1,198 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/GenWave-Org/genwave-catalog/main/schemas/icon-manifest.schema.json",
+  "title": "GenWave Icon Pack Definition (gw-icon-pack, schema-major 1)",
+  "description": "The <slug>.icon.json shape a GenWave station fetches for a kind:\"icon\" catalog entry (app repo SPEC F130.1/F130.6, GenWave.Host.Icons.IconPackDefinitionParser — the single canonical source this schema is ported from). UNLIKE the other manifest schemas in this repo (font/theme/show, each deliberately types-only), this one pins the FULL closed shape the app's own parser enforces — a whitelist of seven SVG primitive tags, each with its own closed, additionalProperties:false attribute set, plus the exact `d`/`points` character grammars — because SPEC F130.1's own \"script/hrefs/CSS/literal colors are inexpressible by schema\" guarantee is precisely what this document's SHAPE is required to hold, not a load-time nicety layered on top of a looser catalog schema the way theme/font's CSS-safety checks are. What this schema CANNOT express (JSON's own number grammar allows a value like `1e400` that overflows to a non-finite double once parsed) is tools/validate.py's own job: it walks every numeric attribute and rejects non-finite values, plus enforces the ≤256 KiB definition-size cap (KindSpec.size_cap, mirrors the persona card's own CARD_SIZE_CAP mechanism) neither of which a JSON Schema keyword can express. Licence/provenance fields belong in the companion <slug>.meta.json, NEVER here (SPEC F130.6, amended 2026-08-16 at the T305 review) — tools/validate.py HARD-rejects a `license`/`licence` member appearing in this document, since IconPackDefinitionSerializer's own re-serialization would silently drop it.",
+  "$comment": "Every pattern below ends in (?![\\s\\S]) rather than a bare `$` — the same portable absolute-end-of-string anchor schemas/index.schema.json documents in full; Python's re `$` also matches immediately before a trailing newline. The `d`/`points` character classes are copied VERBATIM from GenWave.Host.Icons.IconPackDefinitionParser's own PathDataText/PointsText consts, hyphen placed LAST in each class so it reads as a literal '-' rather than forming an unintended range with its neighbours (SPEC F130.1's own 2026-08-15 correction, PLAN T302/T305/T309 — this is the third of the three copies that correction note calls out, and the ONLY one still to author as of T309; the C# const's own comment explains the exact `+`-through-`e` range bug a misplaced hyphen would open).",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["style", "icons"],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Definition schema major version (IconPackDefinitionParser.CurrentSchemaVersion, currently 1). OPTIONAL — the app treats an absent value as the current major (SPEC F130.1) — and, like show/theme's own schemaVersion, this schema pins the type only: a future major's own catalog-side schema update owns rejecting/accepting it, not a hardcoded maximum here."
+    },
+    "style": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["strokeWidth", "fill"],
+      "description": "The pack-level stroke width and fill mode every icon renders under (IconPackStyle).",
+      "properties": {
+        "strokeWidth": {
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 3,
+          "description": "SVG stroke-width (IconPackDefinitionParser.MinStrokeWidth/MaxStrokeWidth, SPEC F130.1's [0.5, 3] range)."
+        },
+        "fill": {
+          "type": "string",
+          "enum": ["none", "currentColor"],
+          "description": "The only two fill tokens this schema can express (SPEC F130.1's \"inexpressible by schema\" ruling — no literal hue anywhere a pack can reach)."
+        }
+      }
+    },
+    "icons": {
+      "type": "object",
+      "minProperties": 1,
+      "maxProperties": 512,
+      "description": "Icon name -> element list (IconPackDefinitionParser.MaxIconsPerPack = 512 total icons). A pack may cover any subset of the house icon-name contract (CONTRIBUTING.md's Icon packs section) — a name outside it is still a syntactically valid entry, simply never rendered under a shipped UI slot today (SPEC F130.2).",
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9-]*(?![\\s\\S])",
+        "maxLength": 64,
+        "description": "IconPackDefinitionParser.IconNameText/MaxIconNameChars — lowercase letters, digits, and hyphens, starting with a letter, capped at 64 characters. Gates the map KEY itself (not just element values), the same discipline theme-manifest.schema.json's TokenNamePattern precedent established for theme token names."
+      },
+      "additionalProperties": {
+        "type": "array",
+        "minItems": 1,
+        "maxItems": 64,
+        "description": "One icon's elements (IconPackDefinitionParser.MaxElementsPerIcon = 64). An icon declaring zero elements, or more than 64, is malformed.",
+        "items": { "$ref": "#/definitions/element" }
+      }
+    }
+  },
+  "definitions": {
+    "colorToken": {
+      "type": "string",
+      "enum": ["none", "currentColor"],
+      "description": "Per-element fill/stroke override — the same closed two-token vocabulary as the pack-level `style.fill` (SPEC F130.1)."
+    },
+    "element": {
+      "type": "object",
+      "required": ["tag"],
+      "properties": {
+        "tag": {
+          "type": "string",
+          "enum": ["path", "rect", "circle", "ellipse", "line", "polyline", "polygon"],
+          "description": "The closed SVG primitive whitelist (IconPackDefinitionParser.ElementSchemas) — script, <use>/href, and every other SVG element are structurally absent from this enum, not merely undocumented."
+        }
+      },
+      "description": "One SVG primitive (IconElement). Which OTHER properties are allowed/required is pinned per-tag below (allOf/if-then) — each tag's own subschema is additionalProperties:false, so an attribute outside that tag's closed set (e.g. a `path` carrying `x`/`y`) is rejected here exactly as IconPackDefinitionParser's own AllowedAttributeNames check would reject it.",
+      "allOf": [
+        {
+          "if": { "properties": { "tag": { "const": "path" } }, "required": ["tag"] },
+          "then": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["tag", "d"],
+            "properties": {
+              "tag": { "const": "path" },
+              "d": {
+                "type": "string",
+                "pattern": "^[MmLlHhVvCcSsQqTtAaZz0-9 ,.+eE-]+(?![\\s\\S])",
+                "description": "IconPackDefinitionParser.PathDataText — every SVG path command letter, digits, space, comma, period, sign, and the exponent letters e/E; hyphen last so it reads as a literal, not a `+`-through-`e` range."
+              },
+              "fill": { "$ref": "#/definitions/colorToken" },
+              "stroke": { "$ref": "#/definitions/colorToken" }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "tag": { "const": "rect" } }, "required": ["tag"] },
+          "then": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["tag", "x", "y", "width", "height"],
+            "properties": {
+              "tag": { "const": "rect" },
+              "x": { "type": "number" },
+              "y": { "type": "number" },
+              "width": { "type": "number" },
+              "height": { "type": "number" },
+              "rx": { "type": "number" },
+              "ry": { "type": "number" },
+              "fill": { "$ref": "#/definitions/colorToken" },
+              "stroke": { "$ref": "#/definitions/colorToken" }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "tag": { "const": "circle" } }, "required": ["tag"] },
+          "then": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["tag", "cx", "cy", "r"],
+            "properties": {
+              "tag": { "const": "circle" },
+              "cx": { "type": "number" },
+              "cy": { "type": "number" },
+              "r": { "type": "number" },
+              "fill": { "$ref": "#/definitions/colorToken" },
+              "stroke": { "$ref": "#/definitions/colorToken" }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "tag": { "const": "ellipse" } }, "required": ["tag"] },
+          "then": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["tag", "cx", "cy", "rx", "ry"],
+            "properties": {
+              "tag": { "const": "ellipse" },
+              "cx": { "type": "number" },
+              "cy": { "type": "number" },
+              "rx": { "type": "number" },
+              "ry": { "type": "number" },
+              "fill": { "$ref": "#/definitions/colorToken" },
+              "stroke": { "$ref": "#/definitions/colorToken" }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "tag": { "const": "line" } }, "required": ["tag"] },
+          "then": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["tag", "x1", "y1", "x2", "y2"],
+            "properties": {
+              "tag": { "const": "line" },
+              "x1": { "type": "number" },
+              "y1": { "type": "number" },
+              "x2": { "type": "number" },
+              "y2": { "type": "number" },
+              "fill": { "$ref": "#/definitions/colorToken" },
+              "stroke": { "$ref": "#/definitions/colorToken" }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "tag": { "const": "polyline" } }, "required": ["tag"] },
+          "then": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["tag", "points"],
+            "properties": {
+              "tag": { "const": "polyline" },
+              "points": {
+                "type": "string",
+                "pattern": "^[0-9 ,.+-]+(?![\\s\\S])",
+                "description": "IconPackDefinitionParser.PointsText — numeric geometry only; hyphen last so it reads as a literal, never a range."
+              },
+              "fill": { "$ref": "#/definitions/colorToken" },
+              "stroke": { "$ref": "#/definitions/colorToken" }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "tag": { "const": "polygon" } }, "required": ["tag"] },
+          "then": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["tag", "points"],
+            "properties": {
+              "tag": { "const": "polygon" },
+              "points": {
+                "type": "string",
+                "pattern": "^[0-9 ,.+-]+(?![\\s\\S])",
+                "description": "IconPackDefinitionParser.PointsText — same grammar as polyline's own `points`."
+              },
+              "fill": { "$ref": "#/definitions/colorToken" },
+              "stroke": { "$ref": "#/definitions/colorToken" }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

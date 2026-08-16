@@ -1,0 +1,4 @@
+{
+  "packName": "Oversize Item Pack",
+  "items": [{ "name": "Too Heavy", "file": "too-heavy.png" }]
+}

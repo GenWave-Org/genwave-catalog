@@ -1,0 +1,9 @@
+{
+  "packName": "Stowaway Pack",
+  "items": [
+    {
+      "name": "Named Face",
+      "file": "named-face.png"
+    }
+  ]
+}

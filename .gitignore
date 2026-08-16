@@ -7,6 +7,26 @@
 # see tools/run_selftest.sh (mirrors the oversize-card entry above).
 /tools/testdata/red/font-over-ceiling/entries/fonts/font-over-ceiling/font-over-ceiling-variable-latin.woff2
 
+# Generated at tools/run_selftest.sh runtime to exercise the avatar pack's
+# per-item PNG byte ceiling without committing a 512KB+ fixture to the repo —
+# see tools/run_selftest.sh (mirrors the oversize-card/font-over-ceiling
+# entries above).
+/tools/testdata/red/avatar-item-oversize/entries/avatars/avatar-item-oversize/too-heavy.png
+
+# Generated at tools/run_selftest.sh runtime to exercise the avatar pack's
+# per-pack byte ceiling (13 PNGs, ~510 KiB each, summing past 6 MiB) without
+# committing several megabytes of fixture PNGs to the repo — see
+# tools/run_selftest.sh.
+/tools/testdata/red/avatar-pack-ceiling/entries/avatars/avatar-pack-ceiling/face-*.png
+
+# Generated at tools/run_selftest.sh runtime to exercise the icon pack's
+# 256 KiB definition-size cap without committing an oversized fixture to the
+# repo — see tools/run_selftest.sh. The whole entry (manifest + meta) is
+# generated and torn down at test time, the same posture oversize-card's
+# entry directory takes.
+/tools/testdata/red/icon-over-ceiling/entries/icons/icon-over-ceiling/icon-over-ceiling.icon.json
+/tools/testdata/red/icon-over-ceiling/entries/icons/icon-over-ceiling/icon-over-ceiling.meta.json
+
 # Python bytecode cache from running the tools/ scripts.
 __pycache__/
 *.pyc

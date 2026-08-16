@@ -1,0 +1,16 @@
+{
+  "style": {
+    "strokeWidth": 1,
+    "fill": "none"
+  },
+  "icons": {
+    "restore": [
+      {
+        "tag": "circle",
+        "cx": 8,
+        "cy": 8,
+        "r": 1
+      }
+    ]
+  }
+}

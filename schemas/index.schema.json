@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://raw.githubusercontent.com/GenWave-Org/genwave-catalog/main/schemas/index.schema.json",
   "title": "GenWave Catalog Index",
-  "description": "The committed index.json shape (SPEC F89.2) a GenWave station fetches directly from the repo root — built from entries/ by tools/build_index.py, and re-verified byte-for-byte plus schema-validated on every CI run (PR and push to main). additionalProperties is false throughout: this document is entirely catalog-tooling output, so an unrecognized field is a build regression worth failing CI on, not a forward-compat concern.",
+  "description": "The committed index.json shape (SPEC F89.2) a GenWave station fetches directly from the repo root — built from entries/ by tools/build_index.py, and re-verified byte-for-byte plus schema-validated on every CI run (PR and push to main). additionalProperties is false throughout: this document is entirely catalog-tooling output, so an unrecognized field is a build regression worth failing CI on, not a forward-compat concern. Widened to the avatar and icon kinds, plus a persona entry's own optional avatar-sidecar `assets[]`, by SPEC F128.1/F128.2/F130.6 (PLAN T309).",
   "$comment": "Every pattern below ends in (?![\\s\\S]), a lookahead meaning 'no character follows' — a portable absolute-end-of-string anchor that means the same thing in Python re, ECMA-262 (the dialect JSON Schema nominally specifies, and what ajv/most other validators use), and .NET. Plain $ was rejected: in Python's re (which is what actually enforces this schema server-side, via the jsonschema library), $ also matches immediately before a trailing newline, so a value with a stray trailing \\n would slip through. \\Z was also tried and rejected: it's Python-only — under ECMA-262, \\Z is a literal 'Z' character (Annex B identity escape), so a \\Z-anchored pattern would reject every legitimate value and only accept ones ending in a literal Z. (?![\\s\\S]) has neither problem in any of the three dialects.",
   "type": "object",
   "additionalProperties": false,
@@ -45,19 +45,19 @@
       "type": "object",
       "additionalProperties": false,
       "required": ["path", "sha256", "bytes"],
-      "description": "One binary asset carried by a kind:\"font\" entry's `assets[]` (SPEC F104.1) — a latin-subsetted woff2 face or the pack's OFL licence text, sitting alongside (never inside) its `<slug>.font.json` manifest. Mirrors GenWave.Host.Catalog.CatalogIndexValidator's own asset-ref shape: closed extension set (woff2|txt), bare-filename character set (no further path segment possible), and a positive byte count bounded by the app's own fetch-transport size cap.",
+      "description": "One binary asset (SPEC F104.1/F128.1/F128.2) — a font pack's woff2 face or OFL licence text, an avatar pack's PNG item, OR a persona entry's own optional `<slug>.avatar.png` sidecar face — sitting alongside (never inside) its own manifest. Mirrors GenWave.Host.Catalog.CatalogIndexValidator's own asset-ref shape: a closed per-kind path/extension alternation (no further path segment possible, so no leading slash/../URL scheme either) and a positive byte count bounded by the app's own fetch-transport size cap. The `bytes` ceiling below is deliberately the WIDER of the app's two per-kind ceilings (font: 256 KiB, GenWave.Host.Catalog.CatalogProxyService.MaxAssetBytes; avatar/persona-sidecar PNG: 512 KiB, GenWave.Host.Catalog.CatalogIndexValidator.MaxPngAssetBytes) rather than one asymmetric bound per kind — tools/validate.py's own validate_font_pack (200 KiB summed pack ceiling) and validate_avatar_pack (512 KiB per item) already hold every REAL entry to its own tighter number, and tools/build_index.py always recomputes `bytes` from the file actually on disk, never a manifest's declared claim, so this schema-level ceiling is a defensive outer bound, not the operative one.",
       "properties": {
         "path": {
           "type": "string",
-          "pattern": "^entries/fonts/[a-z0-9]+(-[a-z0-9]+)*/[A-Za-z0-9][A-Za-z0-9._-]*\\.(?:woff2|txt)(?![\\s\\S])",
-          "description": "Repo-root-relative POSIX path under entries/fonts/<slug>/ (the fixed kind folder every asset lives under, gh-33 — an asset only ever belongs to a kind:\"font\" entry) — no leading slash, no .., no URL scheme; the pattern's own shape rules all three out. UNLIKE the manifest/meta path patterns above (whose filename segment must equal the slug), an asset's filename is the pack's OWN file name (e.g. \"space-grotesk-variable-latin.woff2\", \"OFL.txt\") — this pattern constrains character set and extension only, the same closed set (woff2|txt) GenWave.Host.Catalog.CatalogIndexValidator.AssetFileNameText enforces app-side."
+          "pattern": "^entries/(?:fonts/[a-z0-9]+(?:-[a-z0-9]+)*/[A-Za-z0-9][A-Za-z0-9._-]*\\.(?:woff2|txt)|avatars/[a-z0-9]+(?:-[a-z0-9]+)*/[A-Za-z0-9][A-Za-z0-9._-]*\\.png|personas/[a-z0-9]+(?:-[a-z0-9]+)*/[a-z0-9]+(?:-[a-z0-9]+)*\\.avatar\\.png)(?![\\s\\S])",
+          "description": "Repo-root-relative POSIX path under entries/<kind-folder>/<slug>/ (the fixed kind folder every asset lives under, gh-33) — no leading slash, no .., no URL scheme; the pattern's own three-way alternation rules all three out for every branch. A font/avatar pack asset's filename is the pack's OWN free-chosen file name (e.g. \"space-grotesk-variable-latin.woff2\", \"warm-grin.png\") — constrained on character set and extension only, the same closed sets GenWave.Host.Catalog.CatalogIndexValidator.FontAssetFileNameText/AvatarAssetFileNameText enforce app-side. A PERSONA entry's own sidecar face is SHAPE-ONLY here too (a slug-shaped `<anything>.avatar.png` under a slug-shaped directory, not literally the SAME slug as the directory) — draft-07 JSON Schema, this file's own dialect, has no way to express 'this path segment must equal a sibling property's value' that holds up across every consumer of the published schema. A prior revision of this pattern tried to pin that equality anyway with a Python `re`-only named-group backreference (`(?P<personaSlug>...)` / `(?P=personaSlug)`), wrongly citing this file's own top-level $comment — which documents `(?![\\s\\S])`'s PORTABILITY across ECMA-262/.NET/Python re — as precedent for a construct that is the opposite of portable: a backreference that FAILS TO COMPILE under ECMA-262 (ajv) and .NET, breaking the whole published schema for every non-Python consumer. Slug equality between a persona entry's own directory and its sidecar face's filename is instead enforced Python-side, in tools/validate.py's `validate_index_slug_ownership` (which already walks every entry's own `assets[]` against that entry's own `slug` for the ownership-prefix check immediately below) — the correct home for a cross-property constraint no dialect-portable JSON Schema pattern can express, mirroring GenWave.Host.Catalog.CatalogIndexValidator.PersonaAvatarAssetPathPattern's own same-slug rule at the app's own layer instead of at this one."
         },
         "sha256": { "$ref": "#/definitions/sha256" },
         "bytes": {
           "type": "integer",
           "minimum": 1,
-          "maximum": 262144,
-          "description": "Declared byte size of this asset. Bounded 1-262144 (256 KiB) — the SAME per-asset ceiling GenWave.Host.Catalog.CatalogProxyService.MaxAssetBytes enforces at fetch time; an asset declaring more than the app will ever accept is malformed by definition, so this schema is at least as strict as the app rather than deferring the rejection to fetch time."
+          "maximum": 524288,
+          "description": "Declared byte size of this asset. Bounded 1-524288 (512 KiB) — see this definition's own remarks for why this is the WIDER of the app's two per-kind ceilings rather than a tighter one split per branch; an asset declaring more than even the widest kind's own ceiling is malformed by definition regardless of which kind it belongs to."
         }
       }
     },
@@ -65,7 +65,7 @@
       "type": "object",
       "additionalProperties": false,
       "required": ["slug", "audience", "meta"],
-      "description": "`card`/`manifest` (and, for kind:\"font\", `assets`) are conditionally required, not all listed here — see the `if`/`then`/`else` below, gated on `kind`.",
+      "description": "`card`/`manifest` (and, for kind:\"font\"/\"avatar\", `assets`) are conditionally required, not all listed here — see the `if`/`then`/`else` below, gated on `kind`. A persona entry's own `assets` (SPEC F128.2) is the one exception: it's OPTIONAL even for that kind, never required — see the final `else` branch's own remarks.",
       "properties": {
         "slug": {
           "type": "string",
@@ -73,8 +73,8 @@
         },
         "kind": {
           "type": "string",
-          "enum": ["persona", "theme", "font", "show"],
-          "description": "Entry discriminator (SPEC F103.2 / T178, widened to \"font\" by F104.1 / T195, widened to \"show\" by F118.1 / T253). Optional — an entry with no `kind` is treated as \"persona\", matching every pre-F103.2 entry and the app's own back-compat default (GenWave.Host, T176: a missing `kind` defaults to persona; an unrecognized `kind` value there causes the app to skip just that one entry, not abort the whole index — this schema is stricter than the app and rejects an unrecognized value outright, since here it can only mean a build regression in this repo's own tooling, not a newer app talking to an older catalog). `kind` decides which file-ref property below is required and which path pattern its `path` must match: \"persona\" (or omitted) requires `card` matching `*.persona.json` — the unchanged, pre-F103.2 shape; \"theme\" requires `manifest` matching `*.theme.json`; \"font\" requires BOTH `manifest` matching `*.font.json` AND a non-empty `assets` array (SPEC F104.1 — a font entry is `{manifest, meta}` plus its vendored asset files, the first binary files in the catalog); \"show\" requires `manifest` matching `*.show.json` (SPEC F118.1 — a show entry is `{manifest, meta}` with no assets, family, or preview, the same minimal shape as a theme entry minus its swatch preview)."
+          "enum": ["persona", "theme", "font", "show", "avatar", "icon"],
+          "description": "Entry discriminator (SPEC F103.2 / T178, widened to \"font\" by F104.1 / T195, widened to \"show\" by F118.1 / T253, widened to \"avatar\" and \"icon\" by F128.1/F130.6 / T309). Optional — an entry with no `kind` is treated as \"persona\", matching every pre-F103.2 entry and the app's own back-compat default (GenWave.Host, T176: a missing `kind` defaults to persona; an unrecognized `kind` value there causes the app to skip just that one entry, not abort the whole index — this schema is stricter than the app and rejects an unrecognized value outright, since here it can only mean a build regression in this repo's own tooling, not a newer app talking to an older catalog). `kind` decides which file-ref property below is required and which path pattern its `path` must match: \"persona\" (or omitted) requires `card` matching `*.persona.json` — the unchanged, pre-F103.2 shape, and MAY additionally carry a single-element `assets` (its own optional avatar sidecar, SPEC F128.2); \"theme\" requires `manifest` matching `*.theme.json`; \"font\" requires BOTH `manifest` matching `*.font.json` AND a non-empty `assets` array (SPEC F104.1 — a font entry is `{manifest, meta}` plus its vendored asset files, the first binary files in the catalog); \"show\" requires `manifest` matching `*.show.json` (SPEC F118.1 — a show entry is `{manifest, meta}` with no assets, family, or preview, the same minimal shape as a theme entry minus its swatch preview); \"avatar\" requires BOTH `manifest` matching `*.avatar.json` AND a non-empty `assets` array (SPEC F128.1 — the same pack-shaped, all-or-nothing posture as \"font\", minus a `family` equivalent); \"icon\" requires `manifest` matching `*.icon.json` (SPEC F130.6 — the same minimal `{manifest, meta}` shape as \"show\": licence/provenance live only in meta.json)."
         },
         "audience": {
           "type": "string",
@@ -114,8 +114,8 @@
           "properties": {
             "path": {
               "type": "string",
-              "pattern": "^entries/(?:personas|themes|fonts|shows)/[a-z0-9]+(-[a-z0-9]+)*/[a-z0-9]+(-[a-z0-9]+)*\\.[a-z]+\\.json(?![\\s\\S])",
-              "description": "Repo-root-relative POSIX path under entries/<kind-folder>/<slug>/ to the kind:\"theme\", kind:\"font\", or kind:\"show\" manifest file (SPEC F103.2 / F104.1 / F118.1) — no leading slash, no .., no URL scheme; the pattern's own shape rules all three out. The kind-folder segment is the four-way alternation (personas|themes|fonts|shows, gh-33) since this definition is shared kind-blind — the SPECIFIC folder a given kind actually lives under (themes/ for a theme entry, and so on) is pinned by the `manifest.path` pattern nested in each `if`/`then`/`else` branch below instead, same posture as the extension. The exact required extension (`*.theme.json` for a theme entry, `*.font.json` for a font entry, `*.show.json` for a show entry) is likewise deliberately NOT enforced here — it's pinned per-kind by that same nested pattern, so a theme entry naming a `.font.json` manifest (or vice versa) fails there rather than validating against this shared, kind-blind definition (a prior version of this pattern accepted either extension regardless of `kind`, letting the two cross-dress). The one `manifest` key every non-persona kind targets (F103.2's generalised `{manifest, meta}` model); persona entries keep using `card` (see the `kind` description above) rather than this key — and, as of the persona `else` branch's own `allOf` (T195 review N7), are schema-rejected from carrying this key at all: an entry with no `kind` (or `kind: \"persona\"`) that names both `card` and `manifest` validated clean before that addition even though it's a shape GenWave.Host's own kind resolution never produces and would reject the whole index over app-side (exactly one of `card`/`manifest` is ever expected, never both)."
+              "pattern": "^entries/(?:personas|themes|fonts|shows|avatars|icons)/[a-z0-9]+(-[a-z0-9]+)*/[a-z0-9]+(-[a-z0-9]+)*\\.[a-z]+\\.json(?![\\s\\S])",
+              "description": "Repo-root-relative POSIX path under entries/<kind-folder>/<slug>/ to the kind:\"theme\", kind:\"font\", kind:\"show\", kind:\"avatar\", or kind:\"icon\" manifest file (SPEC F103.2 / F104.1 / F118.1 / F128.1 / F130.6) — no leading slash, no .., no URL scheme; the pattern's own shape rules all three out. The kind-folder segment is the six-way alternation (personas|themes|fonts|shows|avatars|icons, gh-33/T309) since this definition is shared kind-blind — the SPECIFIC folder a given kind actually lives under (themes/ for a theme entry, and so on) is pinned by the `manifest.path` pattern nested in each `if`/`then`/`else` branch below instead, same posture as the extension. The exact required extension (`*.theme.json` for a theme entry, `*.font.json` for a font entry, `*.show.json` for a show entry, `*.avatar.json` for an avatar entry, `*.icon.json` for an icon entry) is likewise deliberately NOT enforced here — it's pinned per-kind by that same nested pattern, so a theme entry naming a `.font.json` manifest (or vice versa) fails there rather than validating against this shared, kind-blind definition (a prior version of this pattern accepted either extension regardless of `kind`, letting the two cross-dress). The one `manifest` key every non-persona kind targets (F103.2's generalised `{manifest, meta}` model); persona entries keep using `card` (see the `kind` description above) rather than this key — and, as of the persona `else` branch's own `allOf` (T195 review N7), are schema-rejected from carrying this key at all: an entry with no `kind` (or `kind: \"persona\"`) that names both `card` and `manifest` validated clean before that addition even though it's a shape GenWave.Host's own kind resolution never produces and would reject the whole index over app-side (exactly one of `card`/`manifest` is ever expected, never both)."
             },
             "sha256": { "$ref": "#/definitions/sha256" }
           }
@@ -124,7 +124,7 @@
           "type": "array",
           "minItems": 1,
           "uniqueItems": true,
-          "description": "A kind:\"font\" entry's vendored asset files (SPEC F104.1) — 1-2 latin-subsetted woff2 faces plus the pack's OFL licence text, each carrying `path`/`sha256`/`bytes`. Only ever present on a kind:\"font\" entry; persona/theme entries carry no `assets` key. minItems 1 mirrors GenWave.Host.Catalog.CatalogIndexValidator's own \"zero assets\" rejection (TryValidateAssets) — this schema is at least as strict, rejecting an empty array at CI time rather than only at app fetch time. uniqueItems (T196) is full-object uniqueness (path/sha256/bytes all equal, not just a duplicate `path`) — a font entry's own assets[] should never carry the same asset twice, the same posture files[]'s own duplicate-asset gate already takes one layer down in the pack's own manifest (tools/validate.py's font-duplicate-asset check). Because draft-07 has no way to pin uniqueness on a single property alone, uniqueItems does NOT by itself catch two assets sharing the same `path` with a DIFFERENT `sha256`/`bytes` — the app dedupes an entry's assets on `path` ALONE (CatalogIndexValidator.TryValidateAssets again), so that pair would silently lose one asset app-side even though it passes this schema untouched. tools/validate.py's validate_index_duplicate_asset_paths (T196 review M2) is the actual gate against that case, the same Python-side cross-property posture validate_index_slug_ownership already takes for path ownership.",
+          "description": "A kind:\"font\" or kind:\"avatar\" entry's own vendored asset files (SPEC F104.1/F128.1) — a font pack's 1-2 latin-subsetted woff2 faces plus its OFL licence text, OR an avatar pack's PNG items — each carrying `path`/`sha256`/`bytes`. ALSO, separately (SPEC F128.2), a PERSONA entry's own OPTIONAL single-element `assets` — its `<slug>.avatar.png` sidecar face; unlike the pack-shaped kinds' all-or-nothing posture, this key is never REQUIRED on a persona entry, and when present is capped to exactly one element by the persona `else` branch's own override below. Theme/show/icon entries carry no `assets` key at all. minItems 1 mirrors GenWave.Host.Catalog.CatalogIndexValidator's own \"zero assets\" rejection (TryValidateAssets) — this schema is at least as strict, rejecting an empty array at CI time rather than only at app fetch time. uniqueItems (T196) is full-object uniqueness (path/sha256/bytes all equal, not just a duplicate `path`) — an entry's own assets[] should never carry the same asset twice, the same posture files[]'s own duplicate-asset gate already takes one layer down in a font pack's own manifest (tools/validate.py's font-duplicate-asset check). Because draft-07 has no way to pin uniqueness on a single property alone, uniqueItems does NOT by itself catch two assets sharing the same `path` with a DIFFERENT `sha256`/`bytes` — the app dedupes an entry's assets on `path` ALONE (CatalogIndexValidator.TryValidateAssets again), so that pair would silently lose one asset app-side even though it passes this schema untouched. tools/validate.py's validate_index_duplicate_asset_paths (T196 review M2) is the actual gate against that case, the same Python-side cross-property posture validate_index_slug_ownership already takes for path ownership.",
           "items": { "$ref": "#/definitions/assetRef" }
         },
         "family": {
@@ -140,8 +140,8 @@
           "properties": {
             "path": {
               "type": "string",
-              "pattern": "^entries/(?:personas|themes|fonts|shows)/[a-z0-9]+(-[a-z0-9]+)*/[a-z0-9]+(-[a-z0-9]+)*\\.meta\\.json(?![\\s\\S])",
-              "description": "Repo-root-relative POSIX path under entries/<kind-folder>/<slug>/ — no leading slash, no .., no URL scheme; the pattern's own shape rules all three out. Every kind carries a meta.json, so unlike `card`/`manifest` above this definition stays kind-blind at the folder segment too — the four-way alternation (personas|themes|fonts|shows, gh-33), never narrowed to one specific folder by an `if`/`then`/`else` branch below."
+              "pattern": "^entries/(?:personas|themes|fonts|shows|avatars|icons)/[a-z0-9]+(-[a-z0-9]+)*/[a-z0-9]+(-[a-z0-9]+)*\\.meta\\.json(?![\\s\\S])",
+              "description": "Repo-root-relative POSIX path under entries/<kind-folder>/<slug>/ — no leading slash, no .., no URL scheme; the pattern's own shape rules all three out. Every kind carries a meta.json, so unlike `card`/`manifest` above this definition stays kind-blind at the folder segment too — the six-way alternation (personas|themes|fonts|shows|avatars|icons, gh-33/T309), never narrowed to one specific folder by an `if`/`then`/`else` branch below."
             },
             "sha256": { "$ref": "#/definitions/sha256" }
           }
@@ -181,6 +181,16 @@
                   "pattern": "^entries/fonts/[a-z0-9]+(-[a-z0-9]+)*/[a-z0-9]+(-[a-z0-9]+)*\\.font\\.json(?![\\s\\S])"
                 }
               }
+            },
+            "assets": {
+              "items": {
+                "properties": {
+                  "bytes": {
+                    "maximum": 262144,
+                    "description": "A font entry's own assets[] items are held to the NARROWER 262144-byte (256 KiB) ceiling — GenWave.Host.Catalog.CatalogProxyService.MaxAssetBytes, the real per-face fetch-transport cap for the font kind — rather than the shared `assetRef` definition's own wider 524288-byte (512 KiB) bound. That wider bound exists ONLY to also admit the avatar/persona-sidecar PNG kind's own real 512 KiB ceiling (GenWave.Host.Catalog.CatalogIndexValidator.MaxPngAssetBytes); left unnarrowed here, a font entry's own assets[] would validate up to 512 KiB even though the app rejects anything over 256 KiB the moment it tries to fetch a font face — restores 'this schema is at least as strict as the app' for the font kind specifically, rather than only at the shared definition's own widest-of-both-kinds level."
+                  }
+                }
+              }
             }
           },
           "allOf": [{ "not": { "required": ["preview"] } }]
@@ -208,12 +218,62 @@
             ]
           },
           "else": {
-            "required": ["card"],
-            "allOf": [
-              { "not": { "required": ["assets"] } },
-              { "not": { "required": ["family"] } },
-              { "not": { "required": ["manifest"] } }
-            ]
+            "if": {
+              "required": ["kind"],
+              "properties": { "kind": { "const": "avatar" } }
+            },
+            "then": {
+              "required": ["manifest", "assets"],
+              "properties": {
+                "manifest": {
+                  "properties": {
+                    "path": {
+                      "pattern": "^entries/avatars/[a-z0-9]+(-[a-z0-9]+)*/[a-z0-9]+(-[a-z0-9]+)*\\.avatar\\.json(?![\\s\\S])"
+                    }
+                  }
+                }
+              },
+              "allOf": [
+                { "not": { "required": ["preview"] } },
+                { "not": { "required": ["family"] } }
+              ]
+            },
+            "else": {
+              "if": {
+                "required": ["kind"],
+                "properties": { "kind": { "const": "icon" } }
+              },
+              "then": {
+                "required": ["manifest"],
+                "properties": {
+                  "manifest": {
+                    "properties": {
+                      "path": {
+                        "pattern": "^entries/icons/[a-z0-9]+(-[a-z0-9]+)*/[a-z0-9]+(-[a-z0-9]+)*\\.icon\\.json(?![\\s\\S])"
+                      }
+                    }
+                  }
+                },
+                "allOf": [
+                  { "not": { "required": ["assets"] } },
+                  { "not": { "required": ["family"] } },
+                  { "not": { "required": ["preview"] } }
+                ]
+              },
+              "else": {
+                "required": ["card"],
+                "properties": {
+                  "assets": {
+                    "maxItems": 1,
+                    "description": "A persona entry's own assets[], when present, is capped to exactly one element (SPEC F128.2: \"at most one\") — narrower than the shared `assets` definition's own minItems:1 alone. Unlike kind:\"font\"/kind:\"avatar\" above, this key stays OPTIONAL here (no `required` entry for it): absent means no worn face, the ordinary pre-F128 shape."
+                  }
+                },
+                "allOf": [
+                  { "not": { "required": ["family"] } },
+                  { "not": { "required": ["manifest"] } }
+                ]
+              }
+            }
           }
         }
       }

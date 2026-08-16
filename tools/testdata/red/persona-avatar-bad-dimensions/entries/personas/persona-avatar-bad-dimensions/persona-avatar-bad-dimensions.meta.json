@@ -1,0 +1,10 @@
+{
+  "author": "Test Fixture",
+  "description": "Green-variant fixture: a schema-valid persona card+meta pair carrying an optional avatar sidecar face (SPEC F128.2), copied into a temporary entries/ tree at test time to exercise build_index.py's assets[] projection for the persona kind.",
+  "samplePatter": [
+    "Line one.",
+    "Line two."
+  ],
+  "audience": "everyone",
+  "added": "2026-07-26"
+}

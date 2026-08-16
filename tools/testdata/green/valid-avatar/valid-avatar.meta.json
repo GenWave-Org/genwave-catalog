@@ -1,0 +1,6 @@
+{
+  "author": "GenWave",
+  "description": "A schema-valid avatar pack fixture exercising build_index.py's assets[] projection.",
+  "audience": "everyone",
+  "added": "2026-08-16"
+}

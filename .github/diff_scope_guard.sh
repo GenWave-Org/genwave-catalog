@@ -13,7 +13,7 @@
 #   - A PR touching entries/ must stay inside ONE
 #     entries/<kind-folder>/<slug>/ directory — a path under entries/ with
 #     fewer than 4 segments (entries/<kind-folder>/<file>, no slug segment
-#     at all), or whose kind-folder segment isn't one of the four known
+#     at all), or whose kind-folder segment isn't one of the six known
 #     names, is its own violation, named with a clear error rather than
 #     silently mis-parsed into a bogus "slug".
 #   - index.json is always allowed (entry PRs must regenerate it).
@@ -26,7 +26,7 @@ if [ "$#" -ne 1 ] || [ ! -r "$1" ]; then
 fi
 
 changed_file="$1"
-KNOWN_KIND_FOLDERS="personas themes fonts shows"
+KNOWN_KIND_FOLDERS="personas themes fonts shows avatars icons"
 entry_touched=false
 declare -A entry_dirs=()
 fail=false
@@ -54,7 +54,7 @@ while IFS= read -r path; do
       fi
       kind_folder="${segments[1]}"
       if ! is_known_kind_folder "$kind_folder"; then
-        echo "FAIL: entries/ path's kind-folder segment is not one of the four known kind folders" \
+        echo "FAIL: entries/ path's kind-folder segment is not one of the six known kind folders" \
           "($KNOWN_KIND_FOLDERS): $path"
         fail=true
         continue

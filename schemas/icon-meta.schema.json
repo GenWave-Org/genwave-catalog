@@ -1,0 +1,53 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/GenWave-Org/genwave-catalog/main/schemas/icon-meta.schema.json",
+  "title": "GenWave Icon Pack Catalog Entry Metadata",
+  "description": "The <slug>.meta.json shape for a kind:\"icon\" entry (app repo SPEC F130.6, catalog-owned). Mirrors font-meta.schema.json's posture (additionalProperties false — an unrecognized field is a contributor mistake worth failing CI on) with ONE deliberate difference: `license` and `sourceUrl` are REQUIRED here, not carried by the manifest at all. SPEC F130.1's gw-icon-pack document is deliberately closed (style + icons, nothing else); F130.6 (amended 2026-08-16 at the T305 review, PLAN T309's own line) rules that an icon pack's licence + provenance — MIT icon sets as raw material, attributed, the FONTS.md posture at a lighter weight — live HERE instead. tools/validate.py's icon-licence-in-manifest gate is the other half of this ruling: a `license`/`licence` member found inside <slug>.icon.json is a HARD rejection, since IconPackDefinitionSerializer's own re-serialization would silently drop it, leaving a contributor's licence text unattributed the moment the pack installs.",
+  "$comment": "`added`'s pattern ends in (?![\\s\\S]), the same portable absolute-end-of-string anchor persona-meta.schema.json/theme-meta.schema.json/font-meta.schema.json document in full and repeat verbatim — repeated here too so this file stands alone.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["author", "description", "audience", "added", "license", "sourceUrl"],
+  "properties": {
+    "author": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Who curated/converted this pack. Icon packs are Dean-curated only (SPEC F130.6/F130.7, the FONTS.md precedent) — no community pack submissions — but the field stays uniform with every other kind's own `author`."
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "description": "A short blurb introducing the pack — shown on the shelf card without fetching the manifest."
+    },
+    "audience": {
+      "type": "string",
+      "enum": ["everyone", "mature"],
+      "description": "Content self-rating, verified at review (mirrors every other kind's own `audience`; icon glyphs are rarely mature, but the field stays uniform so the shelf's rating logic never branches on `kind`)."
+    },
+    "added": {
+      "type": "string",
+      "format": "date",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}(?![\\s\\S])",
+      "description": "ISO 8601 date (YYYY-MM-DD) this pack was added to the catalog. `format: date` alone is annotation-only in draft-07 by default, so `pattern` carries the shape enforcement — but pattern alone only checks digit counts, not calendar validity; tools/validate.py separately parses this value with datetime.date.fromisoformat to reject a shape-valid but non-existent date."
+    },
+    "license": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The upstream MIT (or equivalent permissive) icon set's licence identifier/text (SPEC F130.6, tools/IconPackAuthor's own IconPackMetaSkeleton field of the same name) — REQUIRED here, and HARD-forbidden inside the companion <slug>.icon.json (tools/validate.py's icon-licence-in-manifest gate)."
+    },
+    "sourceUrl": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^https://",
+      "description": "Canonical upstream icon set URL (mirrors font-manifest.schema.json's own `sourceUrl` — the FONTS.md provenance-record precedent, lighter weight per F130.6). Anchored to the scheme prefix only, enough to reject an `http://`, `javascript:`, or schemeless value."
+    },
+    "version": {
+      "type": ["string", "null"],
+      "description": "Upstream tag/commit/release, when determinable — mirrors font-manifest.schema.json's own `version`. Null-tolerant on purpose (tools/IconPackAuthor's authoring script emits `null` when none was given)."
+    },
+    "bestFor": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Optional use-case hints — mirrors every other kind's own `bestFor`."
+    }
+  }
+}
