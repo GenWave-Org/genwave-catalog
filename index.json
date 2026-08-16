@@ -491,6 +491,13 @@
       "slug": "liner-notes"
     },
     {
+      "assets": [
+        {
+          "bytes": 384950,
+          "path": "entries/personas/luna-vex/luna-vex.avatar.png",
+          "sha256": "e63c1e1698fe63069ed460fce86819ce9b6736c4a5f5608c17c869ab975eb091"
+        }
+      ],
       "audience": "everyone",
       "bestFor": [
         "synthwave",
