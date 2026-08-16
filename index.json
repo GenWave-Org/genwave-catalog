@@ -367,6 +367,13 @@
       "slug": "crate-diggers-hour"
     },
     {
+      "assets": [
+        {
+          "bytes": 471337,
+          "path": "entries/personas/dusty-groves/dusty-groves.avatar.png",
+          "sha256": "ccfe980c216eb1a2e7ddd9cc6bab0896bc7dc8fbfa426caa5cb08d990568a3b7"
+        }
+      ],
       "audience": "everyone",
       "bestFor": [
         "funk",
