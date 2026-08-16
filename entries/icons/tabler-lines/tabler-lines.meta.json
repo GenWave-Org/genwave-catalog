@@ -1,0 +1,14 @@
+{
+  "author": "GenWave",
+  "description": "Tabler Lines — outline stroke icons converted from Tabler Icons (MIT), the closest match to the house stroke-based visual language. All 24 admin-chrome icon slots covered.",
+  "audience": "everyone",
+  "license": "MIT",
+  "sourceUrl": "https://github.com/tabler/tabler-icons",
+  "version": "v3.46.0",
+  "added": "2026-08-16",
+  "bestFor": [
+    "outline",
+    "stroke",
+    "admin chrome"
+  ]
+}

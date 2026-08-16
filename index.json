@@ -841,6 +841,24 @@
       "slug": "sunrise-sal"
     },
     {
+      "audience": "everyone",
+      "bestFor": [
+        "outline",
+        "stroke",
+        "admin chrome"
+      ],
+      "kind": "icon",
+      "manifest": {
+        "path": "entries/icons/tabler-lines/tabler-lines.icon.json",
+        "sha256": "baa628a3d799b9fa0c8c89ce4cbeb7c46a8f75eeca6146efcb41761e7aac72b2"
+      },
+      "meta": {
+        "path": "entries/icons/tabler-lines/tabler-lines.meta.json",
+        "sha256": "2ca15f6303965240aae0006294034d8305c004052237056591bab32286a2b6cb"
+      },
+      "slug": "tabler-lines"
+    },
+    {
       "assets": [
         {
           "bytes": 429267,
