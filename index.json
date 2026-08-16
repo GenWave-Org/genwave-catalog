@@ -614,6 +614,13 @@
       "slug": "pirate"
     },
     {
+      "assets": [
+        {
+          "bytes": 359891,
+          "path": "entries/personas/professor-b/professor-b.avatar.png",
+          "sha256": "5d05247e752feae8323a53a47a864d329923e4f46162350effe57bee095f58da"
+        }
+      ],
       "audience": "everyone",
       "bestFor": [
         "jazz",
