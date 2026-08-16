@@ -391,6 +391,13 @@
       "slug": "dusty-groves"
     },
     {
+      "assets": [
+        {
+          "bytes": 450295,
+          "path": "entries/personas/echo-ellis/echo-ellis.avatar.png",
+          "sha256": "717260887673690a3875e39b9c415baa24ca24edd8f41b165985f3406045f0f9"
+        }
+      ],
       "audience": "everyone",
       "bestFor": [
         "shoegaze",
