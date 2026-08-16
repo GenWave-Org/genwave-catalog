@@ -1,6 +1,81 @@
 {
   "entries": [
     {
+      "assets": [
+        {
+          "bytes": 355898,
+          "path": "entries/avatars/avatar-pack-one/big-tony-marconi.png",
+          "sha256": "de5a3c103b1338d199b20b6db0d95d995925e326f6e6986175363b039a8235eb"
+        },
+        {
+          "bytes": 414607,
+          "path": "entries/avatars/avatar-pack-one/captain-flip.png",
+          "sha256": "fb94f2b8a1df386b9d926f1819c0be32dad6dbe1dd468db11c1d46e6d0abc5dc"
+        },
+        {
+          "bytes": 471337,
+          "path": "entries/avatars/avatar-pack-one/dusty-groves.png",
+          "sha256": "ccfe980c216eb1a2e7ddd9cc6bab0896bc7dc8fbfa426caa5cb08d990568a3b7"
+        },
+        {
+          "bytes": 450295,
+          "path": "entries/avatars/avatar-pack-one/echo-ellis.png",
+          "sha256": "717260887673690a3875e39b9c415baa24ca24edd8f41b165985f3406045f0f9"
+        },
+        {
+          "bytes": 378488,
+          "path": "entries/avatars/avatar-pack-one/granny-static.png",
+          "sha256": "67ec46264cf185483bc92b549fe3f6d603224c3f3b0cfa45dffd0ab7217ecb8d"
+        },
+        {
+          "bytes": 384950,
+          "path": "entries/avatars/avatar-pack-one/luna-vex.png",
+          "sha256": "e63c1e1698fe63069ed460fce86819ce9b6736c4a5f5608c17c869ab975eb091"
+        },
+        {
+          "bytes": 441016,
+          "path": "entries/avatars/avatar-pack-one/maxxie-volt.png",
+          "sha256": "c4f9ff4dba0a12151b8dadcb177cd4d0969c7b07268b78aaa9a17c7d709c4c2f"
+        },
+        {
+          "bytes": 367672,
+          "path": "entries/avatars/avatar-pack-one/midnight-mabel.png",
+          "sha256": "9d0da80654c43ea72a89b08fa7623d388d91a7f81da007966f09a08bd4b0cac0"
+        },
+        {
+          "bytes": 359891,
+          "path": "entries/avatars/avatar-pack-one/professor-b.png",
+          "sha256": "5d05247e752feae8323a53a47a864d329923e4f46162350effe57bee095f58da"
+        },
+        {
+          "bytes": 413301,
+          "path": "entries/avatars/avatar-pack-one/rusty-strings.png",
+          "sha256": "26dab28c0dedee663c04c5043ad6165355db1911b5328ae53a5c145a687d6257"
+        },
+        {
+          "bytes": 290703,
+          "path": "entries/avatars/avatar-pack-one/sunrise-sal.png",
+          "sha256": "352c9a27abd993631a680c6a48948e548ebedaee9ecda565dd54241de5a10cd8"
+        },
+        {
+          "bytes": 429267,
+          "path": "entries/avatars/avatar-pack-one/the-archivist.png",
+          "sha256": "9c67616ace88490ba93c252855a06adb70d71c844255ea4256b2411399f48145"
+        }
+      ],
+      "audience": "everyone",
+      "kind": "avatar",
+      "manifest": {
+        "path": "entries/avatars/avatar-pack-one/avatar-pack-one.avatar.json",
+        "sha256": "59a8c264ed0551fd30ee9b1fb497193dedb0b712537d82970c443f90a75f2e7d"
+      },
+      "meta": {
+        "path": "entries/avatars/avatar-pack-one/avatar-pack-one.meta.json",
+        "sha256": "5520d7cb5e35763e51c24ecf52a7cc8eef07e4e327e0eb88eb6a00f6dc77617a"
+      },
+      "slug": "avatar-pack-one"
+    },
+    {
       "audience": "everyone",
       "bestFor": [
         "swing",
@@ -587,5 +662,5 @@
       "slug": "wow-and-flutter"
     }
   ],
-  "generatedAt": "2026-08-11"
+  "generatedAt": "2026-08-16"
 }
