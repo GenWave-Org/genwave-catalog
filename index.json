@@ -515,6 +515,13 @@
       "slug": "luna-vex"
     },
     {
+      "assets": [
+        {
+          "bytes": 441016,
+          "path": "entries/personas/maxxie-volt/maxxie-volt.avatar.png",
+          "sha256": "c4f9ff4dba0a12151b8dadcb177cd4d0969c7b07268b78aaa9a17c7d709c4c2f"
+        }
+      ],
       "audience": "everyone",
       "bestFor": [
         "pop",
