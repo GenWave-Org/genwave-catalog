@@ -1,0 +1,24 @@
+{
+  "slug": "avatar-entry-with-preview",
+  "kind": "avatar",
+  "audience": "everyone",
+  "manifest": {
+    "path": "entries/avatars/avatar-entry-with-preview/avatar-entry-with-preview.avatar.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "meta": {
+    "path": "entries/avatars/avatar-entry-with-preview/avatar-entry-with-preview.meta.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "assets": [
+    {
+      "path": "entries/avatars/avatar-entry-with-preview/warm-grin.png",
+      "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "bytes": 1902
+    }
+  ],
+  "preview": {
+    "light": { "bg": "#ffffff", "surface": "#f0f0f0", "ink": "#111111", "accent": "#3355aa", "accent-2": "#aa7733" },
+    "dark": { "bg": "#111111", "surface": "#222222", "ink": "#eeeeee", "accent": "#3355aa", "accent-2": "#aa7733" }
+  }
+}

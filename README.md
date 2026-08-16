@@ -1,13 +1,15 @@
 # 📻 genwave-catalog
 
 A community shelf for [GenWave](https://github.com/GenWave-Org/genwave) — a self-hosted internet
-radio control plane. The shelf carries four kinds of entry: **12 DJ personas** (portable,
+radio control plane. The shelf carries six kinds of entry: **12 DJ personas** (portable,
 byte-valid exports of a GenWave DJ's personality — name, voice, lore, taste rules, pronunciation
-corrections), **4 themes** (station-wide look-and-feel manifests), **1 font pack** (vendored
-webfont faces for the Wardrobe), and **show cards** (portable named-show identity packages — name,
-tagline, and prompt-only flavor) — each byte-valid and ready for a station to drop straight in.
-Personas, themes, and shows are open to community submission; font packs are Dean-curated only
-(see [Contributing](#-contributing)).
+corrections; a persona may also wear one optional sidecar face), **4 themes** (station-wide
+look-and-feel manifests), **1 font pack** (vendored webfont faces for the Wardrobe), **show cards**
+(portable named-show identity packages — name, tagline, and prompt-only flavor), **avatar packs**
+(curated sets of 512×512 DJ faces for the Wardrobe's Avatars tab), and **icon packs** (curated sets
+of vector chrome icons for the admin UI's third swappable layer) — each byte-valid and ready for a
+station to drop straight in. Personas, themes, shows, and avatar packs are open to community
+submission; font packs and icon packs are Dean-curated only (see [Contributing](#-contributing)).
 
 This repo holds content — data files, schemas, and docs — plus the small set of Python tools under
 `tools/` (and the CI that runs them) that keep it valid. There is no build and no runtime service;
@@ -40,6 +42,15 @@ entries/
     <slug>/                         # a show entry
       <slug>.show.json                 # the show manifest (app repo SPEC F118.1)
       <slug>.meta.json                  # catalog-only metadata, incl. optional suggestedPersona
+  avatars/
+    <slug>/                         # an avatar pack entry
+      <slug>.avatar.json               # the avatar manifest (app repo SPEC F128.1): packName + items[]
+      <slug>.meta.json                  # catalog-only metadata
+      warm-grin.png                      # one 512x512 PNG per item, free-named, sitting alongside
+  icons/
+    <slug>/                         # an icon pack entry
+      <slug>.icon.json                 # the gw-icon-pack definition (app repo SPEC F130.1) — no binary assets
+      <slug>.meta.json                  # catalog-only metadata, incl. required license/sourceUrl (SPEC F130.6)
 schemas/
   persona-card.schema.json  # validates <slug>.persona.json
   persona-meta.schema.json  # validates a persona's <slug>.meta.json
@@ -49,6 +60,10 @@ schemas/
   font-meta.schema.json     # validates a font pack's <slug>.meta.json
   show-manifest.schema.json # validates <slug>.show.json
   show-meta.schema.json     # validates a show's <slug>.meta.json
+  avatar-manifest.schema.json # validates <slug>.avatar.json
+  avatar-meta.schema.json    # validates an avatar pack's <slug>.meta.json
+  icon-manifest.schema.json   # validates <slug>.icon.json — the one manifest schema pinning full shape, not just types
+  icon-meta.schema.json        # validates an icon pack's <slug>.meta.json (requires license/sourceUrl)
   index.schema.json         # validates the committed index.json
 fixtures/
   golden.persona.json       # real bytes from the app's PersonaCardSerializer, pinned for parity
@@ -59,6 +74,7 @@ tools/
   validate.py                # CI + local: schema/slug/size/contrast/provenance checks over entries/ and index.json
   lint.py                      # CI + local: persona/show submission-length budgets + dead pronunciation rules
   contrast.py                   # WCAG AA contrast math, the theme shelf's HARD gate
+  png_image.py                   # byte-level PNG parsing (magic/IHDR/acTL) for the avatar kind's image gates
   build_index.py                 # builds index.json from entries/
   catalog_lib.py                   # shared helpers: repo root, relative paths, entry discovery, symlink checks
   run_selftest.sh                   # local CI mirror: good entries green, each red variant red
@@ -71,20 +87,27 @@ README.md
 ```
 
 An entry's kind is read off which manifest filename its directory carries — `<slug>.persona.json`,
-`<slug>.theme.json`, `<slug>.font.json`, or `<slug>.show.json` (`tools/catalog_lib.py`'s
-`KIND_SUFFIXES`); persona wins if, bizarrely, more than one is present, then theme, then font,
-then show. An entry's kind FOLDER — which of `entries/personas/`, `entries/themes/`,
-`entries/fonts/`, or `entries/shows/` it lives under (`tools/catalog_lib.py`'s `KIND_FOLDERS`) —
+`<slug>.theme.json`, `<slug>.font.json`, `<slug>.show.json`, `<slug>.avatar.json`, or
+`<slug>.icon.json` (`tools/catalog_lib.py`'s `KIND_SUFFIXES`); persona wins if, bizarrely, more
+than one is present, then theme, then font, then show, then avatar, then icon. An entry's kind
+FOLDER — which of `entries/personas/`, `entries/themes/`, `entries/fonts/`, `entries/shows/`,
+`entries/avatars/`, or `entries/icons/` it lives under (`tools/catalog_lib.py`'s `KIND_FOLDERS`) —
 must agree with what its manifest filename implies; a mismatch (say, a `.persona.json` manifest
 sitting under `entries/shows/`) is a hard `tools/validate.py` violation even though the manifest
 itself is otherwise valid. A font pack's `OFL.txt` is tracked `-text` in
 [`.gitattributes`](./.gitattributes) — licence text is byte-hashed into `index.json`, so
 its line endings are never normalized on checkout, keeping that hash stable across platforms.
 
-`fixtures/` holds four golden parity fixtures, one per kind, none of them hand-written and none
-of them a submission or shelf content — each exists only to catch drift between this catalog's
-schemas and the app's own formats, and `tools/validate.py`'s `validate_golden_fixture` re-checks
-all four against their schema on every run against the real repo.
+`fixtures/` holds four golden parity fixtures, one per kind (persona/theme/font/show), none of
+them hand-written and none of them a submission or shelf content — each exists only to catch drift
+between this catalog's schemas and the app's own formats, and `tools/validate.py`'s
+`validate_golden_fixture` re-checks all four against their schema on every run against the real
+repo. There is deliberately no `golden.avatar.json`/`golden.icon.json`: the app never WRITES an
+avatar manifest (`CatalogAvatarPackManifestSerializer`'s own remarks — this app only ever reads
+one through the guarded proxy door) or a catalog-shaped icon definition (the app's own
+`IconPackDefinitionSerializer` writes the INSTALLED, already-validated form to `station.icon_pack`,
+not a catalog submission shape) — a golden round-trip fixture needs a real writer on the other
+end to pin against, and neither kind has one yet.
 
 `fixtures/golden.persona.json` is generated by the app's real serializer
 (`GenWave.Core.Domain.PersonaCardSerializer.Serialize`, `GenWave.Abstractions`), byte-for-byte —
@@ -141,8 +164,40 @@ so nothing sample-patter- or preview-shaped is required of it. A show's `<slug>.
 neither either — its shelf card renders from `author`/`description`/`audience`/`added`/`bestFor`;
 it additionally carries an optional `suggestedPersona` (an on-shelf persona slug the import modal
 may offer to also hire, SPEC F118.3 — soft, never required, never projected onto `index.json` since
-it's only consulted once, at import time). All four kinds share
-`author`/`description`/`audience`/`added`, and all four schemas are `additionalProperties: false`.
+it's only consulted once, at import time). An avatar pack's `<slug>.meta.json` has neither either —
+its shelf card renders from the manifest's own `packName` plus `author`/`description`/`audience`/
+`added`/`bestFor`. An icon pack's `<slug>.meta.json` is the one exception with EXTRA required
+fields: `license` and `sourceUrl` (plus optional `version`) — the icon manifest is deliberately
+closed to style+icons only (SPEC F130.1), so licence/provenance live here instead (SPEC F130.6's F1
+ruling; see [Icon packs](./CONTRIBUTING.md#icon-packs-kind-icon) in CONTRIBUTING.md). All six kinds
+share `author`/`description`/`audience`/`added`, and all six schemas are
+`additionalProperties: false`.
+
+### The avatar manifest (`<slug>.avatar.json`) and a persona's own sidecar face
+
+Format is owned by the [GenWave app repo](https://github.com/GenWave-Org/genwave) (SPEC F128.1):
+`packName` plus `items[]`, each `{ name, file, suggestedPersona? }` — `file` names a sibling PNG
+under the same `entries/avatars/<slug>/` directory. A PERSONA entry may separately carry its own
+single optional `<slug>.avatar.png` sidecar face directly inside `entries/personas/<slug>/`
+(SPEC F128.2) — not a pack, no manifest of its own, just one PNG riding alongside the persona card.
+Every PNG this catalog carries (a pack item, or a persona's sidecar) is held to the identical
+image bar: real PNG bytes verified by **magic bytes** (never file extension), an IHDR declaring
+**exactly 512×512**, **≤ 512 KiB** per item, and **never animated** (an `acTL` chunk before the
+first `IDAT` — an APNG — is rejected). An avatar pack's items, summed, additionally stay
+**≤ 6 MiB** per pack.
+
+### The icon pack definition (`<slug>.icon.json`)
+
+Format is owned by the [GenWave app repo](https://github.com/GenWave-Org/genwave) (SPEC F130.1,
+`GenWave.Host.Icons.IconPackDefinitionParser` — the canonical source `schemas/icon-manifest.schema.json`
+is ported from): a pack-level `style` (`strokeWidth` in `[0.5, 3]`, `fill`: `none`|`currentColor`)
+and an `icons` map of name → element list, where an element is one of the seven whitelisted SVG
+primitives (`path`/`rect`/`circle`/`ellipse`/`line`/`polyline`/`polygon`), each with its own closed
+attribute set. See [Icon packs](./CONTRIBUTING.md#icon-packs-kind-icon) in CONTRIBUTING.md for the
+full shape, the house icon-name contract (the 24 names an installed pack's `icons` map can usefully
+cover), and the licence/provenance split (SPEC F130.6's F1 ruling: `license`/`sourceUrl` live in
+`<slug>.meta.json` only — a `license` member found inside `<slug>.icon.json` itself is a HARD
+`tools/validate.py` rejection).
 
 ### Slug format
 
@@ -156,12 +211,15 @@ app both enforce.
 ### Size caps
 
 - `<slug>.persona.json` ≤ **256 KB** (matches the app's own import cap, SPEC F79.6)
-- `<slug>.meta.json` ≤ **64 KB** — same cap for all four kinds
-- No size cap is enforced on `<slug>.theme.json`, `<slug>.font.json`, or `<slug>.show.json` text
-  itself — deliberate; neither SPEC F103.2 nor F104.2 nor F118.1 defines one on the manifest, and
-  the app imposes none on a loaded manifest either
+- `<slug>.meta.json` ≤ **64 KB** — same cap for all six kinds
+- `<slug>.icon.json` ≤ **256 KiB** (SPEC F130.1's own definition-size cap)
+- No size cap is enforced on `<slug>.theme.json`, `<slug>.font.json`, `<slug>.show.json`, or
+  `<slug>.avatar.json` text itself — deliberate; neither SPEC F103.2 nor F104.2 nor F118.1 nor
+  F128.1 defines one on the manifest, and the app imposes none on a loaded manifest either
 - A font pack's own asset files (its woff2 face(s) + `OFL.txt`), summed, must stay **≤ 200 KiB**
   (204,800 bytes) — the per-pack ceiling, separate from and on top of the meta cap above
+- A PNG this catalog carries (an avatar pack item, or a persona's own sidecar face) must stay
+  **≤ 512 KiB** per item (SPEC F128.1); an avatar pack's items, summed, must stay **≤ 6 MiB**
 
 ## 🔨 How `index.json` is built
 
@@ -175,19 +233,25 @@ schema-validates the committed file against `schemas/index.schema.json` — so a
 `entries/` without regenerating the index, or that deletes `index.json` outright, fails CI before
 it can land, and the index can never silently drift from `entries/`.
 
-Each entry also projects `kind` — `"persona"`, `"theme"`, `"font"`, or `"show"` — absent on a
-persona entry by design (a missing `kind` means persona, matching every pre-F103.2 entry). A
-theme, font, or show entry carries `manifest` (its `<slug>.theme.json`, `<slug>.font.json`, or
-`<slug>.show.json` path + sha256) where a persona entry carries `card`; a theme entry additionally
+Each entry also projects `kind` — `"persona"`, `"theme"`, `"font"`, `"show"`, `"avatar"`, or
+`"icon"` — absent on a persona entry by design (a missing `kind` means persona, matching every
+pre-F103.2 entry). A theme, font, show, avatar, or icon entry carries `manifest` (its
+`<slug>.theme.json`, `<slug>.font.json`, `<slug>.show.json`, `<slug>.avatar.json`, or
+`<slug>.icon.json` path + sha256) where a persona entry carries `card`; a theme entry additionally
 carries `preview` (its meta's swatch sets, projected so the shelf can paint without fetching the
-manifest); a font entry additionally carries `assets[]` (its woff2 face(s) + `OFL.txt`, each with
-`path`/`sha256`/`bytes`) and, optionally, `family` (copied from the manifest so a zero-fetch shelf
-listing can show it). A show entry carries neither — it's the minimal `{manifest, meta}` shape
-with nothing further projected (its optional `suggestedPersona` lives only in `<slug>.meta.json`,
-read directly at import time, not needed for a zero-fetch shelf listing). Every `assets[]` `bytes`
-value is the asset's **real on-disk size**, never a manifest-declared one, and every `sha256` is
-likewise recomputed from the file on disk — `tools/build_index.py` never trusts a manifest's own
-claims about its own assets.
+manifest); a font or avatar entry additionally carries `assets[]` (a font pack's woff2 face(s) +
+`OFL.txt`, or an avatar pack's PNG items, each with `path`/`sha256`/`bytes`) — a font entry alone
+additionally carries, optionally, `family` (copied from the manifest so a zero-fetch shelf listing
+can show it; an avatar pack has no `family` equivalent, its card renders from the manifest's own
+`packName` instead). A show or icon entry carries neither — each is the minimal `{manifest, meta}`
+shape with nothing further projected (a show's optional `suggestedPersona`, and an icon pack's
+`license`/`sourceUrl`, both live only in `<slug>.meta.json`, read directly at import/curation time,
+not needed for a zero-fetch shelf listing). SEPARATELY (SPEC F128.2), a PERSONA entry may carry its
+own OPTIONAL single-element `assets[]` — its `<slug>.avatar.png` sidecar face — present only when
+that file is actually on disk, never an empty array. Every `assets[]` `bytes` value is the asset's
+**real on-disk size**, never a manifest-declared one, and every `sha256` is likewise recomputed
+from the file on disk — `tools/build_index.py` never trusts a manifest's own claims about its own
+assets.
 
 The index build excludes the `example-dj` entry: that slug is documentation, not shelf stock, so
 it is never counted, imported, or listed no matter what its own files contain.
@@ -198,10 +262,12 @@ always produces byte-identical output.
 CI (`tools/validate.py`) validates every PR before merge:
 
 - every JSON Schema above, kind-aware (persona card/meta, theme manifest/meta, font manifest/meta,
-  show manifest/meta, plus `schemas/index.schema.json` for the committed `index.json`)
+  show manifest/meta, avatar manifest/meta, icon manifest/meta, plus `schemas/index.schema.json`
+  for the committed `index.json`)
 - `slug` matching the directory name and both filenames
 - `samplePatter` having at least 2 entries (personas)
-- both size caps, plus the font pack's 200 KiB summed-asset ceiling
+- both size caps, the font pack's 200 KiB summed-asset ceiling, and the icon pack's 256 KiB
+  definition-size cap
 - a theme manifest's WCAG AA contrast (`tools/contrast.py`): 11 token pairs, ≥4.5:1, in both
   `light` and `dark` modes
 - the curated-only theme-font-provenance gate: a theme's `fonts.display`/`fonts.sans` asset `src`
@@ -210,9 +276,16 @@ CI (`tools/validate.py`) validates every PR before merge:
   one shipped by this same catalog
 - font-pack gates: `OFL.txt` present, `license` in the permitted SPDX set (`OFL-1.1`,
   `Apache-2.0`), and no orphan/duplicate/stowaway asset references
+- avatar-pack gates: every PNG verified by magic bytes, IHDR exactly 512×512, ≤512 KiB per item,
+  no `acTL` (APNG), ≤6 MiB per pack, item names unique, and no orphan/stowaway asset references —
+  the identical four PNG gates additionally apply to a persona's own optional sidecar face
+- icon-pack gates: the closed seven-primitive whitelist + per-tag attribute sets + `d`/`points`
+  grammars (pinned in `schemas/icon-manifest.schema.json` itself), every numeric geometry attribute
+  finite, and the F1 ruling — a `license`/`licence` member inside `<slug>.icon.json` is a HARD
+  reject; the companion meta.json REQUIRES `license`/`sourceUrl`
 - `index.json` slug-ownership (every entry's paths resolve under its own
   `entries/<kind-folder>/<slug>/`, never a sibling's) and duplicate-asset-path checks
-- entries/ is nested by kind: only the four known kind folders directly under `entries/`, only
+- entries/ is nested by kind: only the six known kind folders directly under `entries/`, only
   `<slug>/` directories inside each; a slug used by more than one kind folder, or a kind folder
   that disagrees with what an entry's own manifest filename implies, is a violation
 - no unexpected files in an entry directory, and no symlinks anywhere under `entries/`
@@ -228,17 +301,22 @@ confirm your PR is clean before pushing.
 
 ## 🤝 Contributing
 
-See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for the full 8-item quality bar (schema-valid,
+See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for the full 9-item quality bar (schema-valid,
 required fields, a distinctness statement, `audience` self-rating, CC0 checkbox, English-first,
-submission-length lint, scoped diff) and the PR template. **Personas, themes, and shows are open
-to community submission; font packs are Dean-curated only** — see CONTRIBUTING's Font packs
-section.
+submission-length lint, scoped diff, and the likeness/CC0 image attestation for image-carrying
+entries) and the PR template. **Personas, themes, shows, and avatar packs are open to community
+submission; font packs and icon packs are Dean-curated only** — see CONTRIBUTING's
+[Font packs](./CONTRIBUTING.md#font-packs-kind-font) and
+[Icon packs](./CONTRIBUTING.md#icon-packs-kind-icon) sections.
 
 Short version, personas: copy `entries/personas/example-dj/` to `entries/personas/<your-slug>/`,
 rename both files to match your slug, write your card and metadata, and open a PR. Themes follow
 the same shape under `entries/themes/<your-slug>/` with a `<slug>.theme.json` manifest in place of
 the persona card; shows follow the same shape under `entries/shows/<your-slug>/` with a
-`<slug>.show.json` manifest. CI validates the shape; a maintainer reviews the content.
+`<slug>.show.json` manifest; avatar packs follow the same shape under
+`entries/avatars/<your-slug>/` with a `<slug>.avatar.json` manifest plus one 512×512 PNG per item.
+CI validates the shape; a maintainer reviews the content (and, for an avatar pack, the image
+itself, per the likeness/CC0 attestation).
 
 ## 📥 Using an entry
 
@@ -258,3 +336,13 @@ see in `entries/` is exactly the file the station uses:
    import rides. `name`/`tagline` are public and air on the station; `flavor` is prompt-only and
    never leaves it (SPEC F115.3) — the full-card import confirm shows it to the owner adopting it,
    since they're the one deciding to run with it as prompt config.
+5. **Avatar packs** — installed via the Wardrobe's Avatars tab (`POST /api/avatar-packs/{slug}/install`,
+   SPEC F128.3); the app fetches each item's PNG through the guarded proxy door and
+   **re-validates it server-side** (magic bytes/IHDR/size/acTL — this catalog's CI is never
+   trusted at install time), hash-verified against `index.json`'s own `sha256`/`bytes`. A face is
+   then assigned to a persona (`POST /api/personas/{id}/avatar/from-pack`), copying its bytes —
+   uninstalling the pack later never removes a worn face.
+6. **Icon packs** — installed via `POST /api/icon-packs/{slug}/install` (SPEC F130.5; schema +
+   whitelist re-validated server-side, this catalog's CI is never trusted at install time), then
+   activated station-wide via the `Station:IconPack` setting. Uninstalling the active pack is
+   legal — the renderer fails open to the house icons.

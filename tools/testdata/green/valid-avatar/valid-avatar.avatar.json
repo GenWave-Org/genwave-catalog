@@ -1,0 +1,7 @@
+{
+  "packName": "Valid Avatar Pack",
+  "items": [
+    { "name": "Warm Grin", "file": "warm-grin.png", "suggestedPersona": "valid-dj" },
+    { "name": "Cool Smirk", "file": "cool-smirk.png" }
+  ]
+}

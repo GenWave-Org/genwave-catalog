@@ -1,0 +1,13 @@
+{
+  "packName": "Orphan Pack",
+  "items": [
+    {
+      "name": "Shipped Face",
+      "file": "shipped-face.png"
+    },
+    {
+      "name": "Ghost Face",
+      "file": "never-shipped.png"
+    }
+  ]
+}

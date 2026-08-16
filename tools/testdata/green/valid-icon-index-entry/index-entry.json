@@ -1,0 +1,16 @@
+{
+  "slug": "valid-icon-index-entry",
+  "kind": "icon",
+  "audience": "everyone",
+  "bestFor": [
+    "outline"
+  ],
+  "manifest": {
+    "path": "entries/icons/valid-icon-index-entry/valid-icon-index-entry.icon.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "meta": {
+    "path": "entries/icons/valid-icon-index-entry/valid-icon-index-entry.meta.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  }
+}

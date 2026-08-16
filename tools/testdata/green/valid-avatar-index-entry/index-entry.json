@@ -1,0 +1,29 @@
+{
+  "slug": "valid-avatar-index-entry",
+  "kind": "avatar",
+  "audience": "everyone",
+  "bestFor": [
+    "late-night",
+    "retro"
+  ],
+  "manifest": {
+    "path": "entries/avatars/valid-avatar-index-entry/valid-avatar-index-entry.avatar.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "meta": {
+    "path": "entries/avatars/valid-avatar-index-entry/valid-avatar-index-entry.meta.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "assets": [
+    {
+      "path": "entries/avatars/valid-avatar-index-entry/warm-grin.png",
+      "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "bytes": 1902
+    },
+    {
+      "path": "entries/avatars/valid-avatar-index-entry/cool-smirk.png",
+      "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "bytes": 1902
+    }
+  ]
+}

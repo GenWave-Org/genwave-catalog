@@ -1,0 +1,20 @@
+{
+  "slug": "icon-entry-with-assets",
+  "kind": "icon",
+  "audience": "everyone",
+  "manifest": {
+    "path": "entries/icons/icon-entry-with-assets/icon-entry-with-assets.icon.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "meta": {
+    "path": "entries/icons/icon-entry-with-assets/icon-entry-with-assets.meta.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "assets": [
+    {
+      "path": "entries/fonts/icon-entry-with-assets/stowaway.woff2",
+      "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "bytes": 7844
+    }
+  ]
+}

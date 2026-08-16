@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "name": "Green Test DJ",
+  "tagline": "",
+  "soul": "",
+  "quirks": [],
+  "voice": {
+    "engine": "kokoro",
+    "voiceId": "af_heart",
+    "pace": 1.0,
+    "language": "en"
+  },
+  "energyDisposition": 0,
+  "lore": [],
+  "corrections": [],
+  "pronunciations": [
+    {
+      "pattern": "wind down",
+      "word": "wind",
+      "ipa": "/w\u02c8a\u026and/",
+      "note": "kept for a future field"
+    },
+    {
+      "pattern": "MacLeod",
+      "ipa": "/m\u0259\u02c8kla\u028ad/"
+    },
+    {
+      "pattern": "bass line",
+      "word": null,
+      "ipa": "/b\u02c8e\u026as/"
+    }
+  ]
+}

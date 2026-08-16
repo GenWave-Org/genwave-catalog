@@ -1,0 +1,51 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/GenWave-Org/genwave-catalog/main/schemas/avatar-manifest.schema.json",
+  "title": "GenWave Avatar Pack Manifest",
+  "description": "The <slug>.avatar.json shape a GenWave station fetches for a kind:\"avatar\" catalog entry (app repo SPEC F128.1, GenWave.Host.Catalog.CatalogAvatarPackManifest/CatalogAvatarPackManifestSerializer). Mirrors font-manifest.schema.json's posture exactly: additionalProperties is true throughout, and this schema pins TYPES ONLY — it never rejects a byte-valid manifest over a field it doesn't yet know about. That deserializer is the real validator (non-empty packName, each items[] element's own non-empty name/file); this schema only catches gross shape errors (wrong type, missing key) so a malformed catalog submission fails fast in CI rather than only at app fetch time. Never-reject-byte-valid: a manifest this schema accepts is not guaranteed to load in the app, but a manifest the app can actually load must never be rejected here for a reason the app itself doesn't enforce. The PNG bytes each item's `file` names (magic bytes, IHDR 512x512, per-item/per-pack byte ceilings, acTL/APNG reject, item-name uniqueness, orphan/stowaway asset accounting) are entirely tools/validate.py's job (SPEC F128.1's catalog-CI rule) — this schema has no way to inspect sibling binary files.",
+  "$comment": "`items[].file`'s pattern ends in (?![\\s\\S]), the same portable absolute-end-of-string anchor schemas/index.schema.json documents in full and schemas/font-manifest.schema.json repeats — used here rather than a bare `$` for the same reason (Python's re `$` also matches immediately before a trailing newline). Repeated verbatim rather than by reference so this file stands alone.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["packName", "items"],
+  "properties": {
+    "packName": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80,
+      "description": "Display name for the pack (CatalogAvatarPackManifest.PackName) — shown on the shelf's avatar-pack card and the Wardrobe's Avatars tab pack list. CatalogAvatarPackManifestSerializer.Deserialize enforces non-empty only — the app carries NO install-time length bound on this field at all (unlike an item's own `name`, bounded to 64 characters by AvatarPackController.IsValidItemName, see the `avatarItem.name` definition below). 80 mirrors the ONE length ceiling that exists anywhere in the app for this value — admin-ui/lib/clamp-pack-display-text.ts's own `MAX_DISPLAY_LENGTH`, a generous one-line-card-title layout clamp that file's own remarks are explicit is 'not a value SPEC F128 pins anywhere', never a security or install-time boundary. Recorded here honestly as exactly that: a defensive, generous CI-time ceiling borrowed from the UI's own display posture, not a claim that the app would ever reject a longer value at install."
+    },
+    "items": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "description": "One or more faces (CatalogAvatarPackManifest.Items), capped at 64 (GenWave.Host.Api.AvatarPackController.MaxPackItems) — the app-side item-count ceiling `Install` checks BEFORE it allocates or iterates anything proportional to a hostile item count, 400ing the WHOLE pack the instant `manifest.Items.Count` exceeds it (review finding S1). Without this cap a 65-item manifest validated clean here (catalog-green) while the app rejected the pack outright at install (app-red) — a proven divergence this maxItems closes. 64 is deliberately generous, not invented: SPEC F128.1's own per-item (512 KiB)/per-pack (6 MiB) byte arithmetic already caps a CI-legal pack at 12 items, and `MaxPackItems`'s own remarks record 64 as headroom over that CI-legal maximum, never a number a legitimate pack is expected to approach. tools/validate.py separately enforces item-`name` uniqueness (SPEC F128.1) and that every `file` resolves to an asset the entry actually ships (never trusted from this schema alone).",
+      "items": { "$ref": "#/definitions/avatarItem" }
+    }
+  },
+  "definitions": {
+    "avatarItem": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["name", "file"],
+      "description": "One face inside `items[]` (CatalogAvatarPackItem) — both `name` and `file` are required and non-empty; CatalogAvatarPackManifestSerializer.Deserialize degrades the WHOLE manifest to null otherwise, so this schema is at least as strict as that deserializer rather than deferring the rejection to app fetch time.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[^\\x00-\\x1F\\x7F-\\x9F]+(?![\\s\\S])",
+          "description": "Display name for this face (CatalogAvatarPackItem.Name) — shown in the Wardrobe's Avatars item grid. Bounded to 64 characters and free of control characters (GenWave.Host.Api.AvatarPackController.MaxItemNameLength/IsValidItemName: `name.Length is > 0 and <= 64 and !name.Any(char.IsControl)`) — the app 400s the WHOLE install on the first item whose name fails this shape (review finding S2), so this schema is at least as strict as that gate rather than deferring the rejection to install time. The excluded range is `char.IsControl`'s own two bands, U+0000-U+001F (C0) and U+007F-U+009F (C1, including DEL) — the negated class ends in the SAME portable absolute-end-of-string anchor this file's own $comment documents (`(?![\\s\\S])` rather than a bare `$`, since Python's re `$` also matches immediately before a trailing newline) so the pattern compiles and means the same thing under ECMA-262 (ajv), .NET, and Python `re` alike. tools/validate.py requires this value be unique within one pack (SPEC F128.1's \"item names unique\")."
+        },
+        "file": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*\\.png(?![\\s\\S])",
+          "description": "Bare filename (no path) of the vendored PNG asset this face resolves to, e.g. \"warm-grin.png\" (CatalogAvatarPackItem.File) — the pack's sibling asset under the same entries/<slug>/ directory, never a path or URL. Same closed png extension and bare-filename character set the app's own AvatarAssetFileNameText enforces (GenWave.Host.Catalog.CatalogIndexValidator)."
+        },
+        "suggestedPersona": {
+          "type": ["string", "null"],
+          "description": "Optional catalog persona slug this face pairs well with (CatalogAvatarPackItem.SuggestedPersona) — an OFFER the import/assignment flow may show, never an auto-write (SPEC F128.5). Shape (catalog slug vocabulary, 64-char cap) is intentionally NOT pinned here — mirrors font-manifest.schema.json's own types-only posture; a stale or unknown value is exactly the soft-suggestion case the app already tolerates, not a schema-rejectable shape."
+        }
+      }
+    }
+  }
+}

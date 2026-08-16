@@ -1,0 +1,57 @@
+{
+  "packName": "Pack Ceiling Pack",
+  "items": [
+    {
+      "name": "Face 00",
+      "file": "face-00.png"
+    },
+    {
+      "name": "Face 01",
+      "file": "face-01.png"
+    },
+    {
+      "name": "Face 02",
+      "file": "face-02.png"
+    },
+    {
+      "name": "Face 03",
+      "file": "face-03.png"
+    },
+    {
+      "name": "Face 04",
+      "file": "face-04.png"
+    },
+    {
+      "name": "Face 05",
+      "file": "face-05.png"
+    },
+    {
+      "name": "Face 06",
+      "file": "face-06.png"
+    },
+    {
+      "name": "Face 07",
+      "file": "face-07.png"
+    },
+    {
+      "name": "Face 08",
+      "file": "face-08.png"
+    },
+    {
+      "name": "Face 09",
+      "file": "face-09.png"
+    },
+    {
+      "name": "Face 10",
+      "file": "face-10.png"
+    },
+    {
+      "name": "Face 11",
+      "file": "face-11.png"
+    },
+    {
+      "name": "Face 12",
+      "file": "face-12.png"
+    }
+  ]
+}

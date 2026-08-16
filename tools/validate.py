@@ -19,7 +19,7 @@ per SPEC F103.2 / T179):
     module classified kind:"font" validated here but build_index.py silently
     skipped it (never emitted an index entry for it). T196 closed that gap
     (resolve_manifest's own comment in tools/build_index.py records the
-    history). An entry with none of the four manifest filenames is reported
+    history). An entry with none of the six manifest filenames is reported
     as a missing persona card, the pre-T179 default.
   - <slug>.persona.json (or <slug>.theme.json) and <slug>.meta.json are each
     valid JSON.
@@ -64,17 +64,50 @@ per SPEC F103.2 / T179):
     must itself be named in `files[]` or be `OFL.txt` (a "stowaway" asset
     nothing references is just as malformed). All six are HARD gates
     (tools/validate.py's `validate_font_pack`).
+  - An avatar pack (kind:\"avatar\", <slug>.avatar.json, SPEC F128.1), on top
+    of its own schema check: every shipped PNG (every sibling file matching
+    the app's own bare-filename `.png` extension set) is verified by MAGIC
+    BYTES (never extension), must have an IHDR declaring exactly 512x512,
+    must be <= 512 KiB, and must not be an animated PNG (an `acTL` chunk
+    before the first `IDAT` is rejected); the pack's PNG assets, summed,
+    must be <= 6 MiB; every `items[]` element's `name` must be unique within
+    the pack; every `file` an item names must correspond to a PNG the entry
+    actually ships (orphan), and — the reverse — every shipped PNG must be
+    named by some item's `file` (stowaway). All HARD gates
+    (tools/validate.py's `validate_avatar_pack`/`validate_png_asset`).
+  - A PERSONA entry (SPEC F128.2) may additionally carry exactly one
+    `<slug>.avatar.png` sidecar face, held to the identical per-item PNG
+    rules an avatar pack's own items get (`validate_persona_avatar_sidecar`).
+  - An icon pack (kind:\"icon\", <slug>.icon.json, SPEC F130.1/F130.6) is the
+    one manifest in this repo whose full closed shape lives in JSON Schema
+    itself (schemas/icon-manifest.schema.json), ported from the app's own
+    GenWave.Host.Icons.IconPackDefinitionParser: a closed seven-tag SVG
+    primitive whitelist, each tag's own closed (additionalProperties:false)
+    attribute set, the `d`/`points` character grammars, `fill`/`stroke`
+    restricted to `none`|`currentColor`, the icon-name character/length gate,
+    and the 512-icon/64-element-per-icon bounds. tools/validate.py adds what
+    JSON Schema structurally cannot express: every numeric geometry
+    attribute must be FINITE (a JSON literal like `1e400` is schema-valid
+    but overflows to a non-finite float once parsed,
+    `validate_icon_numeric_finite`), the <= 256 KiB definition-size cap
+    (wired through the same `KindSpec.size_cap` mechanism the persona card
+    uses), and the F1 ruling: a `license`/`licence` member found inside the
+    manifest itself is a HARD reject — licence/provenance belongs in the
+    companion `<slug>.meta.json` ONLY (`validate_icon_licence_not_in_manifest`;
+    schemas/icon-meta.schema.json requires `license`+`sourceUrl` there).
   - `added` is a real calendar date, not just YYYY-MM-DD shaped (the schema
     pattern lets '9999-99-99' through; datetime.date.fromisoformat doesn't).
   - slug == entry directory name == both filenames' stems.
   - The directory name itself matches ^[a-z0-9]+(-[a-z0-9]+)*$, anchored to
     the absolute end of the string — a trailing newline in the name fails
     this, unlike a bare `$` in Python's re would let through.
-  - entries/ is nested by kind (gh-33): it may only contain the four known
-    kind folders (`tools/catalog_lib.py`'s `KIND_FOLDERS` — personas/,
-    themes/, fonts/, shows/), as directories, nothing else; each kind folder
-    may in turn only contain <slug>/ directories, no loose files. A missing
-    or empty kind folder is not itself a violation.
+  - entries/ is nested by kind (gh-33): it may only contain the kind folders
+    named in `tools/catalog_lib.py`'s own `KIND_FOLDERS` mapping (the single
+    source of truth for that set — read it there rather than trusting a
+    count hand-copied into this prose, the exact staleness gh-33/T196 review
+    M3 already paid for once), as directories, nothing else; each kind
+    folder may in turn only contain <slug>/ directories, no loose files. A
+    missing or empty kind folder is not itself a violation.
   - An entry's kind FOLDER agrees with the kind its manifest filename suffix
     implies — a `.persona.json` manifest sitting under `entries/shows/`
     (say) is a `kind-folder-mismatch` violation, even though the manifest
@@ -145,6 +178,7 @@ from __future__ import annotations
 import argparse
 import datetime
 import json
+import math
 import re
 import sys
 from collections.abc import Callable
@@ -154,17 +188,20 @@ from pathlib import Path
 import jsonschema
 
 from catalog_lib import (
+    AVATAR_ASSET_NAME_PATTERN,
     FONT_ASSET_NAME_PATTERN,
     KIND_FOLDERS,
     KIND_SUFFIXES,
     REPO_ROOT,
     SCHEMAS_DIR,
+    avatar_asset_paths,
     discover_entry_dirs,
     find_symlinks,
     font_asset_paths,
     rel,
 )
 from contrast import check_theme_aa
+from png_image import has_animation_chunk, has_signature, try_read_dimensions
 
 SLUG_PATTERN = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*\Z")  # \Z, not $: $ matches before a trailing \n
 CARD_SIZE_CAP = 256 * 1024  # bytes; mirrors the app's own import cap (SPEC F79.6)
@@ -182,6 +219,43 @@ FONT_PACK_BYTE_CEILING = 200 * 1024  # 204,800 bytes; SPEC F104.2's per-pack cei
 # that wording names; widen this set (and this comment) if/when a future pack
 # needs a third.
 FONT_PERMITTED_LICENSES = {"OFL-1.1", "Apache-2.0"}
+
+# SPEC F128.1's avatar-pack byte ceilings — per-item (an avatar pack's own PNG,
+# OR a persona entry's own sidecar face, SPEC F128.2's "same per-item
+# validation") and per-pack (summed across every item an avatar pack ships;
+# a persona's own single sidecar face is never summed against this — it has
+# no siblings to sum with).
+AVATAR_ITEM_BYTE_CEILING = 512 * 1024  # 524,288 bytes
+AVATAR_PACK_BYTE_CEILING = 6 * 1024 * 1024  # 6,291,456 bytes
+
+# The <slug>.avatar.json manifest TEXT itself (as opposed to the PNG items it
+# names, bounded above) is fetched through the SAME app-side path every other
+# kind's own card/manifest text is: GenWave.Host.Catalog.CatalogProxyService.
+# FetchAndVerifyEntryAsync bounds EVERY entry's manifest fetch to MaxCardBytes
+# (256 KiB) regardless of kind — the identical magnitude CARD_SIZE_CAP already
+# mirrors for the persona kind, though that constant's own comment cites a
+# DIFFERENT app-side cap (the persona IMPORT flow's own bound, SPEC F79.6) —
+# so this gets its own named constant rather than reusing CARD_SIZE_CAP under
+# a citation that wouldn't actually describe it. Rider fold 4 (T309 review):
+# F1's own maxItems:64 on avatar-manifest.schema.json's `items[]` already
+# bounds a real-world manifest's text size practically (64 items' worth of
+# name/file/suggestedPersona strings falls far short of 256 KiB long before
+# this cap would ever bind) — this is defense in depth against a
+# pathologically verbose manifest, not the primary gate.
+AVATAR_MANIFEST_SIZE_CAP = 256 * 1024  # bytes; mirrors CatalogProxyService.MaxCardBytes
+
+# SPEC F130.1's icon pack definition-size cap (GenWave.Host.Icons.
+# IconPackDefinitionParser.MaxDefinitionBytes) — wired through KindSpec.size_cap
+# below, the same mechanism CARD_SIZE_CAP already uses for the persona kind.
+ICON_DEFINITION_SIZE_CAP = 256 * 1024  # 262,144 bytes
+
+# SPEC F130.6's F1 ruling (amended 2026-08-16 at the T305 review): an icon
+# pack's licence/provenance belongs ONLY in the companion <slug>.meta.json.
+# Both spellings are gated — this codebase's own prose favours "licence"
+# (British) while every OTHER kind's actual schema field is spelled
+# "license" (American, e.g. schemas/font-manifest.schema.json) — a
+# contributor copying either convention into <slug>.icon.json is caught.
+ICON_LICENCE_KEYS = ("license", "licence")
 
 # SPEC F104.9's "unbreakable themes" invariant (Dean's ruling 2026-08-05, PLAN T205: "themes never
 # reference font packs in the catalog") — mirrors the app's own GenWave.Host/wwwroot/fonts/fonts-
@@ -252,8 +326,17 @@ def build_kind_specs() -> dict[str, KindSpec]:
             manifest_schema=load_schema("persona-card.schema.json"),
             meta_schema=load_schema("persona-meta.schema.json"),
             size_cap=CARD_SIZE_CAP,
-            allows_extra=lambda path: False,
-            unexpected_file_hint="only <slug>.persona.json and <slug>.meta.json are allowed in an entry directory",
+            # SPEC F128.2: a persona entry MAY carry exactly one <slug>.avatar.png
+            # sidecar face. allows_extra only ever admits THAT one exact filename
+            # (path.parent.name is the entry directory's own name — the slug
+            # every other check in validate_entry already keys off) — any other
+            # extra file, including a differently-named PNG, still falls through
+            # to the ordinary unexpected-file violation below.
+            allows_extra=lambda path: path.is_file() and path.name == f"{path.parent.name}.avatar.png",
+            unexpected_file_hint=(
+                "only <slug>.persona.json, <slug>.meta.json, and an optional <slug>.avatar.png sidecar "
+                "face are allowed in an entry directory"
+            ),
         ),
         "theme": KindSpec(
             suffix=KIND_SUFFIXES["theme"],
@@ -284,6 +367,27 @@ def build_kind_specs() -> dict[str, KindSpec]:
             size_cap=None,  # SPEC F118.1 defines none on the manifest text itself, same posture as theme/font
             allows_extra=lambda path: False,
             unexpected_file_hint="only <slug>.show.json and <slug>.meta.json are allowed in an entry directory",
+        ),
+        "avatar": KindSpec(
+            suffix=KIND_SUFFIXES["avatar"],
+            label="avatar manifest",
+            manifest_schema=load_schema("avatar-manifest.schema.json"),
+            meta_schema=load_schema("avatar-meta.schema.json"),
+            size_cap=AVATAR_MANIFEST_SIZE_CAP,  # icon-style parity (rider fold 4, T309 review) — see that constant's own remarks
+            allows_extra=lambda path: path.is_file() and bool(AVATAR_ASSET_NAME_PATTERN.match(path.name)),
+            unexpected_file_hint=(
+                "only <slug>.avatar.json, <slug>.meta.json, and asset files matching "
+                "[A-Za-z0-9][A-Za-z0-9._-]*.png are allowed in an avatar entry directory"
+            ),
+        ),
+        "icon": KindSpec(
+            suffix=KIND_SUFFIXES["icon"],
+            label="icon pack definition",
+            manifest_schema=load_schema("icon-manifest.schema.json"),
+            meta_schema=load_schema("icon-meta.schema.json"),
+            size_cap=ICON_DEFINITION_SIZE_CAP,  # SPEC F130.1's own 256 KiB definition cap
+            allows_extra=lambda path: False,
+            unexpected_file_hint="only <slug>.icon.json and <slug>.meta.json are allowed in an entry directory",
         ),
     }
     # Order pin (T196 review note): precedence order must BE KIND_SUFFIXES' order —
@@ -494,6 +598,241 @@ def validate_font_pack(entry_dir: Path, slug: str, manifest: object) -> list[str
     return violations
 
 
+def validate_png_asset(path: Path, label: str, rule_prefix: str, max_bytes: int) -> list[str]:
+    """Deep PNG validation (SPEC F128.1) shared by an avatar pack's own items
+    (validate_avatar_pack) AND a persona entry's own optional sidecar face
+    (validate_persona_avatar_sidecar, SPEC F128.2's "same per-item
+    validation") — magic bytes (never extension), IHDR exactly 512x512,
+    <= max_bytes, and acTL (APNG) reject. Ported from the app's own
+    GenWave.Host.Images.PngImageHeader (tools/png_image.py is that port) so
+    catalog CI holds the identical shape the app's own upload pipeline (SPEC
+    F128.6) and avatar-pack install re-validation (SPEC F128.3) already do.
+    `rule_prefix` distinguishes an avatar-pack-item finding from a
+    persona-sidecar finding in the violation id, since the two share every
+    other rule but the paragraph a reviewer reads should say which."""
+    violations: list[str] = []
+    data = path.read_bytes()
+
+    if not has_signature(data):
+        violations.append(
+            f"{label}: {rule_prefix}-png-magic: '{path.name}' is not a PNG file (bad magic bytes) — "
+            "the file extension is never trusted"
+        )
+        return violations  # further structural reads are meaningless on non-PNG bytes
+
+    dims = try_read_dimensions(data)
+    if dims is None:
+        violations.append(f"{label}: {rule_prefix}-png-ihdr: '{path.name}' has no readable IHDR chunk")
+    elif dims != (512, 512):
+        width, height = dims
+        violations.append(
+            f"{label}: {rule_prefix}-png-dimensions: '{path.name}' is {width}x{height}, not exactly 512x512"
+        )
+
+    size = len(data)
+    if size > max_bytes:
+        violations.append(
+            f"{label}: {rule_prefix}-png-oversize: '{path.name}' is {size} bytes, over the {max_bytes}-byte cap"
+        )
+
+    if has_animation_chunk(data):
+        violations.append(
+            f"{label}: {rule_prefix}-png-actl: '{path.name}' is an animated PNG (acTL chunk present before "
+            "the first IDAT) — APNG faces are rejected"
+        )
+
+    return violations
+
+
+def validate_avatar_pack(entry_dir: Path, slug: str, manifest: object) -> list[str]:
+    """Avatar pack gates (SPEC F128.1), on top of the schema check next to
+    this call — mirrors validate_font_pack's own structure and "a pack IS
+    its files" posture:
+
+      - every shipped PNG (avatar_asset_paths) passes validate_png_asset's
+        own four checks (magic bytes, IHDR 512x512, <= 512 KiB per item,
+        acTL reject);
+      - the pack's own PNG assets sum to <= the 6 MiB per-pack ceiling
+        (AVATAR_PACK_BYTE_CEILING);
+      - every item `name` is unique within the pack ("item names unique");
+      - every item `file` names actually exists as one of those assets (an
+        "orphan" reference — an item naming a PNG the entry doesn't ship —
+        is malformed, mirroring validate_font_pack's own orphan gate);
+      - the REVERSE of the orphan check: every physical PNG the entry ships
+        is accounted for by some item's `file` — an unreferenced PNG is a
+        stowaway, just as malformed as an item pointing at nothing.
+
+    A missing/empty asset set is reported even when the manifest itself
+    failed to parse as an object; the name-uniqueness/orphan/stowaway checks
+    all need a parsed dict (`items`, even an absent/empty one, to know
+    what's declared) and are skipped, not reported as new violations, when
+    it isn't one — the schema check next to this call already names that
+    shape failure once."""
+    label = rel(REPO_ROOT, entry_dir)
+    violations: list[str] = []
+
+    assets = avatar_asset_paths(entry_dir)
+    asset_names = {p.name for p in assets}
+
+    if not assets:
+        violations.append(f"{label}: avatar-no-assets: avatar pack ships zero PNG assets")
+
+    for asset_path in assets:
+        violations.extend(validate_png_asset(asset_path, label, "avatar", AVATAR_ITEM_BYTE_CEILING))
+
+    total_bytes = sum(p.stat().st_size for p in assets)
+    if total_bytes > AVATAR_PACK_BYTE_CEILING:
+        violations.append(
+            f"{label}: avatar-pack-ceiling: summed asset bytes {total_bytes} exceeds the "
+            f"{AVATAR_PACK_BYTE_CEILING}-byte per-pack ceiling (SPEC F128.1)"
+        )
+
+    if not isinstance(manifest, dict):
+        return violations
+
+    items = manifest.get("items")
+    declared_files: list[str] = []
+    if isinstance(items, list):
+        declared_names = [
+            item["name"] for item in items if isinstance(item, dict) and isinstance(item.get("name"), str)
+        ]
+        declared_files = [
+            item["file"] for item in items if isinstance(item, dict) and isinstance(item.get("file"), str)
+        ]
+
+        seen_names: set[str] = set()
+        duplicated_names: set[str] = set()
+        for name in declared_names:
+            if name in seen_names:
+                duplicated_names.add(name)
+            seen_names.add(name)
+        for name in sorted(duplicated_names):
+            violations.append(
+                f"{label}: avatar-duplicate-name: manifest declares item name '{name}' more than once in items[]"
+            )
+
+        for file_name in sorted(set(declared_files)):
+            if file_name not in asset_names:
+                violations.append(
+                    f"{label}: avatar-orphan-item-file: manifest names '{file_name}' in items[] but the "
+                    "entry does not ship that asset"
+                )
+
+    # Reverse orphan (the flip side of avatar-orphan-item-file above): a
+    # physical PNG the entry ships that no item's `file` names is a
+    # stowaway — "a pack IS its files" cuts both ways, same posture as
+    # validate_font_pack's own font-stowaway-asset.
+    accounted_for = set(declared_files)
+    for asset_name in sorted(asset_names - accounted_for):
+        violations.append(
+            f"{label}: avatar-stowaway-asset: entry ships '{asset_name}' but no items[] entry names it — "
+            "every shipped asset must be accounted for"
+        )
+
+    return violations
+
+
+def validate_persona_avatar_sidecar(entry_dir: Path, slug: str) -> list[str]:
+    """A persona entry MAY carry exactly one <slug>.avatar.png sidecar face
+    (SPEC F128.2) — the same per-item PNG validation an avatar pack's own
+    items get (validate_png_asset). Absent is fine (the ordinary, pre-F128
+    case, and by far the common one today); any OTHER extra file in the
+    entry directory is already rejected as unexpected-file by
+    validate_entry's own allowed-names check (this kind's own
+    KindSpec.allows_extra only ever admits the ONE exact filename
+    `<slug>.avatar.png`), so "at most one" holds by construction on a real
+    filesystem — unlike the app's own index.json-level ladder
+    (GenWave.Host.Catalog.CatalogIndexValidator.TryValidatePersonaAvatarAsset),
+    which additionally guards against a hand-crafted index.json declaring
+    the SAME path twice in one entry's `assets[]`, a real directory can
+    never hold two files sharing one name, so that particular cardinality
+    violation cannot arise from a real entries/ tree; the belt-and-braces
+    guard against a hand-crafted index.json borrowing a DIFFERENT entry's
+    face is validate_index_slug_ownership's job, not this function's."""
+    sidecar_path = entry_dir / f"{slug}.avatar.png"
+    if not sidecar_path.is_file():
+        return []
+    label = rel(REPO_ROOT, entry_dir)
+    return validate_png_asset(sidecar_path, label, "persona-avatar", AVATAR_ITEM_BYTE_CEILING)
+
+
+def validate_icon_licence_not_in_manifest(manifest_path: Path, manifest: object) -> list[str]:
+    """SPEC F130.6's F1 ruling (amended 2026-08-16 at the T305 review): an
+    icon pack's licence/provenance fields live ONLY in the companion
+    <slug>.meta.json, never inside <slug>.icon.json — F130.1's own
+    gw-icon-pack document is deliberately closed (style + icons, nothing
+    else), so a `license`/`licence` member here would be silently DROPPED
+    the moment GenWave.Host.Icons.IconPackDefinitionSerializer re-serializes
+    the validated model (that class only ever writes
+    schemaVersion/style/icons — see its own remarks). A HARD gate, same
+    posture as validate_theme_font_provenance next to it: better to catch a
+    contributor's misplaced licence text at submission time than let it
+    silently vanish the moment the pack installs."""
+    if not isinstance(manifest, dict):
+        return []
+    present = [key for key in ICON_LICENCE_KEYS if key in manifest]
+    if not present:
+        return []
+    keys = ", ".join(f"'{key}'" for key in present)
+    return [
+        f"{rel(REPO_ROOT, manifest_path)}: icon-licence-in-manifest: icon pack definition carries "
+        f"{keys} at the top level — licence/provenance belongs in the companion <slug>.meta.json only "
+        "(SPEC F130.6); the app's own IconPackDefinitionSerializer would silently drop it here"
+    ]
+
+
+def validate_icon_numeric_finite(manifest_path: Path, manifest: object) -> list[str]:
+    """Every numeric geometry attribute across every icon's every element
+    must be finite (mirrors GenWave.Host.Icons.IconPackDefinitionParser's
+    own double.IsFinite gate on each numeric attribute it reads). JSON's own
+    number grammar admits a syntactically valid literal like `1e400` that
+    overflows to a non-finite float once parsed — no JSON Schema keyword can
+    express "finite", so this Python-side walk is the actual gate here,
+    mirroring the schema-pins-shape/Python-pins-the-numeric-rule split
+    validate_theme_aa already draws for the theme kind's own contrast gate.
+    Defensive throughout: only walks shapes the schema check next to this
+    call has already confirmed are objects/arrays; anything else is
+    silently skipped (already reported once by that schema check)."""
+    if not isinstance(manifest, dict):
+        return []
+    icons = manifest.get("icons")
+    if not isinstance(icons, dict):
+        return []
+
+    violations: list[str] = []
+    for name, elements in icons.items():
+        if not isinstance(elements, list):
+            continue
+        for index, element in enumerate(elements):
+            if not isinstance(element, dict):
+                continue
+            for attr, value in element.items():
+                if attr in ("tag", "d", "points", "fill", "stroke"):
+                    continue
+                if isinstance(value, bool) or not isinstance(value, (int, float)):
+                    continue
+                try:
+                    finite = math.isfinite(float(value))
+                except OverflowError:
+                    finite = False
+                if not finite:
+                    violations.append(
+                        f"{rel(REPO_ROOT, manifest_path)}: icon-attr-not-finite: icon '{name}' element "
+                        f"#{index} attribute '{attr}' is not finite ({value!r})"
+                    )
+
+    return violations
+
+
+def validate_icon_pack(manifest_path: Path, manifest: object) -> list[str]:
+    """Icon pack gates (SPEC F130.1/F130.6) beyond the schema check next to
+    this call: the F1 licence-in-manifest reject, and the finite-numeric
+    walk neither JSON Schema nor that schema check can express."""
+    return validate_icon_licence_not_in_manifest(manifest_path, manifest) + validate_icon_numeric_finite(
+        manifest_path, manifest
+    )
+
+
 def validate_added_date(meta_path: Path, meta: object) -> list[str]:
     """`added` passing the meta schema's pattern only proves it's shaped like
     YYYY-MM-DD — '9999-99-99' matches that pattern but isn't a real calendar
@@ -512,29 +851,33 @@ def validate_added_date(meta_path: Path, meta: object) -> list[str]:
 
 
 def resolve_kind(entry_dir: Path, kind_specs: dict[str, KindSpec]) -> str:
-    """"persona", "theme", "font", or "show" — which manifest filename this
-    entry directory carries, resolved by walking `kind_specs` in ITS OWN
-    insertion order (persona wins if, bizarrely, more than one manifest file
-    is present, then theme, then font, then show — SPEC F104.1 / T195,
-    F118.1 / T253) and returning the first kind whose `*{suffix}` glob
-    actually matches; none present defaults to "persona" (the pre-T179
-    shape, so the caller reports a familiar missing-card violation rather
-    than a new missing-kind one). Glob-matched rather than an exact
-    <slug>.* filename so a slug-mismatched manifest file is still
-    classified — and then reported as a slug-mismatch below, not silently
-    treated as missing.
+    """Which manifest filename this entry directory carries — one of
+    `tools/catalog_lib.py`'s own `KIND_SUFFIXES` keys, the single source of
+    truth for both the kind set and its precedence order (read it there
+    rather than trusting a kind list hand-copied into this prose, the exact
+    staleness T196 review M3 already paid for once) — resolved by walking
+    `kind_specs` in ITS OWN insertion order (persona wins if, bizarrely,
+    more than one manifest file is present in an entry directory, then every
+    other kind in `KIND_SUFFIXES`' own order) and returning the first kind
+    whose `*{suffix}` glob actually matches; none present defaults to
+    "persona" (the pre-T179 shape, so the caller reports a familiar
+    missing-card violation rather than a new missing-kind one). Glob-matched
+    rather than an exact <slug>.* filename so a slug-mismatched manifest
+    file is still classified — and then reported as a slug-mismatch below,
+    not silently treated as missing.
 
     AS OF T196, this precedence exactly mirrors tools/build_index.py's own
-    resolve_manifest — both derive kind from the identical
-    persona-then-theme-then-font(-then-show, T253) manifest-filename
-    convention the app itself gates entry file-refs on (GenWave.Host,
-    T176/T195). Before T196, that function mirrored only the persona/theme
-    two-thirds of this precedence, so a directory this function classified
-    kind:"font" validated here but build_index.py silently never emitted an
-    index entry for it; resolve_manifest's own comment in
-    tools/build_index.py records that history. "This module accepts a font
-    pack" and "build_index.py will actually ship it" are the same claim
-    again."""
+    resolve_manifest — both derive kind from the identical, ordered
+    manifest-filename convention the app itself gates entry file-refs on
+    (GenWave.Host, T176/T195), by walking the SAME `KIND_SUFFIXES` mapping
+    (T196 review M3) rather than each hand-spelling the kind/suffix/
+    precedence triple independently. Before T196, that function mirrored
+    only the persona/theme two-thirds of this precedence, so a directory
+    this function classified kind:"font" validated here but build_index.py
+    silently never emitted an index entry for it; resolve_manifest's own
+    comment in tools/build_index.py records that history. "This module
+    accepts a font pack" and "build_index.py will actually ship it" are the
+    same claim again."""
     for kind, spec in kind_specs.items():
         if any(entry_dir.glob(f"*{spec.suffix}")):
             return kind
@@ -624,6 +967,10 @@ def validate_entry(entry_dir: Path, kind_specs: dict[str, KindSpec], kind_folder
                 violations.extend(validate_theme_font_provenance(manifest_path, slug, manifest_instance))
             elif kind == "font":
                 violations.extend(validate_font_pack(entry_dir, slug, manifest_instance))
+            elif kind == "avatar":
+                violations.extend(validate_avatar_pack(entry_dir, slug, manifest_instance))
+            elif kind == "icon":
+                violations.extend(validate_icon_pack(manifest_path, manifest_instance))
 
     if len(meta_candidates) == 1:
         meta_path = meta_candidates[0]
@@ -639,19 +986,29 @@ def validate_entry(entry_dir: Path, kind_specs: dict[str, KindSpec], kind_folder
             violations.extend(validate_schema(meta_path, meta_instance, spec.meta_schema))
             violations.extend(validate_added_date(meta_path, meta_instance))
 
+    # A persona's own optional avatar sidecar (SPEC F128.2) lives alongside
+    # the card/meta pair above but isn't itself a manifest or a meta file —
+    # checked unconditionally for every persona-kind entry, independent of
+    # whether the card/meta themselves parsed cleanly, since the sidecar PNG
+    # is a wholly separate file or entry_dir.
+    if kind == "persona":
+        violations.extend(validate_persona_avatar_sidecar(entry_dir, slug))
+
     return violations
 
 
 def validate_entries_top_level(entries_dir: Path) -> list[str]:
-    """entries/ may only contain the four known kind folders (`KIND_FOLDERS`'
-    values — personas/, themes/, fonts/, shows/, gh-33), as directories,
-    nothing else — a loose file directly under entries/ (entries/README.md),
-    or a directory whose name isn't one of the four, is a violation
-    (checked regardless of whether that directory happens to itself be a
-    symlink: a name violation and a symlink violation are different
-    problems, and an unknown-named symlinked directory is still
-    unknown-named). A missing or empty kind folder is NOT itself a
-    violation — discover_entry_dirs simply finds nothing under it.
+    """entries/ may only contain the kind folders named in `KIND_FOLDERS`'
+    own values (gh-33 — read that mapping for the current set rather than
+    trusting a name list hand-copied into this prose, the exact staleness
+    T196 review M3 already paid for once), as directories, nothing else — a
+    loose file directly under entries/ (entries/README.md), or a directory
+    whose name isn't one of `KIND_FOLDERS`' values, is a violation (checked
+    regardless of whether that directory happens to itself be a symlink: a
+    name violation and a symlink violation are different problems, and an
+    unknown-named symlinked directory is still unknown-named). A missing or
+    empty kind folder is NOT itself a violation — discover_entry_dirs simply
+    finds nothing under it.
 
     One level deeper, each correctly-named kind folder may in turn only
     contain <slug>/ directories — a loose file sitting directly inside e.g.
@@ -674,12 +1031,12 @@ def validate_entries_top_level(entries_dir: Path) -> list[str]:
                 violations.append(f"{rel(REPO_ROOT, path)}: symlink: symlinks are not allowed under entries/")
             else:
                 violations.append(
-                    f"{rel(REPO_ROOT, path)}: unexpected-file: entries/ may only contain the four known "
+                    f"{rel(REPO_ROOT, path)}: unexpected-file: entries/ may only contain the six known "
                     f"kind folders ({', '.join(sorted(known_folders))})"
                 )
         elif path.name not in known_folders:
             violations.append(
-                f"{rel(REPO_ROOT, path)}: unexpected-file: entries/ may only contain the four known kind "
+                f"{rel(REPO_ROOT, path)}: unexpected-file: entries/ may only contain the six known kind "
                 f"folders ({', '.join(sorted(known_folders))})"
             )
 
@@ -824,7 +1181,23 @@ def validate_index_slug_ownership(index_path: Path, index: object) -> list[str]:
     `KIND_FOLDERS` — only possible via a hand-crafted index.json, since
     schemas/index.schema.json's own `enum` already rejects it — is skipped
     the same way, rather than raising: the schema check next to this call
-    already names that shape failure once."""
+    already names that shape failure once.
+
+    A PERSONA entry's own `assets[]` (its optional avatar sidecar, SPEC
+    F128.2) is held to a SECOND, narrower check on top of the prefix check
+    above (F3, T309 review): schemas/index.schema.json's own `assetRef.path`
+    pattern is now shape-only for this branch (a portable, ECMA-262/.NET-
+    compilable pattern cannot ALSO express "this filename segment equals the
+    entry's own slug" the way a Python-only named-group backreference nearly
+    did — see that pattern's own remarks for why it was removed), so the
+    FILENAME must equal `<slug>.avatar.png` exactly, checked here rather
+    than by pattern — this is what actually stops a persona entry's own
+    sidecar `assets[0]` from naming a SIBLING persona's face file while
+    still resolving under its own directory prefix (e.g.
+    `entries/personas/persona-a/persona-b.avatar.png` passes the prefix
+    check above but names the wrong face), mirroring
+    GenWave.Host.Catalog.CatalogIndexValidator.PersonaAvatarAssetPathPattern's
+    own same-slug rule at the app's own layer instead."""
     if not isinstance(index, dict):
         return []
     entries = index.get("entries")
@@ -856,11 +1229,18 @@ def validate_index_slug_ownership(index_path: Path, index: object) -> list[str]:
                 if isinstance(asset, dict) and isinstance(asset.get("path"), str):
                     refs.append((f"assets[{i}]", asset["path"]))
 
+        expected_sidecar_path = f"{owned_prefix}{slug}.avatar.png"
         for field, path in refs:
             if not path.startswith(owned_prefix):
                 violations.append(
                     f"{rel(REPO_ROOT, index_path)}: slug-ownership: entry '{slug}' {field} path "
                     f"'{path}' does not resolve under '{owned_prefix}'"
+                )
+            elif kind == "persona" and field.startswith("assets[") and path != expected_sidecar_path:
+                violations.append(
+                    f"{rel(REPO_ROOT, index_path)}: slug-ownership: persona entry '{slug}' {field} path "
+                    f"'{path}' must be '{expected_sidecar_path}' — a persona's own avatar sidecar "
+                    "filename must match its own slug, never a sibling's"
                 )
     return violations
 

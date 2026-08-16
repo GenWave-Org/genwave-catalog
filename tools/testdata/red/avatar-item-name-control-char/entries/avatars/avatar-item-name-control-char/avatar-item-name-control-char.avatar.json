@@ -1,0 +1,9 @@
+{
+  "packName": "Avatar Item Name Control Char",
+  "items": [
+    {
+      "name": "Bad\u0001Name",
+      "file": "warm-grin.png"
+    }
+  ]
+}

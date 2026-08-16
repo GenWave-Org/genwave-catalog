@@ -1,0 +1,24 @@
+{
+  "entries": [
+    {
+      "assets": [
+        {
+          "bytes": 1902,
+          "path": "entries/personas/persona-avatar-sibling-face/some-other-persona.avatar.png",
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        }
+      ],
+      "audience": "everyone",
+      "card": {
+        "path": "entries/personas/persona-avatar-sibling-face/persona-avatar-sibling-face.persona.json",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "meta": {
+        "path": "entries/personas/persona-avatar-sibling-face/persona-avatar-sibling-face.meta.json",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "slug": "persona-avatar-sibling-face"
+    }
+  ],
+  "generatedAt": "2026-08-16"
+}

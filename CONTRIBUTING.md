@@ -1,17 +1,19 @@
 # 🤝 Contributing to genwave-catalog
 
 Thanks for wanting to add to the shelf. This is a community catalog for
-[GenWave](https://github.com/GenWave-Org/genwave), carrying four kinds of entry: DJ **personas**,
-**themes**, and **shows** (all three open to community submission) and **font packs**
-(Dean-curated only — see [Font packs](#font-packs-kind-font) below). Every entry here is something
-someone else's radio station can drop straight in. That's a gift to strangers, so we ask a bit of
-care in return. This doc is the full bar: what CI checks mechanically, and what a human reviews.
+[GenWave](https://github.com/GenWave-Org/genwave), carrying six kinds of entry: DJ **personas**,
+**themes**, **shows**, and **avatar packs** (all four open to community submission) and **font
+packs** and **icon packs** (Dean-curated only — see [Font packs](#font-packs-kind-font) and
+[Icon packs](#icon-packs-kind-icon) below). Every entry here is something someone else's radio
+station can drop straight in. That's a gift to strangers, so we ask a bit of care in return. This
+doc is the full bar: what CI checks mechanically, and what a human reviews.
 
-This walkthrough below is the **persona** path. Submitting a **theme** or **show** instead? Read
-this section for the shared mechanics (prerequisites, validate/lint/index/selftest, the PR
-template), then jump to [🎨 Theme submission](#-theme-submission) or
-[🎙 Show submission](#-show-submission) for what's different. Font packs don't follow this path
-at all — see [Font packs](#font-packs-kind-font).
+This walkthrough below is the **persona** path. Submitting a **theme**, **show**, or **avatar
+pack** instead? Read this section for the shared mechanics (prerequisites, validate/lint/index/
+selftest, the PR template), then jump to [🎨 Theme submission](#-theme-submission),
+[🎙 Show submission](#-show-submission), or [🖼 Avatar pack submission](#-avatar-pack-submission)
+for what's different. Font packs and icon packs don't follow this path at all — see
+[Font packs](#font-packs-kind-font) and [Icon packs](#icon-packs-kind-icon).
 
 ## 🚀 Start to finish
 
@@ -80,27 +82,37 @@ CI enforces shape. A human enforces character. Both matter, and both are law her
    never a second entry, and never `schemas/`, `tools/`, `fixtures/`, `.github/`, `README.md`,
    `CONTRIBUTING.md`, `LICENSE`, or `.gitattributes`. Infra changes go in their own PR
    (with no `entries/` edits), where they get reviewed as infra.
+9. **Likeness/CC0 image attestation, image-carrying entries only** (SPEC F128.1) — an avatar
+   pack item, or a persona's own optional `<slug>.avatar.png` sidecar face: "I created/own this
+   image; no real person's likeness, no trademarked characters." CI can't check a drawing's
+   provenance; the PR template's checkbox says so in as many words, and a reviewer eyeballs the
+   image the same way they eyeball `samplePatter`.
 
 **Hard bans, regardless of rating, no exceptions:** hate/harassment content, sexualized minors,
 real-person impersonation, trademarks/branding.
 
-**Per kind:** items 1, 2, 4, 5, and 8 above apply to a theme or a show exactly as written —
-schema-valid, required fields present (against that kind's own schemas, not the persona ones),
-`audience` self-rating, CC0 checkbox, scoped diff. Items 3 and 6 have a theme equivalent and a
-show equivalent, not a persona-only meaning: a theme still needs its own one-line distinctness
-statement (what makes this *look* distinct, not this DJ) and a show needs one too (what makes this
-*show's format* distinct, not this DJ or this look); English-first still applies to whatever prose
-a theme entry carries (`description` — a theme has no `soul`/`lore`/`quirks`/`samplePatter` to
-translate) and to a show's `tagline`/`flavor`/`description`. Item 7 (`tools/lint.py`'s
-prompt-weight budget) is **persona-specific in its exact framing** and does not apply to a theme
-at all — a theme carries no field that rides into a runtime model prompt — but a show carries its
-own separate `tools/lint.py` budget gate on `name`/`tagline`/`flavor` (a different formula, SPEC
-F115.1/F118.4, not the persona's soul-plus-quirks prompt-weight one) — see
-[🎙 Show submission](#-show-submission) below for its numbers. A theme submission adds two gates
-of its own with no persona equivalent (AA contrast, vendored-five faces) — see
-[🎨 Theme submission](#-theme-submission) below; a show submission adds one (the `suggestedPersona`
-slug-shape/64-char cap) — see [🎙 Show submission](#-show-submission). Font packs don't clear this
-bar at all — curated only, see [Font packs](#font-packs-kind-font).
+**Per kind:** items 1, 2, 4, 5, and 8 above apply to a theme, a show, or an avatar pack exactly as
+written — schema-valid, required fields present (against that kind's own schemas, not the persona
+ones), `audience` self-rating, CC0 checkbox, scoped diff. Items 3 and 6 have a theme/show/avatar
+equivalent, not a persona-only meaning: a theme still needs its own one-line distinctness statement
+(what makes this *look* distinct, not this DJ), a show needs one too (what makes this *show's
+format* distinct, not this DJ or this look), and an avatar pack needs one too (what makes this
+*pack's style* distinct); English-first still applies to whatever prose a theme entry carries
+(`description` — a theme has no `soul`/`lore`/`quirks`/`samplePatter` to translate), to a show's
+`tagline`/`flavor`/`description`, and to an avatar pack's `description`. Item 7 (`tools/lint.py`'s
+prompt-weight budget) is **persona-specific in its exact framing** and does not apply to a theme or
+an avatar pack at all — neither carries a field that rides into a runtime model prompt — but a show
+carries its own separate `tools/lint.py` budget gate on `name`/`tagline`/`flavor` (a different
+formula, SPEC F115.1/F118.4, not the persona's soul-plus-quirks prompt-weight one) — see
+[🎙 Show submission](#-show-submission) below for its numbers. Item 9 (the likeness/CC0 image
+attestation) applies to an avatar pack and NOT to a theme or a show — neither carries an image. A
+theme submission adds two gates of its own with no persona equivalent (AA contrast, vendored-five
+faces) — see [🎨 Theme submission](#-theme-submission) below; a show submission adds one (the
+`suggestedPersona` slug-shape/64-char cap) — see [🎙 Show submission](#-show-submission); an avatar
+pack submission adds the PNG image bar itself (magic bytes, exact 512×512, size ceilings, no
+animated PNGs) — see [🖼 Avatar pack submission](#-avatar-pack-submission). Font packs and icon
+packs don't clear this bar at all — curated only, see [Font packs](#font-packs-kind-font) and
+[Icon packs](#icon-packs-kind-icon).
 
 The rest of this doc walks through items 3–7 one at a time, for a persona; theme and show
 specifics are their own sections below.
@@ -211,7 +223,7 @@ Only the files and gates below are theme-specific.
    would silently 404 its font on any station that hadn't installed that exact pack.
 
 The [quality bar](#-the-quality-bar) above still applies — see its "Per kind" note for exactly
-which of the 8 items carry over as-is, which have a theme equivalent, and which are persona-only.
+which of the 9 items carry over as-is, which have a theme equivalent, and which are persona-only.
 
 ## 🎙 Show submission
 
@@ -245,7 +257,51 @@ template) all apply. Only the files and gates below are show-specific.
    which are public.
 
 The [quality bar](#-the-quality-bar) above still applies — see its "Per kind" note for exactly
-which of the 8 items carry over as-is, which have a show equivalent, and which are persona-only.
+which of the 9 items carry over as-is, which have a show equivalent, and which are persona-only.
+
+## 🖼 Avatar pack submission
+
+Avatar packs are open to community submission, same as personas, themes, and shows — the
+mechanics above (prerequisites, `tools/validate.py`, `tools/build_index.py`,
+`tools/run_selftest.sh`, the PR template) all apply. Only the files and gates below are
+avatar-pack-specific. (A persona's own optional `<slug>.avatar.png` sidecar face — a single face
+riding inside an *existing* persona entry, not a standalone pack — follows the exact same PNG
+rules described here; see step 3 below.)
+
+1. **Create `entries/avatars/<your-slug>/`** — author `<slug>.avatar.json` and `<slug>.meta.json`
+   from scratch. Same slug rule as every other kind: `^[a-z0-9]+(-[a-z0-9]+)*$` (README.md's
+   [Slug format](./README.md#slug-format)).
+2. **Author the manifest** (`<slug>.avatar.json`) — validates against
+   `schemas/avatar-manifest.schema.json`. The shape is owned by the
+   [GenWave app repo](https://github.com/GenWave-Org/genwave) (SPEC F128.1), same posture as every
+   other kind's own manifest: this catalog validates a copy of that schema but never changes it.
+   Required: `packName`, `items[]` (each `{ name, file, suggestedPersona? }` — `name` is the
+   display name shown in the Wardrobe's item grid, `file` is the bare PNG filename sitting
+   alongside the manifest, `suggestedPersona` is an OPTIONAL catalog persona slug this face pairs
+   well with — a soft offer, same posture as a show's own `suggestedPersona`).
+3. **Author each PNG item — HARD, no exceptions.** Every PNG this entry ships (a pack's own
+   `items[]` face, or a persona's own `<slug>.avatar.png` sidecar) must clear all four, checked
+   by `tools/validate.py` and re-checked server-side at install time (the catalog's CI is never
+   trusted — SPEC F128.3):
+   - **Real PNG bytes, verified by magic bytes** — never by file extension.
+   - **Exactly 512×512** — read straight off the IHDR chunk; anything else is rejected.
+   - **≤ 512 KiB per item.**
+   - **Never animated (no APNG)** — an `acTL` chunk anywhere before the first `IDAT` is rejected.
+
+   An avatar pack additionally holds two pack-level gates: every item's own PNG assets, summed,
+   must stay **≤ 6 MiB**, and every item's `name` must be **unique within the pack**. Every `file`
+   an item names must correspond to a PNG the entry actually ships (an "orphan" reference is
+   malformed), and — the reverse — every PNG the entry ships must be named by some item's `file`
+   (an unreferenced "stowaway" PNG is just as malformed).
+4. **Author the metadata** (`<slug>.meta.json`) — validates against
+   `schemas/avatar-meta.schema.json`. Required: `author`, `description`, `audience`, `added`.
+   Optional: `bestFor`. No `preview`/`samplePatter` equivalent — the shelf card renders from the
+   manifest's own `packName` plus `author`/`description`/byte total.
+
+The [quality bar](#-the-quality-bar) above still applies — see its "Per kind" note for exactly
+which of the 9 items carry over as-is, which have an avatar-pack equivalent, and which are
+persona-only. Item 9 (the likeness/CC0 image attestation) is the one item with NO theme/show
+equivalent — it exists only for image-carrying entries, and every avatar pack carries one.
 
 ## 🔍 What review looks like
 
@@ -287,3 +343,62 @@ woff2 — attribution travels inside the binary, not only in the pack's `OFL.txt
 `entries/fonts/<slug>/` holding `<slug>.font.json`, `<slug>.meta.json`, the woff2 face(s), and the
 upstream's own `OFL.txt` byte-identical. CI enforces the schemas, the 200 KiB pack ceiling,
 licence allowlist, and stowaway/orphan/duplicate checks (`tools/validate.py`).
+
+## Icon packs (kind: icon)
+
+Icon packs are **Dean-curated only** — no community pack submissions (SPEC F130.6, the FONTS.md
+posture at a lighter weight). Every pack is produced by the offline authoring script in the
+[GenWave app repo](https://github.com/GenWave-Org/genwave)'s `tools/IconPackAuthor/` (SVG source
+set + a name mapping → a schema-valid `<slug>.icon.json` plus a draft `<slug>.meta.json`
+skeleton), converted from an MIT (or equivalently permissive) icon set. An entry is
+`entries/icons/<slug>/` holding exactly `<slug>.icon.json` and `<slug>.meta.json` — an icon pack
+carries no binary assets of its own (its "artwork" is inline geometry, not a file).
+
+**The manifest** (`<slug>.icon.json`) validates against `schemas/icon-manifest.schema.json` — the
+`gw-icon-pack` schema-major-1 document (SPEC F130.1), owned by the
+[GenWave app repo](https://github.com/GenWave-Org/genwave)'s
+`GenWave.Host.Icons.IconPackDefinitionParser`, the single canonical source this catalog schema is
+ported from. Unlike every other kind's manifest schema, this one pins the FULL closed shape, not
+just types: a pack-level `style` (`strokeWidth` in `[0.5, 3]`, `fill` restricted to
+`none`|`currentColor`) and an `icons` map (name → element list) whose elements are a closed
+seven-primitive whitelist — `path`, `rect`, `circle`, `ellipse`, `line`, `polyline`, `polygon` —
+each with its own closed attribute set (an attribute outside that tag's own set is rejected, e.g.
+a `path` may never carry `x`/`y`). A `path`'s `d` and a `polyline`/`polygon`'s `points` are
+restricted to a numeric-geometry character grammar (no letters beyond the SVG path commands, no
+`<`/`>`/`;` — script, hrefs, and CSS are structurally inexpressible). `tools/validate.py` layers on
+what JSON Schema itself cannot express: every numeric geometry attribute must be **finite** (a
+JSON literal like `1e400` is schema-valid but overflows to a non-finite value once parsed), and
+the definition text must stay **≤ 256 KiB**.
+
+**The licence/provenance split — HARD, no exceptions (the F1 ruling, SPEC F130.6 amended
+2026-08-16).** The manifest above is deliberately closed to style+icons only — it carries NO
+licence or provenance field of its own. `license` and `sourceUrl` (plus optional `version`) are
+instead **required in the companion `<slug>.meta.json`** (validates against
+`schemas/icon-meta.schema.json`, alongside the usual `author`/`description`/`audience`/`added`). A
+`license`/`licence` member found INSIDE `<slug>.icon.json` is a HARD `tools/validate.py` rejection
+naming the offense — the app's own `IconPackDefinitionSerializer` re-serializes only what its
+schema defines (`schemaVersion`/`style`/`icons`), so a licence string smuggled into the manifest
+would be silently dropped the moment the pack installs, unattributed.
+
+**Icon names — the house contract (SPEC F130.2).** A pack's `icons` map keys are gated to
+`^[a-z][a-z0-9-]*$`, ≤ 64 characters (`tools/validate.py`, mirrored in the JSON Schema's own
+`propertyNames`). A pack may cover any SUBSET of names — covering a name outside the list below is
+not wrong, merely inert (the admin UI has no slot for it today; an install-time WARN names every
+ignored one). This is the exact set the house admin chrome's
+`admin-ui/app/(authed)/_components/icons.tsx` exports today — the kebab-cased, `Icon`-suffix-
+stripped form of each export (e.g. `PersonaCatalogIcon` → `persona-catalog`), published here per
+PLAN T309 so a pack author has one place to check coverage without cloning the app repo:
+
+| | | | |
+|---|---|---|---|
+| `dashboard` | `live` | `catalog` | `safe-content` |
+| `health` | `persona` | `persona-catalog` | `booth-log` |
+| `settings` | `sign-out` | `sun` | `moon` |
+| `menu` | `close` | `vote-up` | `vote-down` |
+| `restore` | `taste-thumb-up` | `taste-thumb-down` | `schedule` |
+| `shows` | `wardrobe` | `editor` | `exploration` |
+
+This table is a mirror, not the source of truth — `GenWave.Host.Icons.IconNameContract.Names` (app
+repo) and `icons.tsx` (its own parity fact, `Story337_IconPacksSwapTheChrome.cs`) are what actually
+govern the admin UI's rendering; if this table and that constant ever disagree, the app repo wins
+and this table is stale (file an issue).

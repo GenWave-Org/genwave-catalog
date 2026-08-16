@@ -1,0 +1,24 @@
+{
+  "slug": "persona-entry-two-avatar-assets",
+  "audience": "everyone",
+  "card": {
+    "path": "entries/personas/persona-entry-two-avatar-assets/persona-entry-two-avatar-assets.persona.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "meta": {
+    "path": "entries/personas/persona-entry-two-avatar-assets/persona-entry-two-avatar-assets.meta.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "assets": [
+    {
+      "path": "entries/personas/persona-entry-two-avatar-assets/persona-entry-two-avatar-assets.avatar.png",
+      "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "bytes": 1902
+    },
+    {
+      "path": "entries/personas/persona-entry-two-avatar-assets/persona-entry-two-avatar-assets.avatar.png",
+      "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "bytes": 1902
+    }
+  ]
+}
