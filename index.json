@@ -539,6 +539,13 @@
       "slug": "maxxie-volt"
     },
     {
+      "assets": [
+        {
+          "bytes": 367672,
+          "path": "entries/personas/midnight-mabel/midnight-mabel.avatar.png",
+          "sha256": "9d0da80654c43ea72a89b08fa7623d388d91a7f81da007966f09a08bd4b0cac0"
+        }
+      ],
       "audience": "everyone",
       "bestFor": [
         "ambient",
