@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "name": "Show Rotation Maxplays Overflow",
+  "tagline": "Tagline stays comfortably within budget.",
+  "flavor": "Flavor text stays comfortably within budget too, so this fixture isolates the show-rotation-bounds rule from the show-flavor-budget rule.",
+  "envelope": { "rotation": { "maxPlays": 2147483648 } }
+}

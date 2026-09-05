@@ -385,6 +385,24 @@
       "slug": "crate-diggers-hour"
     },
     {
+      "audience": "everyone",
+      "bestFor": [
+        "deep cuts",
+        "never played",
+        "rediscovery"
+      ],
+      "kind": "show",
+      "manifest": {
+        "path": "entries/shows/deep-cuts/deep-cuts.show.json",
+        "sha256": "a39cc6b390038104b679d2b4b149ccf8a1f57f0ea3a0cb45b46a606fc77c4436"
+      },
+      "meta": {
+        "path": "entries/shows/deep-cuts/deep-cuts.meta.json",
+        "sha256": "3fa5754c7c2dc839922b08b0704f8c59f0f045cca4fc5533856d367ee9b3c2bf"
+      },
+      "slug": "deep-cuts"
+    },
+    {
       "assets": [
         {
           "bytes": 471337,

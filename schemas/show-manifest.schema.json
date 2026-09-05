@@ -2,28 +2,68 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://raw.githubusercontent.com/GenWave-Org/genwave-catalog/main/schemas/show-manifest.schema.json",
   "title": "GenWave Show Manifest",
-  "description": "The <slug>.show.json shape a GenWave station imports (app repo SPEC F118.1/F118.2, format owned by GenWave-Org/genwave — GenWave.Host's own manifest parser lands at PLAN T254). Mirrors persona-card.schema.json / theme-manifest.schema.json's posture exactly: additionalProperties is true throughout, and this schema pins TYPES ONLY — no maxLength on name/tagline/flavor. SPEC F115.1's field-length budgets (name<=60, tagline<=120, flavor<=400 chars at 1x, reasoned-not-fitted, the F89.5 numbers-stated-once posture) live in three other places instead: the app's own GenWave.Core.Domain.ShowBudgets (1x, editor-enforced at write time), the app parser (hard-rejects >2x — SPEC F115.1, PLAN T254; catalog CI is deliberately one char stricter, red at exactly 2x — SPEC F118.4/STORY-314 AC1), and tools/lint.py (WARN>1x, HARD>=2x — SPEC F118.4) — never in this schema, so a byte-valid manifest that merely exceeds a budget is never rejected here.",
+  "description": "The <slug>.show.json shape a GenWave station imports (app repo SPEC F118.1/F118.2, format owned by GenWave-Org/genwave \u2014 GenWave.Host's own manifest parser is GenWave.Host.Shows.ShowManifestParser). Mirrors persona-card.schema.json / theme-manifest.schema.json's posture exactly: additionalProperties is true throughout, and this schema pins TYPES ONLY \u2014 no maxLength on name/tagline/flavor. SPEC F115.1's field-length budgets (name<=60, tagline<=120, flavor<=400 chars at 1x, reasoned-not-fitted, the F89.5 numbers-stated-once posture) live in three other places instead: the app's own GenWave.Core.Domain.ShowBudgets (1x, editor-enforced at write time), the app parser (hard-rejects >2x \u2014 SPEC F115.1, PLAN T254; catalog CI is deliberately one char stricter, red at exactly 2x \u2014 SPEC F118.4/STORY-314 AC1), and tools/lint.py (WARN>1x, HARD>=2x \u2014 SPEC F118.4) \u2014 never in this schema, so a byte-valid manifest that merely exceeds a budget is never rejected here. Schema **1.1** (PLAN T364, this repo's own minor \u2014 the wire `schemaVersion` integer below stays MAJOR-only, unaffected): adds the optional `envelope.rotation` object (SPEC F152.6). The SAME types-only posture holds for it: `rotation`'s own \"at least one of maxPlays/notAiredWithinDays must be set\" rule is deliberately NOT expressed here (no `minProperties` on `rotation`) \u2014 that is a cross-property business rule, the identical shape of judgment call the field-length budgets above already keep out of this file, and GenWave.Host.Shows.ShowManifestParser.ParseEnvelope enforces it exactly the same way it enforces every other non-type business rule (via RotationPredicateRules.Validate, not a schema). tools/lint.py's own `show-rotation-bounds` HARD rule is this repo's matching enforcement, mirroring how the length budgets above are lint's job, not this schema's. The per-field integer ranges on `maxPlays`/`notAiredWithinDays` below ARE kept in-schema, unlike the length budgets: they are the app parser's own HARD, non-negotiable domain bounds (RotationPredicateRules.MinNotAiredWithinDays/MaxNotAiredWithinDays, maxPlays >= 0, and int32 overflow via System.Text.Json's TryGetInt32) rather than a two-tier WARN/HARD submission judgment call, so pinning them as a plain integer range is still a TYPE-shaped constraint, not a budget. `rotation`, `maxPlays`, and `notAiredWithinDays` each additionally admit JSON `null` (SPEC F152.3's own documented `{\"rotation\":{\"maxPlays\":0,\"notAiredWithinDays\":null}}` payload) \u2014 GenWave.Host.Shows.ShowManifestParser.ParseEnvelope treats an explicit null identically to an absent key at all three of those positions, so this schema must too, or a byte-valid, parser-accepted manifest would fail catalog CI. `envelope` itself is the ONE deliberate exception: it stays `\"type\": \"object\"` with no `null` alternative, which is STRICTER than ParseEnvelope (which tolerates a missing, null, or otherwise non-object envelope as \"no rotation opinion\" and simply moves on) \u2014 the same fail-closed catalog-CI-stricter-than-the-app posture the F118.4/STORY-314 AC1 2x-boundary note above already documents, not a mirroring gap to close.",
   "type": "object",
   "additionalProperties": true,
-  "required": ["schemaVersion", "name", "tagline", "flavor"],
+  "required": [
+    "schemaVersion",
+    "name",
+    "tagline",
+    "flavor"
+  ],
   "properties": {
     "schemaVersion": {
       "type": "integer",
       "minimum": 1,
-      "description": "Manifest format major version — the same posture as PersonaCard.schemaVersion / ThemeManifest's own schemaVersion: a future app-side manifest parser (PLAN T254) rejects any manifest whose major exceeds what it knows, but tolerates unknown fields within a known major."
+      "description": "Manifest format major version \u2014 the same posture as PersonaCard.schemaVersion / ThemeManifest's own schemaVersion: the app-side manifest parser (GenWave.Host.Shows.ShowManifestParser) rejects any manifest whose major exceeds what it knows, but tolerates unknown fields within a known major. Stays 1 for schema 1.1 (this file's own minor bump, PLAN T364) \u2014 envelope.rotation is additive within the same major."
     },
     "name": {
       "type": "string",
       "minLength": 1,
-      "description": "Show name (SPEC F115.1) — public by construction, joins the F67 disclosure inventory as a pinned field alongside tagline (SPEC F115.3). GenWave.Core.Domain.Show.Name is non-nullable, mirrored here as a required, non-empty string the same way persona-card.schema.json's own `name` is."
+      "description": "Show name (SPEC F115.1) \u2014 public by construction, joins the F67 disclosure inventory as a pinned field alongside tagline (SPEC F115.3). GenWave.Core.Domain.Show.Name is non-nullable, mirrored here as a required, non-empty string the same way persona-card.schema.json's own `name` is."
     },
     "tagline": {
       "type": "string",
-      "description": "Public, broadcast-shaped one-liner (SPEC F115.1/F115.3). Empty string (\"\") is a legal, byte-valid export — GenWave.Core.Domain.Show.Tagline is a nullable column, so an authored show with no tagline set exports as \"\" the same way persona-card.schema.json's own `tagline` documents for a persona with none. A non-empty bar for a catalog SUBMISSION is CONTRIBUTING.md's job, not this format schema's."
+      "description": "Public, broadcast-shaped one-liner (SPEC F115.1/F115.3). Empty string (\"\") is a legal, byte-valid export \u2014 GenWave.Core.Domain.Show.Tagline is a nullable column, so an authored show with no tagline set exports as \"\" the same way persona-card.schema.json's own `tagline` documents for a persona with none. A non-empty bar for a catalog SUBMISSION is CONTRIBUTING.md's job, not this format schema's."
     },
     "flavor": {
       "type": "string",
-      "description": "Prompt-only text, private forever (SPEC F115.3 — the persona-soul precedent, mirroring persona-card.schema.json's own `soul` exactly): never appears in a public payload, spectator surface, or log line. The full-card import confirm (SPEC F118.2) shows it to the owner adopting it, since it lands as prompt config the moment the show installs. Empty string (\"\") is a legal, byte-valid export — GenWave.Core.Domain.Show.Flavor is a nullable column, so an authored show with no flavor set exports as \"\" the same way `soul` does for a persona with none."
+      "description": "Prompt-only text, private forever (SPEC F115.3 \u2014 the persona-soul precedent, mirroring persona-card.schema.json's own `soul` exactly): never appears in a public payload, spectator surface, or log line. The full-card import confirm (SPEC F118.2) shows it to the owner adopting it, since it lands as prompt config the moment the show installs. Empty string (\"\") is a legal, byte-valid export \u2014 GenWave.Core.Domain.Show.Flavor is a nullable column, so an authored show with no flavor set exports as \"\" the same way `soul` does for a persona with none."
+    },
+    "envelope": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Schema 1.1 addition (SPEC F152.6, PLAN T364) \u2014 optional. Missing entirely, or carrying unknown keys besides `rotation`, are both forward-compat, never an error (additionalProperties stays true, same posture as the manifest's own top level) \u2014 that much mirrors GenWave.Host.Shows.ShowManifestParser.ParseEnvelope's own tolerance. But `envelope` itself is pinned to `\"type\": \"object\"` with no `null` alternative, which is DELIBERATELY STRICTER than ParseEnvelope: the parser treats a present-but-non-object (or explicit-null) `envelope` the same as a missing one \u2014 \"no rotation opinion\", not an error \u2014 while this schema rejects that shape outright at catalog CI time (see this file's own top-level description). Only `rotation` is given shape below; today it is the one key ParseEnvelope reads.",
+      "properties": {
+        "rotation": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": true,
+          "description": "The SPEC F152.1/F152.3/F152.6 rotation predicate a show's import may carry. Admits JSON `null` (equivalent to omitting `rotation` entirely) in addition to an object, mirroring GenWave.Host.Shows.ShowManifestParser.ParseEnvelope's own `rotationElement.ValueKind == JsonValueKind.Null` tolerance exactly \u2014 SPEC F152.3's own documented `{\"rotation\":{\"maxPlays\":0,\"notAiredWithinDays\":null}}` payload is a sibling case (a null BOUND, not a null rotation) covered by maxPlays/notAiredWithinDays's own type below. Deliberately NOT `minProperties: 1` on the object branch: \"at least one of maxPlays/notAiredWithinDays must be set\" is a cross-property business rule, not a type \u2014 this schema's own preamble keeps that class of rule out (the same posture the name/tagline/flavor length budgets already take), and tools/lint.py's `show-rotation-bounds` HARD rule is the enforcement, matching ParseEnvelope's own refusal app-side. A `rotation` that is present but neither `null` nor a JSON object (e.g. a string or array) still fails HERE, at the type level, same as any other type mismatch in this schema.",
+          "properties": {
+            "maxPlays": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0,
+              "maximum": 2147483647,
+              "description": "Reject a show after this many plays (SPEC F152.1) \u2014 mirrors GenWave.Host.Shows.ShowManifestParser's own bound exactly: `0..2147483647` inclusive (RotationPredicateRules.Validate's `maxPlays >= 0` HARD floor, and the app parser's own System.Text.Json `JsonElement.TryGetInt32` ceiling \u2014 a value the wire format could otherwise carry as a JSON number but that overflows Int32 and so the app's own import would 400 on). Optional, and admits JSON `null` as equivalent to omitting the key (GenWave.Host.Shows.ShowManifestParser's own `ReadOptionalRotationInt` treats a present JSON `null` identically to an absent key \u2014 see SPEC F152.3's own documented payload) \u2014 but when present as a number, must be a whole number in that range."
+            },
+            "notAiredWithinDays": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 1,
+              "maximum": 3650,
+              "description": "Reject a show unless it has gone unaired for at least this many days (SPEC F152.1) \u2014 mirrors GenWave.Host.RotationPredicateRules.MinNotAiredWithinDays/MaxNotAiredWithinDays exactly (1..3650 inclusive). Optional, and admits JSON `null` as equivalent to omitting the key (GenWave.Host.Shows.ShowManifestParser's own `ReadOptionalRotationInt` treats a present JSON `null` identically to an absent key \u2014 SPEC F152.3's own documented payload sets exactly this field to `null` alongside a set `maxPlays`) \u2014 but when present as a number, must be a whole number in that range."
+            }
+          }
+        }
+      }
     }
   }
 }
