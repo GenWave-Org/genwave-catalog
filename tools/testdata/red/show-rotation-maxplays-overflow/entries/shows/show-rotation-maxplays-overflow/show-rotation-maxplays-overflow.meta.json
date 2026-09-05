@@ -1,0 +1,6 @@
+{
+  "author": "Red Fixture",
+  "description": "Red-variant fixture: envelope.rotation.maxPlays is 2147483648, one past Int32.MaxValue — the app parser's own System.Text.Json TryGetInt32 rejects it (400) even though it is a schema-valid JSON number, so both schemas/show-manifest.schema.json's own maximum and tools/lint.py's show-rotation-bounds rule must reject it (PLAN T364 review MED-2).",
+  "audience": "everyone",
+  "added": "2026-08-29"
+}

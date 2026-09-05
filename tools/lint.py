@@ -40,6 +40,26 @@ Rules enforced, each a two-tier check (WARN, then HARD if far enough over):
     "HARD >= 2x" explicitly). The budget numbers themselves are read off
     GenWave.Core.Domain.ShowBudgets (name<=60, tagline<=120, flavor<=400 at
     1x) rather than re-declared — SPEC F89.5's numbers-stated-once posture.
+  - show-rotation-bounds: HARD ONLY, no warn tier (SPEC F152.1/F152.3/
+    F152.6, PLAN T364) — fires on a show manifest whose envelope.rotation is
+    PRESENT and non-null (a missing envelope, or a missing or explicit-null
+    envelope.rotation, is not this rule's concern — same silent-skip shape
+    as the rest of this file, and how SPEC F152.3's own documented
+    "notAiredWithinDays: null" bound stays quiet too) and any of: (a)
+    neither maxPlays nor notAiredWithinDays is set; (b) maxPlays is set (and
+    not null) and is outside 0..2147483647 (SHOW_ROTATION_MAX_PLAYS_MIN..MAX
+    — the app parser's own int32-overflow ceiling, not just its
+    non-negative floor) or not a whole number; (c) notAiredWithinDays is set
+    (and not null) and is outside 1..3650 or not a whole number; (d)
+    rotation itself is neither null nor a JSON object. Mirrors
+    GenWave.Host.RotationPredicateRules.Validate plus
+    GenWave.Host.Shows.ShowManifestParser.ParseEnvelope's own JSON-shape
+    gate exactly, so a manifest that would fail the app's own import fails
+    catalog CI for the identical reason before it ever reaches a station.
+    HARD from the first violation — this is the app's own non-negotiable
+    domain bound (schema 1.1's own show-manifest.schema.json remarks record
+    why it stays out of that schema, types-only, and belongs here instead),
+    not a two-tier submission judgment call like the length budgets above.
 
 A hard finding implies its warn threshold was also crossed; only the HARD
 line is printed for that field+check, never both.
@@ -133,6 +153,26 @@ SHOW_NAME_BUDGET = 60
 SHOW_TAGLINE_BUDGET = 120
 SHOW_FLAVOR_BUDGET = 400
 
+# SPEC F152.1/F152.6's rotation predicate bounds — mirrors
+# GenWave.Host.RotationPredicateRules.{MinNotAiredWithinDays,MaxNotAiredWithinDays}
+# and the app parser's own `maxPlays >= 0` check exactly (the F89.5
+# numbers-stated-once rule). Unlike the show length budgets just above,
+# these are the app's own non-negotiable domain bounds, not a two-tier
+# WARN/HARD submission judgment call — see check_show_rotation_bounds.
+# SHOW_ROTATION_MAX_PLAYS_MAX is int32's own max value (2147483647,
+# System.Int32.MaxValue) — GenWave.Host.Shows.ShowManifestParser's own
+# ReadOptionalRotationInt reads maxPlays via System.Text.Json's
+# JsonElement.TryGetInt32, so a JSON number the wire format could
+# otherwise carry (draft-07 has no int32 concept) but that overflows
+# Int32 is a value the app's own import would 400 on — this repo's
+# tools/validate.py schema-level "maximum" and this lint's own
+# check_show_rotation_bounds both catch it independently, same
+# defense-in-depth posture as every other rotation bound.
+SHOW_ROTATION_MAX_PLAYS_MIN = 0
+SHOW_ROTATION_MAX_PLAYS_MAX = 2147483647
+SHOW_ROTATION_NOT_AIRED_WITHIN_DAYS_MIN = 1
+SHOW_ROTATION_NOT_AIRED_WITHIN_DAYS_MAX = 3650
+
 VERBOSITY_PHRASES = (
     "ramble",
     "at length",
@@ -186,22 +226,33 @@ def load_card_fields(card_path: Path) -> tuple[str, list[str], list[str], str, o
     return soul, quirks, lore, name, pronunciations
 
 
-def load_show_fields(manifest_path: Path) -> tuple[str, str, str] | None:
-    """Read and shape-check a show manifest. Returns (name, tagline, flavor)
-    when all three are present and correctly typed, else None — a silent
-    skip, the same load_card_fields contract above (shape law belongs to
-    validate.py, not here)."""
+def _load_json_object(path: Path) -> dict[str, object] | None:
+    """Read `path` as UTF-8 and parse it as JSON, returning the top-level
+    value as a plain dict, or None for anything that isn't a clean,
+    object-shaped JSON document (unreadable file, invalid JSON, or a
+    top-level value that isn't a JSON object). The one shared read+parse
+    prologue load_show_fields and load_show_rotation both need — a show
+    manifest is read and parsed exactly ONCE per lint_entries pass (see
+    that function), never once per check, now that both loaders take the
+    already-parsed dict rather than a path."""
     try:
-        raw = manifest_path.read_text(encoding="utf-8")
+        raw = path.read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError):
         return None
     try:
-        manifest = json.loads(raw)
+        document = json.loads(raw)
     except json.JSONDecodeError:
         return None
-    if not isinstance(manifest, dict):
+    if not isinstance(document, dict):
         return None
+    return document
 
+
+def load_show_fields(manifest: dict[str, object]) -> tuple[str, str, str] | None:
+    """Shape-check an already-parsed show manifest (see _load_json_object).
+    Returns (name, tagline, flavor) when all three are present and
+    correctly typed, else None — a silent skip, the same load_card_fields
+    contract above (shape law belongs to validate.py, not here)."""
     name = manifest.get("name")
     tagline = manifest.get("tagline")
     flavor = manifest.get("flavor")
@@ -210,6 +261,39 @@ def load_show_fields(manifest_path: Path) -> tuple[str, str, str] | None:
         return None
 
     return name, tagline, flavor
+
+
+# Sentinel for load_show_rotation: distinguishes "nothing to check" (a
+# missing/non-object envelope, or a missing/JSON-null rotation key — every
+# one of these is a "no rotation opinion" case, not a finding, mirroring
+# GenWave.Host.Shows.ShowManifestParser.ParseEnvelope's own null-return
+# cases exactly) from an ACTUAL rotation value worth judging, which may
+# itself legitimately be `None`-shaped JSON like `false` or `0` — a plain
+# `None` return value could not tell those two apart.
+ROTATION_ABSENT = object()
+
+
+def load_show_rotation(manifest: dict[str, object]) -> object:
+    """Read an already-parsed show manifest's (see _load_json_object)
+    optional `envelope.rotation` raw value. Returns ROTATION_ABSENT when
+    there is nothing for check_show_rotation_bounds to judge (`envelope`
+    missing or not an object, or `rotation` missing or explicit JSON
+    `null` — GenWave.Host.Shows.ShowManifestParser.ParseEnvelope treats an
+    explicit `envelope.rotation: null` identically to an absent key, and
+    this branch is what makes that reachable here too) — otherwise returns
+    `rotation` exactly as parsed, whatever shape it turns out to be
+    (check_show_rotation_bounds itself judges that shape). A separate
+    loader from load_show_fields, same one-concern-per-loader idiom as
+    load_card_fields vs. load_show_fields above — this rule's silent-skip
+    cases are its own, not name/tagline/flavor's."""
+    envelope = manifest.get("envelope")
+    if not isinstance(envelope, dict):
+        return ROTATION_ABSENT
+
+    if "rotation" not in envelope or envelope["rotation"] is None:
+        return ROTATION_ABSENT
+
+    return envelope["rotation"]
 
 
 def check_show_field_budget(value: str, budget: int, rule: str, field_label: str) -> list[Finding]:
@@ -232,6 +316,86 @@ def lint_show(name: str, tagline: str, flavor: str) -> list[Finding]:
     findings.extend(check_show_field_budget(name, SHOW_NAME_BUDGET, "show-name-budget", "name"))
     findings.extend(check_show_field_budget(tagline, SHOW_TAGLINE_BUDGET, "show-tagline-budget", "tagline"))
     findings.extend(check_show_field_budget(flavor, SHOW_FLAVOR_BUDGET, "show-flavor-budget", "flavor"))
+    return findings
+
+
+def check_show_rotation_bounds(rotation: object) -> list[Finding]:
+    """HARD-only show-rotation-bounds (SPEC F152.1/F152.6, PLAN T364).
+    `rotation` is already known to be PRESENT here (see load_show_rotation's
+    own ROTATION_ABSENT contract — the caller never invokes this for a
+    missing/null envelope.rotation, and that case produces no finding).
+
+    Mirrors GenWave.Host.RotationPredicateRules.Validate plus
+    GenWave.Host.Shows.ShowManifestParser.ParseEnvelope's own JSON-shape
+    gate exactly: (d) rotation itself must be a JSON object; then, once it
+    is, (b) a present maxPlays must be a whole number in
+    SHOW_ROTATION_MAX_PLAYS_MIN..MAX (0..2147483647 — the app parser's own
+    int32-overflow ceiling, not just its non-negative floor), (c) a
+    present notAiredWithinDays must be a whole number in
+    SHOW_ROTATION_NOT_AIRED_WITHIN_DAYS_MIN..MAX, and (a) at least one of
+    the two must be set at all — booleans are rejected as "not a whole
+    number" the same way the app parser's JsonValueKind.Number-only gate
+    would reject a JSON `true`/`false` for either field."""
+    if not isinstance(rotation, dict):
+        return [
+            (
+                HARD,
+                "show-rotation-bounds",
+                f"envelope.rotation must be an object, got {rotation!r}",
+            )
+        ]
+
+    findings: list[Finding] = []
+    max_plays = rotation.get("maxPlays")
+    not_aired_within_days = rotation.get("notAiredWithinDays")
+
+    if max_plays is not None:
+        if isinstance(max_plays, bool) or not isinstance(max_plays, int):
+            findings.append(
+                (HARD, "show-rotation-bounds", f"envelope.rotation.maxPlays must be a whole number, got {max_plays!r}")
+            )
+        elif not (SHOW_ROTATION_MAX_PLAYS_MIN <= max_plays <= SHOW_ROTATION_MAX_PLAYS_MAX):
+            findings.append(
+                (
+                    HARD,
+                    "show-rotation-bounds",
+                    f"envelope.rotation.maxPlays is {max_plays}, must be between "
+                    f"{SHOW_ROTATION_MAX_PLAYS_MIN} and {SHOW_ROTATION_MAX_PLAYS_MAX}",
+                )
+            )
+
+    if not_aired_within_days is not None:
+        if isinstance(not_aired_within_days, bool) or not isinstance(not_aired_within_days, int):
+            findings.append(
+                (
+                    HARD,
+                    "show-rotation-bounds",
+                    f"envelope.rotation.notAiredWithinDays must be a whole number, got {not_aired_within_days!r}",
+                )
+            )
+        elif not (
+            SHOW_ROTATION_NOT_AIRED_WITHIN_DAYS_MIN
+            <= not_aired_within_days
+            <= SHOW_ROTATION_NOT_AIRED_WITHIN_DAYS_MAX
+        ):
+            findings.append(
+                (
+                    HARD,
+                    "show-rotation-bounds",
+                    f"envelope.rotation.notAiredWithinDays is {not_aired_within_days}, must be between "
+                    f"{SHOW_ROTATION_NOT_AIRED_WITHIN_DAYS_MIN} and {SHOW_ROTATION_NOT_AIRED_WITHIN_DAYS_MAX}",
+                )
+            )
+
+    if max_plays is None and not_aired_within_days is None:
+        findings.append(
+            (
+                HARD,
+                "show-rotation-bounds",
+                "envelope.rotation sets neither maxPlays nor notAiredWithinDays — at least one is required",
+            )
+        )
+
     return findings
 
 
@@ -431,12 +595,20 @@ def lint_entries(entries_dir: Path) -> list[tuple[str, str, str, str]]:
                 results.append((tier, label, rule, message))
 
         show_path = entry_dir / f"{slug}.show.json"
-        show_fields = load_show_fields(show_path)
-        if show_fields is not None:
-            show_name, tagline, flavor = show_fields
+        show_manifest = _load_json_object(show_path)
+        if show_manifest is not None:
             show_label = rel(REPO_ROOT, show_path)
-            for tier, rule, message in lint_show(show_name, tagline, flavor):
-                results.append((tier, show_label, rule, message))
+
+            show_fields = load_show_fields(show_manifest)
+            if show_fields is not None:
+                show_name, tagline, flavor = show_fields
+                for tier, rule, message in lint_show(show_name, tagline, flavor):
+                    results.append((tier, show_label, rule, message))
+
+            rotation = load_show_rotation(show_manifest)
+            if rotation is not ROTATION_ABSENT:
+                for tier, rule, message in check_show_rotation_bounds(rotation):
+                    results.append((tier, show_label, rule, message))
     return results
 
 
