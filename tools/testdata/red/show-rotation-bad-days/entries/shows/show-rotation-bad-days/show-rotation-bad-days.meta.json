@@ -1,0 +1,6 @@
+{
+  "author": "Red Fixture",
+  "description": "Red-variant fixture: envelope.rotation.notAiredWithinDays is 0, one below the SPEC F152.1 inclusive 1..3650 range, so tools/lint.py's show-rotation-bounds rule must HARD-fail it (PLAN T364).",
+  "audience": "everyone",
+  "added": "2026-08-29"
+}

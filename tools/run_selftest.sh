@@ -35,9 +35,16 @@
 #      valid-show fixture end to end, red schema-shape gates (missing
 #      flavor, missing audience), fixtures/golden.show.json against the
 #      show-manifest schema, build_index.py's show-kind projection (kind +
-#      manifest only, no card/assets/family/preview), and tools/lint.py's
+#      manifest only, no card/assets/family/preview), tools/lint.py's
 #      show budget lint (WARN>1x on every field, HARD>=2x on flavor at
-#      exactly the 2x boundary)
+#      exactly the 2x boundary), and tools/lint.py's HARD-only
+#      show-rotation-bounds rule (schema 1.1's optional envelope.rotation,
+#      SPEC F152.1/F152.3/F152.6, PLAN T364): red variants for "neither
+#      bound set", "notAiredWithinDays out of range", and "maxPlays past
+#      Int32.MaxValue" (the last one also red at the schema level, its own
+#      "maximum" keyword); green fixtures with maxPlays: 0, with SPEC
+#      F152.3's own documented null-bound payload, and with an explicit
+#      envelope.rotation: null, all validating and linting clean
 #  13. per-kind entries/ folder layout invariants (gh-33): a manifest whose
 #      kind folder disagrees with its own manifest-filename suffix
 #      (kind-folder-mismatch), and the same slug held by two different kind
@@ -132,6 +139,9 @@ FONT_OVER_CEILING_ASSET="$RED_DIR/font-over-ceiling/entries/fonts/font-over-ceil
 
 SHOW_GREEN_FIXTURE="tools/testdata/green/valid-show"
 HEAVY_SHOW_DIR="tools/testdata/warn/heavy-show"
+SHOW_ROTATION_GREEN_FIXTURE="tools/testdata/green/valid-show-with-rotation"
+SHOW_ROTATION_NULL_BOUND_GREEN_FIXTURE="tools/testdata/green/valid-show-with-null-bound"
+SHOW_ROTATION_NULL_ROTATION_GREEN_FIXTURE="tools/testdata/green/valid-show-with-null-rotation"
 
 AVATAR_GREEN_FIXTURE="tools/testdata/green/valid-avatar"
 PERSONA_AVATAR_GREEN_FIXTURE="tools/testdata/green/valid-dj-with-avatar"
@@ -156,6 +166,9 @@ TMP_PERSONA_AVATAR_INDEX_TREE=""
 TMP_ICON_TREE=""
 TMP_ICON_INDEX_TREE=""
 TMP_AVATAR_INDEX_TREE=""
+TMP_SHOW_ROTATION_TREE=""
+TMP_SHOW_ROTATION_NULL_BOUND_TREE=""
+TMP_SHOW_ROTATION_NULL_ROTATION_TREE=""
 cleanup() {
     rm -f "$OVERSIZE_CARD"
     rm -f "$FONT_OVER_CEILING_ASSET"
@@ -179,6 +192,9 @@ cleanup() {
     [[ -n "$TMP_ICON_TREE" ]] && rm -rf "$TMP_ICON_TREE"
     [[ -n "$TMP_ICON_INDEX_TREE" ]] && rm -rf "$TMP_ICON_INDEX_TREE"
     [[ -n "$TMP_AVATAR_INDEX_TREE" ]] && rm -rf "$TMP_AVATAR_INDEX_TREE"
+    [[ -n "$TMP_SHOW_ROTATION_TREE" ]] && rm -rf "$TMP_SHOW_ROTATION_TREE"
+    [[ -n "$TMP_SHOW_ROTATION_NULL_BOUND_TREE" ]] && rm -rf "$TMP_SHOW_ROTATION_NULL_BOUND_TREE"
+    [[ -n "$TMP_SHOW_ROTATION_NULL_ROTATION_TREE" ]] && rm -rf "$TMP_SHOW_ROTATION_NULL_ROTATION_TREE"
 }
 trap cleanup EXIT
 
@@ -987,6 +1003,105 @@ else
     fail "heavy-show lint.py did not report exactly 3 total warnings"
 fi
 echo
+
+echo "== lint.py: show-rotation-bounds (SPEC F152.1/F152.6, PLAN T364) =="
+
+echo "-- red show-rotation-no-bound: envelope.rotation present but sets neither maxPlays nor notAiredWithinDays --"
+check_red_lint show-rotation-no-bound "show-rotation-bounds: envelope.rotation sets neither maxPlays nor notAiredWithinDays"
+
+echo "-- red show-rotation-bad-days: notAiredWithinDays is 0, one below the inclusive 1..3650 range --"
+check_red_lint show-rotation-bad-days "show-rotation-bounds: envelope.rotation.notAiredWithinDays is 0, must be between 1 and 3650"
+
+echo "-- green valid-show-with-rotation: a schema-valid manifest carrying envelope.rotation.maxPlays=0 validates clean and lints clean (schema 1.1) --"
+TMP_SHOW_ROTATION_TREE="$(mktemp -d)"
+mkdir -p "$TMP_SHOW_ROTATION_TREE/entries/shows/valid-show-with-rotation"
+cp "$SHOW_ROTATION_GREEN_FIXTURE/valid-show-with-rotation.show.json" \
+    "$TMP_SHOW_ROTATION_TREE/entries/shows/valid-show-with-rotation/valid-show-with-rotation.show.json"
+cp "$SHOW_ROTATION_GREEN_FIXTURE/valid-show-with-rotation.meta.json" \
+    "$TMP_SHOW_ROTATION_TREE/entries/shows/valid-show-with-rotation/valid-show-with-rotation.meta.json"
+output=$(python3 tools/validate.py --root "$TMP_SHOW_ROTATION_TREE" 2>&1)
+status=$?
+echo "$output"
+if [[ $status -eq 0 ]]; then
+    pass "green valid-show-with-rotation fixture validates clean (schemas/show-manifest.schema.json envelope.rotation shape)"
+else
+    fail "green valid-show-with-rotation fixture did not validate clean (expected exit 0, got $status)"
+fi
+output=$(python3 tools/lint.py --root "$TMP_SHOW_ROTATION_TREE" 2>&1)
+status=$?
+echo "$output"
+if [[ $status -eq 0 ]]; then
+    pass "green valid-show-with-rotation fixture lints clean"
+else
+    fail "green valid-show-with-rotation fixture did not lint clean (expected exit 0, got $status)"
+fi
+if grep -qF "show-rotation-bounds" <<<"$output"; then
+    fail "green valid-show-with-rotation fixture unexpectedly triggered show-rotation-bounds"
+else
+    pass "green valid-show-with-rotation fixture triggers no show-rotation-bounds finding"
+fi
+echo
+
+echo "== validate.py + lint.py: envelope.rotation JSON null tolerance (SPEC F152.1/F152.3/F152.6, PLAN T364 review MED-1) =="
+
+echo "-- green valid-show-with-null-bound: SPEC F152.3's own documented payload (maxPlays set, notAiredWithinDays explicit null) validates and lints clean --"
+TMP_SHOW_ROTATION_NULL_BOUND_TREE="$(mktemp -d)"
+mkdir -p "$TMP_SHOW_ROTATION_NULL_BOUND_TREE/entries/shows/valid-show-with-null-bound"
+cp "$SHOW_ROTATION_NULL_BOUND_GREEN_FIXTURE/valid-show-with-null-bound.show.json" \
+    "$TMP_SHOW_ROTATION_NULL_BOUND_TREE/entries/shows/valid-show-with-null-bound/valid-show-with-null-bound.show.json"
+cp "$SHOW_ROTATION_NULL_BOUND_GREEN_FIXTURE/valid-show-with-null-bound.meta.json" \
+    "$TMP_SHOW_ROTATION_NULL_BOUND_TREE/entries/shows/valid-show-with-null-bound/valid-show-with-null-bound.meta.json"
+output=$(python3 tools/validate.py --root "$TMP_SHOW_ROTATION_NULL_BOUND_TREE" 2>&1)
+status=$?
+echo "$output"
+if [[ $status -eq 0 ]]; then
+    pass "green valid-show-with-null-bound fixture validates clean (SPEC F152.3 payload)"
+else
+    fail "green valid-show-with-null-bound fixture did not validate clean (expected exit 0, got $status)"
+fi
+output=$(python3 tools/lint.py --root "$TMP_SHOW_ROTATION_NULL_BOUND_TREE" 2>&1)
+status=$?
+echo "$output"
+if [[ $status -eq 0 ]]; then
+    pass "green valid-show-with-null-bound fixture lints clean"
+else
+    fail "green valid-show-with-null-bound fixture did not lint clean (expected exit 0, got $status)"
+fi
+echo
+
+echo "-- green valid-show-with-null-rotation: an explicit envelope.rotation: null validates and lints clean — exercises load_show_rotation's ROTATION_ABSENT-on-explicit-null branch, not just the missing-key case --"
+TMP_SHOW_ROTATION_NULL_ROTATION_TREE="$(mktemp -d)"
+mkdir -p "$TMP_SHOW_ROTATION_NULL_ROTATION_TREE/entries/shows/valid-show-with-null-rotation"
+cp "$SHOW_ROTATION_NULL_ROTATION_GREEN_FIXTURE/valid-show-with-null-rotation.show.json" \
+    "$TMP_SHOW_ROTATION_NULL_ROTATION_TREE/entries/shows/valid-show-with-null-rotation/valid-show-with-null-rotation.show.json"
+cp "$SHOW_ROTATION_NULL_ROTATION_GREEN_FIXTURE/valid-show-with-null-rotation.meta.json" \
+    "$TMP_SHOW_ROTATION_NULL_ROTATION_TREE/entries/shows/valid-show-with-null-rotation/valid-show-with-null-rotation.meta.json"
+output=$(python3 tools/validate.py --root "$TMP_SHOW_ROTATION_NULL_ROTATION_TREE" 2>&1)
+status=$?
+echo "$output"
+if [[ $status -eq 0 ]]; then
+    pass "green valid-show-with-null-rotation fixture validates clean (rotation: [\"object\",\"null\"])"
+else
+    fail "green valid-show-with-null-rotation fixture did not validate clean (expected exit 0, got $status)"
+fi
+output=$(python3 tools/lint.py --root "$TMP_SHOW_ROTATION_NULL_ROTATION_TREE" 2>&1)
+status=$?
+echo "$output"
+if [[ $status -eq 0 ]]; then
+    pass "green valid-show-with-null-rotation fixture lints clean"
+else
+    fail "green valid-show-with-null-rotation fixture did not lint clean (expected exit 0, got $status)"
+fi
+if grep -qF "show-rotation-bounds" <<<"$output"; then
+    fail "green valid-show-with-null-rotation fixture unexpectedly triggered show-rotation-bounds (ROTATION_ABSENT branch not reached for explicit null)"
+else
+    pass "green valid-show-with-null-rotation fixture triggers no show-rotation-bounds finding (ROTATION_ABSENT reached for explicit null)"
+fi
+echo
+
+echo "-- red show-rotation-maxplays-overflow: maxPlays one past Int32.MaxValue (2147483648) fails BOTH the schema's own maximum and lint's show-rotation-bounds (PLAN T364 review MED-2) --"
+check_red_variant show-rotation-maxplays-overflow "2147483648 is greater than the maximum of 2147483647"
+check_red_lint show-rotation-maxplays-overflow "show-rotation-bounds: envelope.rotation.maxPlays is 2147483648, must be between 0 and 2147483647"
 
 echo "== lint.py: symlinked entries are never read, even when their target would otherwise warn (SPEC F89.6 guard · mutant M15) =="
 TMP_SYMLINK_TREE="$(mktemp -d)"

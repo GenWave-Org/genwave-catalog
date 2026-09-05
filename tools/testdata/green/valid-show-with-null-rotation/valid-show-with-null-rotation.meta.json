@@ -1,0 +1,6 @@
+{
+  "author": "Test Fixture",
+  "description": "Green-variant kind:\"show\" fixture carrying an explicit envelope.rotation: null, PLAN T364 review MED-1 — exercises tools/lint.py's load_show_rotation ROTATION_ABSENT branch for an explicit-null rotation (not just an absent key), and tools/validate.py's schema-level rotation: [\"object\",\"null\"] type. Copied into a temporary entries/ tree at test time. Not a real catalog entry, and NOT itself under entries/.",
+  "audience": "everyone",
+  "added": "2026-08-29"
+}

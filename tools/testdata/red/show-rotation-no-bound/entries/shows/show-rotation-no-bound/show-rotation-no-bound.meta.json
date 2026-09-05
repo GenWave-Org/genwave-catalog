@@ -1,0 +1,6 @@
+{
+  "author": "Red Fixture",
+  "description": "Red-variant fixture: envelope.rotation is present but empty — sets neither maxPlays nor notAiredWithinDays, so tools/lint.py's show-rotation-bounds rule must HARD-fail it (SPEC F152.1/F152.6, PLAN T364).",
+  "audience": "everyone",
+  "added": "2026-08-29"
+}
