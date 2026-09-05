@@ -1,0 +1,185 @@
+{
+  "packName": "Brought To You By",
+  "briefs": [
+    {
+      "brand": "Lumbago Larry's Discount Mattress Barn",
+      "premise": "A mattress warehouse whose every sale is the final sale, ending this weekend for the ninth consecutive year. Larry personally tests each mattress by napping on it, which is why the store opens late.",
+      "tone": "shouty local pitchman, slowly losing his voice",
+      "structure": "hard sell with a countdown to the end of the sale that keeps getting extended"
+    },
+    {
+      "brand": "Pemberton & Daughters Umbrella Repair",
+      "premise": "A third-generation repair shop that refuses to accept umbrellas are disposable. They have fixed the same umbrella for one customer since 1974 and consider it family.",
+      "tone": "quiet, dignified, slightly wounded",
+      "structure": "one long-time customer's testimonial, then the shop's address"
+    },
+    {
+      "brand": "The Quiet Room",
+      "premise": "A subscription room in a strip mall that contains nothing. You pay to sit in it. An Extra Quiet tier is now available, which is the same room with the lights off.",
+      "tone": "hushed spa whisper, deeply serene",
+      "structure": "soft sell, every line a little quieter than the last"
+    },
+    {
+      "brand": "Gary's Garage Door Emotional Support",
+      "premise": "A repair service that fixes your garage door and then listens to you talk about it. The doors are usually fine. It is the owners who need tuning.",
+      "tone": "warm, sincere, gently therapeutic",
+      "structure": "two voices: a customer confessing and Gary reassuring"
+    },
+    {
+      "brand": "Brisket Bay Retirement Village",
+      "premise": "A retirement community built entirely around one enormous smoker. The brochure lists many amenities and every amenity is brisket.",
+      "tone": "golden-years soft focus with a country twang",
+      "structure": "three short resident testimonials in a row"
+    },
+    {
+      "brand": "Fennimore Institute of Competitive Napping",
+      "premise": "Accredited nap coaching for adults, with regional tournaments and a hall of fame. The head instructor is asleep for the duration of the ad.",
+      "tone": "sports recruitment hype, deadly serious",
+      "structure": "announcer hype with one student who nods off mid-sentence"
+    },
+    {
+      "brand": "Millbrook Municipal Pothole Adoption Program",
+      "premise": "The town lets you adopt a pothole, name it, and receive quarterly updates on its growth. Adoption is popular. Repair is not on the roadmap.",
+      "tone": "earnest public service announcement",
+      "structure": "PSA with a 555 hotline and a 'this message paid for by' tag"
+    },
+    {
+      "brand": "Dr. Vellacourt's Reversible Haircut",
+      "premise": "A salon promising that any haircut can be undone within twenty-four hours. The procedure is proprietary and the fine print is longer than the appointment.",
+      "tone": "glossy beauty-ad confidence",
+      "structure": "a short glamorous pitch, then a legal disclaimer that runs away with the spot"
+    },
+    {
+      "brand": "Big Mel's House of Ladders",
+      "premise": "The only store in three counties that sells nothing but ladders. Mel takes it personally when someone buys a step stool elsewhere and would like to discuss it.",
+      "tone": "gruff, loyal, small-town proud, a little hurt",
+      "structure": "the owner talking straight to the listener, grievance included"
+    },
+    {
+      "brand": "Marbleton Regional Airport",
+      "premise": "A tiny airport with exactly one flight a day. The destination is decided each morning by the pilot's mood, and the terminal has a vending machine and a cat.",
+      "tone": "upbeat airline jingle energy",
+      "structure": "jingle first, then today's surprise destination announced like a prize"
+    },
+    {
+      "brand": "Wendell's Slightly Used Party Supplies",
+      "premise": "Balloons, streamers, and cake toppers rescued from parties that ended early. Everything is seventy percent off and thirty percent confetti.",
+      "tone": "cheerful bargain-bin hustle",
+      "structure": "rapid-fire price list with one item that is clearly still damp"
+    },
+    {
+      "brand": "Hollins Ferry Fog Tours",
+      "premise": "Boat tours guaranteed to see nothing at all. The fog is the attraction. Full refund if visibility improves.",
+      "tone": "mysterious, maritime, foghorn between the lines",
+      "structure": "atmospheric narration, then the price, then the foghorn"
+    },
+    {
+      "brand": "Aunt Ruthie's Aggressively Fresh Bread",
+      "premise": "A bakery whose bread is so fresh it is technically still baking when you buy it. Oven mitts are sold separately and strongly encouraged.",
+      "tone": "homespun, bustling, flour everywhere",
+      "structure": "two voices: the announcer keeps getting interrupted by Aunt Ruthie"
+    },
+    {
+      "brand": "Precision Sock Reunion Laboratory",
+      "premise": "A laboratory that reunites single socks with their partners using science. Results are not guaranteed. A support group for the unmatched meets on Thursdays.",
+      "tone": "clinical medical-ad seriousness",
+      "structure": "problem, solution, and a 'consult your drawer' disclaimer"
+    },
+    {
+      "brand": "Dunmore Valley Cul-de-Sac Racing League",
+      "premise": "Amateur motorsport held entirely in one cul-de-sac. A lap takes eleven seconds, the neighbours are the sponsors, and the trophy is a lawn chair.",
+      "tone": "monster-truck-rally announcer, maximum echo",
+      "structure": "event promo with date, time, and a 'Sunday, Sunday, Sunday' cadence"
+    },
+    {
+      "brand": "Selkirk Brothers Invisible Cat Fencing",
+      "premise": "A fence the cat cannot see and also does not respect. The brothers remain optimistic and offer a free second consultation, which the cat also ignores.",
+      "tone": "earnest late-night infomercial",
+      "structure": "before-and-after testimonial from a customer who is not convinced"
+    },
+    {
+      "brand": "Nightingale Overnight Dishes",
+      "premise": "Someone comes to your house at two in the morning and quietly does the dishes. You never see them. The plates are simply clean by sunrise.",
+      "tone": "luxury concierge whisper, faintly eerie",
+      "structure": "soft sell that ends with a firm instruction not to wait up"
+    },
+    {
+      "brand": "Grandpa Joe's Weather Guessing Hotline",
+      "premise": "A forecasting hotline run by a retired man who looks out of his window. Accuracy is competitive with the professionals and the hold music is him humming.",
+      "tone": "folksy, unhurried, porch-swing pace",
+      "structure": "a farmer's testimonial, then the 555 hotline read very slowly"
+    },
+    {
+      "brand": "The Tremont Museum of Things That Are Probably Fine",
+      "premise": "A museum of objects that were once reported as concerning and turned out to be fine. Admission includes a reassuring pamphlet and a cup of lukewarm tea.",
+      "tone": "cultural-institution gravitas",
+      "structure": "docent-style narration with a members' discount at the end"
+    },
+    {
+      "brand": "Fitzwilliam's Discreet Trombone Lessons",
+      "premise": "Trombone instruction for adults who never told their families they wanted to learn. Lessons take place in a soundproof van that parks around the corner.",
+      "tone": "conspiratorial, hushed excitement",
+      "structure": "announcer plus one whispered testimonial from a satisfied student"
+    },
+    {
+      "brand": "Bramblewood Emergency Casserole",
+      "premise": "Twenty-four-hour casserole delivery for social emergencies: new neighbours, awkward potlucks, a cousin who showed up early. The tuna noodle is always on standby.",
+      "tone": "emergency-services urgency",
+      "structure": "PSA shape with a hotline and a list of covered emergencies"
+    },
+    {
+      "brand": "Pruett's Left-Handed Hardware",
+      "premise": "Every tool in the store is left-handed, including the ones where that makes no sense. The tape measure is left-handed. The bucket is left-handed.",
+      "tone": "proud specialist retailer",
+      "structure": "a pitch whose product list escalates until it stops making sense"
+    },
+    {
+      "brand": "Stillwater Pond Lifeguard Academy",
+      "premise": "Lifeguard certification on a pond that is eleven inches deep. Graduates are extremely confident and have never once been needed.",
+      "tone": "motivational boot camp, drill sergeant energy",
+      "structure": "drill-sergeant pitch with a 555 number barked at the end"
+    },
+    {
+      "brand": "Hushabye Silent Lawn Care",
+      "premise": "A lawn service that mows with scissors so as not to wake anyone. A half-acre takes about a week and the results are immaculate and quiet.",
+      "tone": "gentle, lullaby-adjacent, bedtime-story pace",
+      "structure": "soft sell read like a bedtime story"
+    },
+    {
+      "brand": "Rosalind's Reasonably Haunted Bed & Breakfast",
+      "premise": "A bed and breakfast with a ghost who is polite, mostly does the laundry, and would very much like a good review. Breakfast is at eight. The ghost is at nine.",
+      "tone": "cozy hospitality with a wink",
+      "structure": "two voices: the innkeeper and the ghost, who is trying to help"
+    },
+    {
+      "brand": "Ballantyne Community Theatre",
+      "premise": "Season tickets for a theatre whose productions run long because the cast keeps adding scenes. Intermission has a buffet and, some nights, a second intermission.",
+      "tone": "arts-patron enthusiasm",
+      "structure": "season promo listing shows with increasingly alarming running times"
+    },
+    {
+      "brand": "Delacroix Formalwear for Dogs",
+      "premise": "Tuxedos and gowns for dogs attending events with a dress code. Alterations while you wait. The dogs do not care and look magnificent.",
+      "tone": "haute couture, runway hush",
+      "structure": "fashion-show narration, then prices, then a dog barking once"
+    },
+    {
+      "brand": "Barnaby & Sons Moving, One Lamp at a Time",
+      "premise": "A moving company whose truck holds exactly one lamp. They make a great many trips and are relentlessly cheerful about every single one.",
+      "tone": "upbeat, can-do, slightly out of breath",
+      "structure": "two voices: the two movers finishing each other's sentences"
+    },
+    {
+      "brand": "Halvorsen Ice Rink & Tax Preparation",
+      "premise": "One business, two services: skate a lap while they do your return. Refunds are both literal and figurative and the Zamboni is also an accountant.",
+      "tone": "wholesome, slightly confusing, community-bulletin warm",
+      "structure": "jingle first, then the 'two great services' pitch"
+    },
+    {
+      "brand": "The Wexley Correspondence Course in Small Talk",
+      "premise": "A mail-order course covering the weather, local sports, and how about that traffic. Certificates are suitable for framing and for mentioning at parties.",
+      "tone": "old-time radio educational announcer",
+      "structure": "pitch with one sample lesson read aloud, very formally"
+    }
+  ]
+}
