@@ -1,8 +1,8 @@
 <!--
-Thanks for submitting to the shelf! The catalog carries six kinds of entry — persona, theme,
-font pack, show, avatar pack, and icon pack. Please read CONTRIBUTING.md before filling this out —
-it explains every item below in full. Fill in the section for YOUR kind (Persona, Theme, Show, or
-Avatar Pack) below and delete the others; the checklists further down apply to any kind. Both CI
+Thanks for submitting to the shelf! The catalog carries seven kinds of entry — persona, theme,
+font pack, show, avatar pack, icon pack, and ad pack. Please read CONTRIBUTING.md before filling this out —
+it explains every item below in full. Fill in the section for YOUR kind (Persona, Theme, Show,
+Avatar Pack, or Ad Pack) below and delete the others; the checklists further down apply to any kind. Both CI
 and this checklist need to pass before a maintainer will review.
 
 Font packs AND icon packs are Dean-curated only — no community PRs; by arrangement only. See
@@ -76,6 +76,23 @@ entry on the shelf, in one line — the art style/vibe, not a DJ's personality o
 - [ ] The [🖼️ Likeness/CC0 image attestation](#-likenesscc0-image-attestation-image-carrying-entries-only)
       below is filled in for every item.
 
+## Ad Pack
+
+**Slug:** `<your-slug>`
+
+**Distinct universe statement (required):** what makes this pack's brand universe distinct from
+every other entry on the shelf, in one line — the world the sponsors live in, not any one joke.
+
+> _(fill in here)_
+
+- [ ] Every `brand` is invented. None names, puns on, or misspells a real company, product, or
+      trademark (a real one is a revision request here, and fails every spot the app writes from
+      it at its own blocklist, SPEC F160.3).
+- [ ] Brands are unique within the pack: `python3 tools/validate.py` reports no
+      `ad-pack-duplicate-brand` violation.
+- [ ] The pack is data only — `entries/ad-packs/<slug>/` holds exactly `<slug>.ad-pack.json` and
+      `<slug>.meta.json`, nothing else.
+
 ## ✅ Mechanical checks
 
 - [ ] Schema-valid: `python3 tools/validate.py` passes locally, including all required fields
@@ -121,7 +138,8 @@ say "N/A, no image" if this PR carries no PNG.
 
 - [ ] This entry's prose is written in English, per the v1 English-first policy — persona:
       `soul`, `lore`, `quirks`, `samplePatter`, `description`; theme: `description`; show:
-      `tagline`, `flavor`, `description`; avatar pack: `description`.
+      `tagline`, `flavor`, `description`; avatar pack: `description`; ad pack: `packName`, every
+      `brand`/`premise`/`tone`/`structure`, `description`.
 
 ## 🚫 Hard bans attestation (required)
 

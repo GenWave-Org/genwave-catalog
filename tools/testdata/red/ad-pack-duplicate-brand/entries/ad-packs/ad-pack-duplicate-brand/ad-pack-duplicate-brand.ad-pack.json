@@ -1,0 +1,12 @@
+{
+  "briefs": [
+    {
+      "brand": "Acme Widgets",
+      "premise": "first"
+    },
+    {
+      "brand": "acme   widgets",
+      "premise": "second"
+    }
+  ]
+}

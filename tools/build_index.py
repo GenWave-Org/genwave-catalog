@@ -41,6 +41,10 @@ to the show kind by F118.1 / T253, widened to the avatar and icon kinds
           (SPEC F130.6 — no `assets`/`family`/`preview`, the same minimal
           shape a show entry gets: licence/provenance live only in
           meta.json, read directly at install time),
+        { "slug", "audience", "kind": "ad-pack", "bestFor" (when present),
+          "manifest": {"path", "sha256"}, "meta": {"path", "sha256"} }
+          (SPEC F162.2 — the same minimal shape again: the pack's briefs
+          are read off the manifest at install time, never projected),
         ...
     ] }
 
@@ -48,7 +52,7 @@ to the show kind by F118.1 / T253, widened to the avatar and icon kinds
 carries — <slug>.persona.json means kind="persona", <slug>.theme.json means
 kind="theme", <slug>.font.json means kind="font", <slug>.show.json means
 kind="show", <slug>.avatar.json means kind="avatar", <slug>.icon.json means
-kind="icon" (resolve_manifest below, walking tools/catalog_lib.py's own
+kind="icon", <slug>.ad-pack.json means kind="ad-pack" (resolve_manifest below, walking tools/catalog_lib.py's own
 KIND_SUFFIXES) — never from a field inside meta.json, so it can't drift from
 the file that's really on disk, and never from the entry's kind FOLDER
 either (entries/<kind-folder>/<slug>/, gh-33) — the folder is where the
@@ -58,7 +62,7 @@ just keeps reading kind off the manifest filename same as always. A persona
 entry gets no `kind` key at all (rather than an explicit "persona"): the app
 already defaults a missing `kind` to persona (GenWave.Host, T176), so every
 entry that existed before T178 keeps its exact pre-existing shape and
-rebuilds byte-identical; only a theme, font, show, avatar, or icon entry
+rebuilds byte-identical; only a theme, font, show, avatar, icon, or ad-pack entry
 gains the new `kind` and `manifest` keys (a font or avatar entry
 additionally gains `assets`; a font entry alone additionally gains `family`
 when present in its manifest).
@@ -144,7 +148,7 @@ def resolve_manifest(entry_dir: Path, slug: str) -> tuple[Path | None, str]:
     recorded in meta.json that could drift from the manifest file actually
     on disk.
 
-    Returns (None, "persona") when none of the six files are present; the
+    Returns (None, "persona") when none of the known manifest files are present; the
     caller skips the directory in that case (tools/validate.py is the
     source of truth for that shape error, not this function).
 
@@ -307,8 +311,10 @@ def discover_entries(root: Path) -> tuple[list[dict], list[str]]:
                 # itself plus author/description/byte total, never a
                 # projected field.
                 record["assets"] = [asset_ref(root, asset_path) for asset_path in avatar_asset_paths(entry_dir)]
-            # kind == "icon" projects nothing further — the same minimal
-            # {kind, manifest, meta} shape a show entry gets (SPEC F130.6):
+            # kind == "icon" and kind == "ad-pack" project nothing further —
+            # the same minimal {kind, manifest, meta} shape a show entry gets
+            # (SPEC F130.6; F162.2 — an ad pack's briefs are read off the
+            # manifest at install time, never needed for a shelf listing):
             # licence/provenance live only in meta.json, read directly at
             # install time, never needed for a zero-fetch shelf listing.
         if "bestFor" in meta:

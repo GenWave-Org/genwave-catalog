@@ -70,6 +70,19 @@
 #      build_index.py projects an icon entry's kind+manifest only, the same
 #      minimal shape a show entry gets
 #
+#  16. kind-aware ad-pack-entry validation (schemas/ad-pack-manifest.schema.json
+#      + schemas/ad-pack-meta.schema.json, SPEC F162.2, app PLAN T405/T407): a
+#      green valid-ad-pack fixture end to end (every-hint, null-hint, and
+#      brand-only briefs), the app-mirrored caps as red schema gates (empty
+#      briefs[], blank brand, 501-char hint, 101 briefs, an unknown member),
+#      validate.py's own cross-item brand-uniqueness gate
+#      (ad-pack-duplicate-brand — case/whitespace-folded), the closed folder
+#      set (a stowaway file), the 256 KiB manifest cap (generated at test
+#      time: a schema-valid manifest padded with whitespace, the ONLY way a
+#      valid document reaches it), build_index.py's ad-pack projection (kind +
+#      manifest only, no card/assets/family/preview), and the index-entry
+#      schema's own ad-pack branch (manifest-only accepted, a card-carrying or
+#      assets-carrying ad-pack entry rejected)
 
 # Every python3/build_index.py invocation below has its exit status checked
 # explicitly (`set -uo pipefail`, not `set -e`, since several steps below —
@@ -138,6 +151,8 @@ PERSONA_AVATAR_GREEN_FIXTURE="tools/testdata/green/valid-dj-with-avatar"
 ICON_GREEN_FIXTURE="tools/testdata/green/valid-icon"
 AVATAR_ITEM_OVERSIZE_PNG="$RED_DIR/avatar-item-oversize/entries/avatars/avatar-item-oversize/too-heavy.png"
 ICON_OVER_CEILING_DIR="$RED_DIR/icon-over-ceiling/entries/icons/icon-over-ceiling"
+AD_PACK_GREEN_FIXTURE="tools/testdata/green/valid-ad-pack"
+AD_PACK_OVER_CEILING_DIR="$RED_DIR/ad-pack-over-ceiling/entries/ad-packs/ad-pack-over-ceiling"
 
 TMP_GREEN_TREE=""
 TMP_PRON_TREE=""
@@ -156,12 +171,15 @@ TMP_PERSONA_AVATAR_INDEX_TREE=""
 TMP_ICON_TREE=""
 TMP_ICON_INDEX_TREE=""
 TMP_AVATAR_INDEX_TREE=""
+TMP_AD_PACK_TREE=""
+TMP_AD_PACK_INDEX_TREE=""
 cleanup() {
     rm -f "$OVERSIZE_CARD"
     rm -f "$FONT_OVER_CEILING_ASSET"
     rm -f "$AVATAR_ITEM_OVERSIZE_PNG"
     rm -f "$RED_DIR"/avatar-pack-ceiling/entries/avatars/avatar-pack-ceiling/face-*.png
     rm -f "$ICON_OVER_CEILING_DIR"/icon-over-ceiling.icon.json "$ICON_OVER_CEILING_DIR"/icon-over-ceiling.meta.json
+    rm -f "$AD_PACK_OVER_CEILING_DIR"/ad-pack-over-ceiling.ad-pack.json "$AD_PACK_OVER_CEILING_DIR"/ad-pack-over-ceiling.meta.json
     [[ -n "$TMP_GREEN_TREE" ]] && rm -rf "$TMP_GREEN_TREE"
     [[ -n "$TMP_PRON_TREE" ]] && rm -rf "$TMP_PRON_TREE"
     [[ -n "$TMP_SYMLINK_TREE" ]] && rm -rf "$TMP_SYMLINK_TREE"
@@ -179,6 +197,8 @@ cleanup() {
     [[ -n "$TMP_ICON_TREE" ]] && rm -rf "$TMP_ICON_TREE"
     [[ -n "$TMP_ICON_INDEX_TREE" ]] && rm -rf "$TMP_ICON_INDEX_TREE"
     [[ -n "$TMP_AVATAR_INDEX_TREE" ]] && rm -rf "$TMP_AVATAR_INDEX_TREE"
+    [[ -n "$TMP_AD_PACK_TREE" ]] && rm -rf "$TMP_AD_PACK_TREE"
+    [[ -n "$TMP_AD_PACK_INDEX_TREE" ]] && rm -rf "$TMP_AD_PACK_INDEX_TREE"
 }
 trap cleanup EXIT
 
@@ -702,6 +722,149 @@ else
     fail "failed to generate the icon-over-ceiling fixture"
 fi
 rm -f "$ICON_OVER_CEILING_DIR"/icon-over-ceiling.icon.json "$ICON_OVER_CEILING_DIR"/icon-over-ceiling.meta.json
+
+echo "== validate.py: kind-aware ad-pack-entry validation (schemas/ad-pack-manifest.schema.json + schemas/ad-pack-meta.schema.json, SPEC F162.2, app PLAN T405/T407) =="
+
+echo "-- green valid-ad-pack fixture (every-hint, null-hint, and brand-only briefs) validates clean end-to-end as a kind:\"ad-pack\" entry --"
+TMP_AD_PACK_TREE="$(mktemp -d)"
+mkdir -p "$TMP_AD_PACK_TREE/entries/ad-packs/valid-ad-pack"
+cp "$AD_PACK_GREEN_FIXTURE/valid-ad-pack.ad-pack.json" "$TMP_AD_PACK_TREE/entries/ad-packs/valid-ad-pack/valid-ad-pack.ad-pack.json"
+cp "$AD_PACK_GREEN_FIXTURE/valid-ad-pack.meta.json" "$TMP_AD_PACK_TREE/entries/ad-packs/valid-ad-pack/valid-ad-pack.meta.json"
+output=$(python3 tools/validate.py --root "$TMP_AD_PACK_TREE" 2>&1)
+status=$?
+echo "$output"
+if [[ $status -eq 0 ]]; then
+    pass "green valid-ad-pack fixture validates clean as a kind:\"ad-pack\" entry"
+else
+    fail "green valid-ad-pack fixture did not validate clean as a kind:\"ad-pack\" entry (expected exit 0, got $status)"
+fi
+echo
+
+echo "-- red ad-pack-no-briefs: an empty briefs[] is no pack at all (minItems 1 — CatalogAdPackManifestSerializer's own 'no briefs, no manifest') --"
+check_red_variant ad-pack-no-briefs "is too short"
+
+echo "-- red ad-pack-blank-brand: a whitespace-only brand fails the \\S pattern (the serializer's own non-blank rule — minLength alone admitted it) --"
+check_red_variant ad-pack-blank-brand "briefs/0/brand"
+
+echo "-- red ad-pack-hint-too-long: a 501-char premise, one over MaxHintLength (500) --"
+check_red_variant ad-pack-hint-too-long "is too long"
+
+echo "-- red ad-pack-too-many-briefs: 101 briefs, one over MaxBriefsPerPack (100) --"
+check_red_variant ad-pack-too-many-briefs "is too long"
+
+echo "-- red ad-pack-unknown-field: a misspelled hint member ('premis') fails CI rather than installing as a brief with no premise (the app's reader ignores unknown members silently) --"
+check_red_variant ad-pack-unknown-field "Additional properties are not allowed"
+
+echo "-- red ad-pack-duplicate-brand: two briefs sharing a brand after case/whitespace folding — the one cross-item rule JSON Schema cannot express --"
+check_red_variant ad-pack-duplicate-brand "ad-pack-duplicate-brand"
+
+echo "-- red ad-pack-stowaway-file: the closed folder set — only <slug>.ad-pack.json and <slug>.meta.json (an ad pack carries no assets of any kind) --"
+check_red_variant ad-pack-stowaway-file "unexpected-file"
+
+echo "-- red ad-pack-over-ceiling: a schema-valid manifest padded past the 256 KiB manifest fetch cap (CatalogProxyService.MaxCardBytes) --"
+if python3 - "$AD_PACK_OVER_CEILING_DIR" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+directory = Path(sys.argv[1])
+directory.mkdir(parents=True, exist_ok=True)
+slug = directory.name
+
+# One schema-valid brief, then 300 KB of JSON whitespace inside the array —
+# the schema's own caps (100 briefs x (200 + 3 x 500) chars) keep every REAL
+# pack far below 256 KiB, so padding is the only way a valid document reaches
+# the cap, and ONLY the size-cap rule fires.
+padded = '{"briefs": [' + " " * 300_000 + '{"brand": "Padded Brand"}]}'
+(directory / f"{slug}.ad-pack.json").write_text(padded)
+meta = {"author": "GenWave", "description": "Red-variant fixture.", "audience": "everyone", "added": "2026-09-05"}
+(directory / f"{slug}.meta.json").write_text(json.dumps(meta))
+size = (directory / f"{slug}.ad-pack.json").stat().st_size
+print(f"generated {directory}/{slug}.ad-pack.json ({size} bytes)")
+PY
+then
+    check_red_variant ad-pack-over-ceiling "size-cap"
+else
+    fail "failed to generate the ad-pack-over-ceiling fixture"
+fi
+rm -f "$AD_PACK_OVER_CEILING_DIR"/ad-pack-over-ceiling.ad-pack.json "$AD_PACK_OVER_CEILING_DIR"/ad-pack-over-ceiling.meta.json
+
+echo "== build_index.py + schemas/index.schema.json: ad-pack kind projects manifest only — no card/assets/family/preview (SPEC F162.2) =="
+TMP_AD_PACK_INDEX_TREE="$(mktemp -d)"
+mkdir -p "$TMP_AD_PACK_INDEX_TREE/entries/ad-packs/valid-ad-pack"
+cp "$AD_PACK_GREEN_FIXTURE/valid-ad-pack.ad-pack.json" "$TMP_AD_PACK_INDEX_TREE/entries/ad-packs/valid-ad-pack/valid-ad-pack.ad-pack.json"
+cp "$AD_PACK_GREEN_FIXTURE/valid-ad-pack.meta.json" "$TMP_AD_PACK_INDEX_TREE/entries/ad-packs/valid-ad-pack/valid-ad-pack.meta.json"
+
+tmp_ad_pack_index="$(mktemp)"
+ad_pack_index_build_ok=1
+if ! python3 tools/build_index.py --root "$TMP_AD_PACK_INDEX_TREE" --out "$tmp_ad_pack_index"; then
+    fail "build_index.py exited non-zero building the ad-pack-kind fixture tree"
+    ad_pack_index_build_ok=0
+fi
+
+if [[ $ad_pack_index_build_ok -eq 1 ]]; then
+    tmp_ad_pack_index_check="$(mktemp)"
+    cat >"$tmp_ad_pack_index_check" <<'PY'
+import hashlib
+import json
+import sys
+from pathlib import Path
+
+sys.path.insert(0, sys.argv[4])
+from index_entry_schema import load_entry_validator
+
+index_path, tree_root, schema_path = Path(sys.argv[1]), Path(sys.argv[2]), Path(sys.argv[3])
+data = json.loads(index_path.read_text())
+by_slug = {e["slug"]: e for e in data["entries"]}
+validator = load_entry_validator(schema_path)
+
+errors = []
+
+pack = by_slug.get("valid-ad-pack")
+if pack is None:
+    errors.append("valid-ad-pack entry missing from built index")
+else:
+    if pack.get("kind") != "ad-pack":
+        errors.append(f"valid-ad-pack: expected kind 'ad-pack', got {pack.get('kind')!r}")
+    for absent_key in ("card", "assets", "family", "preview"):
+        if absent_key in pack:
+            errors.append(f"valid-ad-pack: unexpected '{absent_key}' key on an ad-pack entry")
+    manifest = pack.get("manifest")
+    if not isinstance(manifest, dict):
+        errors.append("valid-ad-pack: missing 'manifest' key")
+    else:
+        path = manifest.get("path")
+        if not isinstance(path, str) or not path.endswith("valid-ad-pack.ad-pack.json"):
+            errors.append(f"valid-ad-pack.manifest.path unexpected: {path!r}")
+        else:
+            want = hashlib.sha256((tree_root / path).read_bytes()).hexdigest()
+            got = manifest.get("sha256")
+            if want != got:
+                errors.append(f"valid-ad-pack.manifest.sha256 mismatch: recomputed {want}, index has {got}")
+    pack_errors = [e.message for e in validator.iter_errors(pack)]
+    if pack_errors:
+        errors.append(f"valid-ad-pack entry does not validate against schemas/index.schema.json: {pack_errors}")
+
+if errors:
+    for line in errors:
+        print(line)
+    sys.exit(1)
+print(
+    "ad-pack-kind index shape OK: kind/manifest projected (sha256 verified), no card/assets/family/preview, "
+    "entry validates against schemas/index.schema.json"
+)
+PY
+    if python3 "$tmp_ad_pack_index_check" "$tmp_ad_pack_index" "$TMP_AD_PACK_INDEX_TREE" "schemas/index.schema.json" "$TMP_SCHEMA_HELPERS_DIR"; then
+        pass "build_index.py projects an ad-pack entry's kind+manifest only (no card/assets/family/preview); entry schema-valid"
+    else
+        fail "build_index.py ad-pack-kind projection assertions failed"
+    fi
+    rm -f "$tmp_ad_pack_index_check"
+else
+    fail "skipped ad-pack-kind projection assertions because build_index.py failed above"
+fi
+rm -f "$tmp_ad_pack_index"
+echo
 
 echo "== build_index.py + schemas/index.schema.json: show kind projects manifest only — no card/assets/family/preview (SPEC F118.1, T253) =="
 TMP_SHOW_INDEX_TREE="$(mktemp -d)"
@@ -2028,12 +2191,17 @@ check_kind_entry_red bad-kind-avatar-no-assets "'assets' is a required property"
 check_kind_entry_green valid-icon-index-entry "tools/testdata/green/valid-icon-index-entry"
 check_kind_entry_red bad-kind-icon-no-manifest "'manifest' is a required property"
 
+echo "== schemas/index.schema.json: ad-pack kind admits manifest-only entries, rejects one missing it (SPEC F162.2) =="
+check_kind_entry_green valid-ad-pack-index-entry "tools/testdata/green/valid-ad-pack-index-entry"
+check_kind_entry_red bad-kind-ad-pack-no-manifest "'manifest' is a required property"
+
 echo "-- red avatar-asset-bytes-over-max: the shared assetRef definition's own GENERIC 524288-byte (512 KiB) ceiling, tested on a kind with no narrower per-kind override (retargeted from a font fixture, rider fold 1, T309 review — a font entry now ALSO trips a narrower 262144 override at this same byte count, which would no longer isolate the generic bound cleanly) --"
 check_kind_entry_red avatar-asset-bytes-over-max "is greater than the maximum of 524288"
 
 echo "-- kind/extension cross-dressing, extended to avatar/icon --"
 check_kind_entry_red avatar-entry-with-preview "should not be valid under {'required': ['preview']}"
 check_kind_entry_red icon-entry-with-assets "should not be valid under {'required': ['assets']}"
+check_kind_entry_red ad-pack-entry-with-assets "should not be valid under {'required': ['assets']}"
 
 echo "== schemas/index.schema.json: a persona entry MAY carry assets[] (SPEC F128.2), capped to exactly one element (T309) =="
 check_kind_entry_green valid-persona-with-avatar-index-entry "tools/testdata/green/valid-persona-with-avatar-index-entry"

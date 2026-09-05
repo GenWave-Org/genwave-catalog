@@ -1,0 +1,9 @@
+{
+  "author": "GenWave",
+  "description": "Green selftest fixture — three briefs: one with every hint, one with a null hint, one brand-only.",
+  "audience": "everyone",
+  "added": "2026-09-05",
+  "bestFor": [
+    "selftest"
+  ]
+}

@@ -26,7 +26,7 @@ if [ "$#" -ne 1 ] || [ ! -r "$1" ]; then
 fi
 
 changed_file="$1"
-KNOWN_KIND_FOLDERS="personas themes fonts shows avatars icons"
+KNOWN_KIND_FOLDERS="personas themes fonts shows avatars icons ad-packs"
 entry_touched=false
 declare -A entry_dirs=()
 fail=false
@@ -54,7 +54,7 @@ while IFS= read -r path; do
       fi
       kind_folder="${segments[1]}"
       if ! is_known_kind_folder "$kind_folder"; then
-        echo "FAIL: entries/ path's kind-folder segment is not one of the six known kind folders" \
+        echo "FAIL: entries/ path's kind-folder segment is not one of the known kind folders" \
           "($KNOWN_KIND_FOLDERS): $path"
         fail=true
         continue

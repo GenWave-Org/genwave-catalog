@@ -1,0 +1,48 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/GenWave-Org/genwave-catalog/main/schemas/ad-pack-meta.schema.json",
+  "title": "GenWave Ad Pack Catalog Entry Metadata",
+  "description": "The <slug>.meta.json shape for a kind:\"ad-pack\" entry (app repo SPEC F162.2, catalog-owned). Mirrors show-meta.schema.json's posture exactly (additionalProperties false — this document belongs entirely to the catalog, so an unrecognized field is a contributor mistake worth failing CI on) with the show-only `suggestedPersona` dropped: a pack of briefs suggests no DJ. No `license`/`sourceUrl` either, unlike an icon pack — an ad pack is ORIGINAL prose, dedicated CC0 like a persona card (the repo LICENSE), with nothing upstream to attribute; a pack adapting someone else's copy or naming real brands does not belong on this shelf at all (CONTRIBUTING's hard bans). The shelf card renders from the manifest's own `packName` plus `author`/`description`/`audience`/`added`/`bestFor`.",
+  "$comment": "`added`'s pattern ends in (?![\\s\\S]), the same portable absolute-end-of-string anchor persona-meta.schema.json/theme-meta.schema.json/font-meta.schema.json document in full and repeat verbatim — repeated here too so this file stands alone.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "author",
+    "description",
+    "audience",
+    "added"
+  ],
+  "properties": {
+    "author": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Who wrote the briefs. Ad packs are open to community submission (the persona/show posture), so this is the contributor's own handle or name."
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "description": "A short blurb introducing the pack's brand universe — shown on the shelf card without fetching the manifest."
+    },
+    "audience": {
+      "type": "string",
+      "enum": [
+        "everyone",
+        "mature"
+      ],
+      "description": "Content self-rating, verified at review (mirrors every other kind's own `audience`). The app's own audience posture separately governs the SPOTS it writes — an `everyone` pack still airs under a `mature` station's rules and vice versa — so rate the briefs' own text here, not the station."
+    },
+    "added": {
+      "type": "string",
+      "format": "date",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}(?![\\s\\S])",
+      "description": "ISO 8601 date (YYYY-MM-DD) this entry was added to the catalog. `format: date` alone is annotation-only in draft-07 by default, so `pattern` carries the shape enforcement — but pattern alone only checks digit counts, not calendar validity; tools/validate.py separately parses this value with datetime.date.fromisoformat to reject a shape-valid but non-existent date."
+    },
+    "bestFor": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Optional use-case hints (\"small town\", \"starter\", \"late night\") — mirrors every other kind's own `bestFor`."
+    }
+  }
+}

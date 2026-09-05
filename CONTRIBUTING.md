@@ -1,18 +1,18 @@
 # 🤝 Contributing to genwave-catalog
 
 Thanks for wanting to add to the shelf. This is a community catalog for
-[GenWave](https://github.com/GenWave-Org/genwave), carrying six kinds of entry: DJ **personas**,
-**themes**, **shows**, and **avatar packs** (all four open to community submission) and **font
-packs** and **icon packs** (Dean-curated only — see [Font packs](#font-packs-kind-font) and
+[GenWave](https://github.com/GenWave-Org/genwave), carrying seven kinds of entry: DJ **personas**,
+**themes**, **shows**, **avatar packs**, and **ad packs** (all five open to community submission) and
+**font packs** and **icon packs** (Dean-curated only — see [Font packs](#font-packs-kind-font) and
 [Icon packs](#icon-packs-kind-icon) below). Every entry here is something someone else's radio
 station can drop straight in. That's a gift to strangers, so we ask a bit of care in return. This
 doc is the full bar: what CI checks mechanically, and what a human reviews.
 
-This walkthrough below is the **persona** path. Submitting a **theme**, **show**, or **avatar
-pack** instead? Read this section for the shared mechanics (prerequisites, validate/lint/index/
+This walkthrough below is the **persona** path. Submitting a **theme**, **show**, **avatar
+pack**, or **ad pack** instead? Read this section for the shared mechanics (prerequisites, validate/lint/index/
 selftest, the PR template), then jump to [🎨 Theme submission](#-theme-submission),
-[🎙 Show submission](#-show-submission), or [🖼 Avatar pack submission](#-avatar-pack-submission)
-for what's different. Font packs and icon packs don't follow this path at all — see
+[🎙 Show submission](#-show-submission), [🖼 Avatar pack submission](#-avatar-pack-submission), or
+[📣 Ad pack submission](#-ad-pack-submission) for what's different. Font packs and icon packs don't follow this path at all — see
 [Font packs](#font-packs-kind-font) and [Icon packs](#icon-packs-kind-icon).
 
 ## 🚀 Start to finish
@@ -113,6 +113,13 @@ pack submission adds the PNG image bar itself (magic bytes, exact 512×512, size
 animated PNGs) — see [🖼 Avatar pack submission](#-avatar-pack-submission). Font packs and icon
 packs don't clear this bar at all — curated only, see [Font packs](#font-packs-kind-font) and
 [Icon packs](#icon-packs-kind-icon).
+
+An **ad pack** follows items 1, 2, 4, 5, and 8 as written (against `schemas/ad-pack-*.schema.json`),
+has its own distinctness equivalent (what makes this *brand universe* distinct), and takes
+English-first across `packName` and every brief's `brand`/`premise`/`tone`/`structure` plus the meta
+`description`. Item 7's prompt-weight lint does not apply — the manifest schema's own per-hint caps
+are the budget — and item 9 does not either (no image). The trademarks/branding hard ban is THE
+ad-pack review item: every brand must be invented — see [📣 Ad pack submission](#-ad-pack-submission).
 
 The rest of this doc walks through items 3–7 one at a time, for a persona; theme and show
 specifics are their own sections below.
@@ -302,6 +309,47 @@ The [quality bar](#-the-quality-bar) above still applies — see its "Per kind" 
 which of the 9 items carry over as-is, which have an avatar-pack equivalent, and which are
 persona-only. Item 9 (the likeness/CC0 image attestation) is the one item with NO theme/show
 equivalent — it exists only for image-carrying entries, and every avatar pack carries one.
+
+## 📣 Ad pack submission
+
+Ad packs are open to community submission, same as personas, themes, shows, and avatar packs — the
+mechanics above (prerequisites, `tools/validate.py`, `tools/build_index.py`, `tools/run_selftest.sh`,
+the PR template) all apply. An ad pack is **data only**: a list of fictional-brand briefs a station's
+own LLM writes parody ad spots from (app repo SPEC F162.2). No script, no audio, no code — nothing
+crosses into a station but text, and every brief still faces the app's own script validator at
+generation time. Only the files and gates below are ad-pack-specific.
+
+1. **Create `entries/ad-packs/<your-slug>/`** holding exactly `<slug>.ad-pack.json` and
+   `<slug>.meta.json` — the first-party starter pack, `entries/ad-packs/brought-to-you-by/`, is the
+   shape to crib from once it's on the shelf. Same slug rule as every other kind:
+   `^[a-z0-9]+(-[a-z0-9]+)*$` (README.md's [Slug format](./README.md#slug-format)).
+2. **Author the manifest** (`<slug>.ad-pack.json`) — validates against
+   `schemas/ad-pack-manifest.schema.json`, a mirror of the
+   [GenWave app repo](https://github.com/GenWave-Org/genwave)'s own `CatalogAdPackManifestSerializer`
+   caps: an optional `packName` plus 1–100 `briefs[]`, each `{ brand, premise?, tone?, structure? }` —
+   `brand` required, non-blank, ≤ 200 chars; each hint ≤ 500 chars. `premise` is the joke engine
+   (what the business is and what's slightly wrong with it), `tone` is the register the spot should
+   land in, `structure` is a shape hint layered on the app's own four-beat scaffold (hook, pitch,
+   tagline, call to action). An unknown member fails CI on purpose — the app's reader would silently
+   ignore a misspelled `premise` and install a brief with no premise at all.
+3. **Author the metadata** (`<slug>.meta.json`) — validates against
+   `schemas/ad-pack-meta.schema.json`. Required: `author`, `description`, `audience`, `added`.
+   Optional: `bestFor`. No `license`/`sourceUrl`: a pack is original prose, CC0 like a persona card.
+4. **Every brand must be fictional — the review point for this kind.** The catalog's hard ban on
+   trademarks/branding is the whole game here, not a footnote: a brief naming, punning on, or
+   misspelling a real company, product, or trademark is a revision request at review, and would fail
+   every spot the app ever writes from it anyway (the app's own brand blocklist refuses the script,
+   SPEC F160.3 — a near-miss like "Coka-Cola" is refused too). Invent the sponsor; the joke is that
+   it doesn't exist. A phone number in a premise, if any, uses the fictional 555 exchange.
+5. **One brand, one brief.** `tools/validate.py` rejects two briefs whose brands match after
+   case/whitespace folding (`ad-pack-duplicate-brand`) — the app installs keyed on brand, so the
+   later one would silently overwrite the earlier.
+6. **Rate the briefs, not the station.** `audience` is the briefs' own text; the app's audience
+   posture separately governs the spots it writes from them.
+
+The [quality bar](#-the-quality-bar) above still applies — see its "Per kind" note. The distinctness
+statement for an ad pack is what makes this *brand universe* distinct (a coastal town? a strip mall
+in 1987? civic institutions gone slightly wrong?), not any one joke.
 
 ## 🔍 What review looks like
 

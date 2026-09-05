@@ -1,0 +1,68 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/GenWave-Org/genwave-catalog/main/schemas/ad-pack-manifest.schema.json",
+  "title": "GenWave Ad Pack Manifest",
+  "description": "The <slug>.ad-pack.json shape a GenWave station fetches for a kind:\"ad-pack\" catalog entry (app repo SPEC F162.2, GenWave.Host.Catalog.CatalogAdPackManifestSerializer — the canonical reader this schema mirrors). DATA ONLY: an optional, decorative `packName` plus `briefs[]` — brand briefs the station's OWN LLM writes parody spots FROM (a fictional brand, and optional premise/tone/structure hints). No script, no audio, no code ever crosses this trust boundary; every installed brief still faces the app's AdScriptValidator (blocklisted real brands, 555 phone shape, audience posture) at generation time, exactly like an owner-typed one. The caps below mirror the serializer's own constants verbatim: 1–100 briefs per pack (MaxBriefsPerPack), brand 1–200 chars (MaxBrandLength), each hint ≤ 500 chars (MaxHintLength). additionalProperties is false at both levels — the app's reader silently ignores an unknown member, so a misspelled `premise` would install as a brief with no premise at all; failing CI here is the honest outcome. What JSON Schema cannot express — two briefs in one pack sharing a brand after case/whitespace folding (the app upserts keyed (pack_slug, brand) inside one transaction, so the later one silently overwrites the earlier; a case-only variant would list as two brands) — is tools/validate.py's validate_ad_pack.",
+  "$comment": "`brand`'s pattern is a bare \\S — an unanchored search for one non-whitespace character, i.e. the serializer's own non-blank rule (a whitespace-only brand folds to null there and fails the whole manifest). No end anchor is needed for a search pattern, so the (?![\\s\\S]) idiom the other schemas document does not appear here.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "briefs"
+  ],
+  "properties": {
+    "packName": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 200,
+      "description": "Optional shelf-card display name for the pack. Decorative only: the app folds an absent, null, or whitespace-only value to null rather than failing the manifest (CatalogAdPackManifestSerializer's own posture). The 200-char cap is this catalog's own sanity bound — the app imposes none."
+    },
+    "briefs": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 100,
+      "description": "One entry per fictional brand (CatalogAdPackManifestSerializer.MaxBriefsPerPack = 100; an empty array is no pack at all). Order is not significant — the app samples one enabled brief uniformly per generation.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "brand"
+        ],
+        "properties": {
+          "brand": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S",
+            "description": "The fictional brand this brief is about — the app's upsert key (with the pack slug) and the one field the writer always sees. REQUIRED and non-blank (MaxBrandLength = 200). It must be invented: a real company, product, or trademark here is a hard-ban at review AND fails every spot the app ever writes from it (SPEC F160.3's blocklist refuses the script)."
+          },
+          "premise": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 500,
+            "description": "The joke engine — what the business is and what is slightly wrong with it, one or two sentences. Optional (null or absent both mean none); ≤ 500 chars (MaxHintLength). Reaches the LLM as a `Premise:` line."
+          },
+          "tone": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 500,
+            "description": "How the spot should sound — a few words of register (\"shouty local pitchman\", \"hushed spa whisper\"). Optional; ≤ 500 chars. Reaches the LLM as a `Tone:` line."
+          },
+          "structure": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 500,
+            "description": "A shape hint for the copy (\"two-voice testimonial\", \"runaway legal disclaimer\") layered on the app's own shipped four-beat scaffold. Optional; ≤ 500 chars. Stored and shown on the station's Briefs tab; as of app v5.6.0 the writer does not yet read it (app issue #693)."
+          }
+        }
+      }
+    }
+  }
+}
