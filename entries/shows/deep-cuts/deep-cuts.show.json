@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "name": "Deep Cuts",
+  "tagline": "Dusting off the shelves.",
+  "flavor": "Treat every track as a rediscovery: it has sat rarely or never played, and now it finally gets its turn. Sound genuinely curious about what you find, admit when a title is unfamiliar, and never apologize for obscurity — the whole point of this hour is that few people have heard these lately. Keep intros short and back-announces warm; let the songs do the arguing.",
+  "envelope": { "rotation": { "maxPlays": 0 } }
+}
