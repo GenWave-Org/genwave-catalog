@@ -325,6 +325,24 @@
       "slug": "big-tony-marconi"
     },
     {
+      "audience": "everyone",
+      "bestFor": [
+        "starter",
+        "small town",
+        "parody"
+      ],
+      "kind": "ad-pack",
+      "manifest": {
+        "path": "entries/ad-packs/brought-to-you-by/brought-to-you-by.ad-pack.json",
+        "sha256": "d6a38521fedb1aa3af312e5e7f3dcede195f0a196c9d934c419d989df954e8e4"
+      },
+      "meta": {
+        "path": "entries/ad-packs/brought-to-you-by/brought-to-you-by.meta.json",
+        "sha256": "f17b5b3d27f1265824b9eaa9ebb766b158c4f7e5ce540508fbf7b729b1d50a3b"
+      },
+      "slug": "brought-to-you-by"
+    },
+    {
       "assets": [
         {
           "bytes": 414607,
@@ -1007,5 +1025,5 @@
       "slug": "wow-and-flutter"
     }
   ],
-  "generatedAt": "2026-08-16"
+  "generatedAt": "2026-09-05"
 }
