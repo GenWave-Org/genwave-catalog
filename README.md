@@ -1,15 +1,16 @@
 # 📻 genwave-catalog
 
 A community shelf for [GenWave](https://github.com/GenWave-Org/genwave) — a self-hosted internet
-radio control plane. The shelf carries six kinds of entry: **12 DJ personas** (portable,
+radio control plane. The shelf carries seven kinds of entry: **12 DJ personas** (portable,
 byte-valid exports of a GenWave DJ's personality — name, voice, lore, taste rules, pronunciation
 corrections; a persona may also wear one optional sidecar face), **4 themes** (station-wide
 look-and-feel manifests), **1 font pack** (vendored webfont faces for the Wardrobe), **show cards**
 (portable named-show identity packages — name, tagline, and prompt-only flavor), **avatar packs**
-(curated sets of 512×512 DJ faces for the Wardrobe's Avatars tab), and **icon packs** (curated sets
-of vector chrome icons for the admin UI's third swappable layer) — each byte-valid and ready for a
-station to drop straight in. Personas, themes, shows, and avatar packs are open to community
-submission; font packs and icon packs are Dean-curated only (see [Contributing](#-contributing)).
+(curated sets of 512×512 DJ faces for the Wardrobe's Avatars tab), **icon packs** (curated sets of
+vector chrome icons for the admin UI's third swappable layer), and **ad packs** (brand briefs — the
+fictional sponsors a station's own LLM writes parody ad spots from; data only, no audio) — each
+byte-valid and ready for a station to drop straight in. Personas, themes, shows, avatar packs, and
+ad packs are open to community submission; font packs and icon packs are Dean-curated only (see [Contributing](#-contributing)).
 
 This repo holds content — data files, schemas, and docs — plus the small set of Python tools under
 `tools/` (and the CI that runs them) that keep it valid. There is no build and no runtime service;
@@ -51,6 +52,10 @@ entries/
     <slug>/                         # an icon pack entry
       <slug>.icon.json                 # the gw-icon-pack definition (app repo SPEC F130.1) — no binary assets
       <slug>.meta.json                  # catalog-only metadata, incl. required license/sourceUrl (SPEC F130.6)
+  ad-packs/
+    <slug>/                         # an ad pack entry
+      <slug>.ad-pack.json              # the ad-pack manifest (app repo SPEC F162.2): packName + briefs[] — data only
+      <slug>.meta.json                  # catalog-only metadata
 schemas/
   persona-card.schema.json  # validates <slug>.persona.json
   persona-meta.schema.json  # validates a persona's <slug>.meta.json
@@ -64,6 +69,8 @@ schemas/
   avatar-meta.schema.json    # validates an avatar pack's <slug>.meta.json
   icon-manifest.schema.json   # validates <slug>.icon.json — the one manifest schema pinning full shape, not just types
   icon-meta.schema.json        # validates an icon pack's <slug>.meta.json (requires license/sourceUrl)
+  ad-pack-manifest.schema.json # validates <slug>.ad-pack.json — the app's own brief caps, mirrored
+  ad-pack-meta.schema.json     # validates an ad pack's <slug>.meta.json
   index.schema.json         # validates the committed index.json
 fixtures/
   golden.persona.json       # real bytes from the app's PersonaCardSerializer, pinned for parity
@@ -169,8 +176,11 @@ its shelf card renders from the manifest's own `packName` plus `author`/`descrip
 `added`/`bestFor`. An icon pack's `<slug>.meta.json` is the one exception with EXTRA required
 fields: `license` and `sourceUrl` (plus optional `version`) — the icon manifest is deliberately
 closed to style+icons only (SPEC F130.1), so licence/provenance live here instead (SPEC F130.6's F1
-ruling; see [Icon packs](./CONTRIBUTING.md#icon-packs-kind-icon) in CONTRIBUTING.md). All six kinds
-share `author`/`description`/`audience`/`added`, and all six schemas are
+ruling; see [Icon packs](./CONTRIBUTING.md#icon-packs-kind-icon) in CONTRIBUTING.md). An ad pack's
+`<slug>.meta.json` has neither either — its shelf card renders from the manifest's own `packName`
+plus `author`/`description`/`audience`/`added`/`bestFor`, and carries no licence field: a pack is
+original prose, CC0 like a persona card. All seven kinds
+share `author`/`description`/`audience`/`added`, and all seven schemas are
 `additionalProperties: false`.
 
 ### The avatar manifest (`<slug>.avatar.json`) and a persona's own sidecar face
@@ -199,6 +209,20 @@ cover), and the licence/provenance split (SPEC F130.6's F1 ruling: `license`/`so
 `<slug>.meta.json` only — a `license` member found inside `<slug>.icon.json` itself is a HARD
 `tools/validate.py` rejection).
 
+### The ad-pack manifest (`<slug>.ad-pack.json`)
+
+Format is owned by the [GenWave app repo](https://github.com/GenWave-Org/genwave) (SPEC F162.2,
+`GenWave.Host.Catalog.CatalogAdPackManifestSerializer` — the reader `schemas/ad-pack-manifest.schema.json`
+mirrors): an optional `packName` plus 1–100 `briefs[]`, each `{ brand, premise?, tone?, structure? }`
+— the fictional sponsors a station's own LLM writes parody spots from. **Data only**: no script, no
+audio, no code. A station installs a pack as rows in its own briefs table, and every brief still
+faces the app's script validator (blocklisted real brands, 555 phone shape, audience posture) at
+generation time. Caps mirror the app's constants: `brand` 1–200 non-blank chars, each hint ≤ 500
+chars, 100 briefs per pack, ≤ 256 KiB of manifest. `tools/validate.py` adds the one cross-item rule
+JSON Schema cannot express — no two briefs may share a brand after case/whitespace folding
+(`ad-pack-duplicate-brand`). See [📣 Ad pack submission](./CONTRIBUTING.md#-ad-pack-submission) in
+CONTRIBUTING.md for the review bar (every brand invented — the trademark hard ban is the whole game).
+
 ### Slug format
 
 A `<slug>` must match `^[a-z0-9]+(-[a-z0-9]+)*$` — lowercase letters and digits, single hyphens
@@ -211,8 +235,9 @@ app both enforce.
 ### Size caps
 
 - `<slug>.persona.json` ≤ **256 KB** (matches the app's own import cap, SPEC F79.6)
-- `<slug>.meta.json` ≤ **64 KB** — same cap for all six kinds
+- `<slug>.meta.json` ≤ **64 KB** — same cap for all seven kinds
 - `<slug>.icon.json` ≤ **256 KiB** (SPEC F130.1's own definition-size cap)
+- `<slug>.ad-pack.json` ≤ **256 KiB** (the app's manifest fetch cap, `CatalogProxyService.MaxCardBytes`)
 - No size cap is enforced on `<slug>.theme.json`, `<slug>.font.json`, `<slug>.show.json`, or
   `<slug>.avatar.json` text itself — deliberate; neither SPEC F103.2 nor F104.2 nor F118.1 nor
   F128.1 defines one on the manifest, and the app imposes none on a loaded manifest either
@@ -283,9 +308,12 @@ CI (`tools/validate.py`) validates every PR before merge:
   grammars (pinned in `schemas/icon-manifest.schema.json` itself), every numeric geometry attribute
   finite, and the F1 ruling — a `license`/`licence` member inside `<slug>.icon.json` is a HARD
   reject; the companion meta.json REQUIRES `license`/`sourceUrl`
+- ad-pack gates: the app's own caps pinned in `schemas/ad-pack-manifest.schema.json` (1–100 briefs,
+  non-blank `brand` ≤ 200 chars, hints ≤ 500 chars, closed member sets), brand uniqueness after
+  case/whitespace folding (`ad-pack-duplicate-brand`), and the ≤ 256 KiB manifest cap
 - `index.json` slug-ownership (every entry's paths resolve under its own
   `entries/<kind-folder>/<slug>/`, never a sibling's) and duplicate-asset-path checks
-- entries/ is nested by kind: only the six known kind folders directly under `entries/`, only
+- entries/ is nested by kind: only the seven known kind folders directly under `entries/`, only
   `<slug>/` directories inside each; a slug used by more than one kind folder, or a kind folder
   that disagrees with what an entry's own manifest filename implies, is a violation
 - no unexpected files in an entry directory, and no symlinks anywhere under `entries/`
@@ -346,3 +374,8 @@ see in `entries/` is exactly the file the station uses:
    whitelist re-validated server-side, this catalog's CI is never trusted at install time), then
    activated station-wide via the `Station:IconPack` setting. Uninstalling the active pack is
    legal — the renderer fails open to the house icons.
+7. **Ad packs** — installed via `POST /api/ad-packs/{slug}/install` (SPEC F162.2): each brief
+   upserts into the station's own `ad_brief` table keyed `(pack_slug, brand)` — reinstalling
+   updates a brief's hints and never duplicates it or resets the owner's enabled/disabled choice.
+   The station's ad-spot worker then writes, validates, and renders spots from them off the air
+   clock; nothing airs until the owner approves each one (or turns on `Station:Ads:AutoApprove`).

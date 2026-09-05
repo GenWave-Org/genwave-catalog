@@ -53,7 +53,7 @@ AVATAR_ASSET_NAME_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*\.png\Z")
 # Kind -> manifest filename suffix, in PRECEDENCE order: persona wins if,
 # bizarrely, more than one manifest file is present in an entry directory,
 # then every other kind in the order below (SPEC F103.2 / F104.1 / F118.1 /
-# F128.1 / F130.6) — the dict's own key order below IS the precedence order;
+# F128.1 / F130.6 / F162.2) — the dict's own key order below IS the precedence order;
 # read it here rather than trusting a kind count hand-copied into a comment
 # elsewhere, the exact staleness T196 review M3 already paid for once.
 # tools/build_index.py's resolve_manifest and tools/validate.py's
@@ -70,6 +70,7 @@ KIND_SUFFIXES: dict[str, str] = {
     "show": ".show.json",
     "avatar": ".avatar.json",
     "icon": ".icon.json",
+    "ad-pack": ".ad-pack.json",  # SPEC F162.2 (app PLAN T405): brand briefs, data only
 }
 
 # Kind -> entries/ subfolder name (gh-33: entries/<slug>/ moved to
@@ -94,6 +95,7 @@ KIND_FOLDERS: dict[str, str] = {
     "show": "shows",
     "avatar": "avatars",
     "icon": "icons",
+    "ad-pack": "ad-packs",
 }
 
 
@@ -114,7 +116,7 @@ def discover_entry_dirs(entries_dir: Path) -> list[tuple[str, Path]]:
     name, slug name). Empty list when entries_dir doesn't exist.
 
     Walks whatever directories are really there at both levels; it does NOT
-    filter to KIND_FOLDERS' six known names. That allowlist is
+    filter to KIND_FOLDERS' known names. That allowlist is
     tools/validate.py's validate_entries_top_level's job, run as a separate
     check — tools/build_index.py and tools/lint.py never call it, and still
     need to see (and, for build_index.py, still index) every entry

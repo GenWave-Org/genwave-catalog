@@ -1,0 +1,20 @@
+{
+  "packName": "Valid Ad Pack",
+  "briefs": [
+    {
+      "brand": "Bramble & Fitch Hardware",
+      "premise": "A cozy hardware shop where every clerk is a retired stage magician and nothing is ever where you left it.",
+      "tone": "warm, mischievous",
+      "structure": "two-voice: announcer plus one bemused customer"
+    },
+    {
+      "brand": "Nightjar Overnight Dishes",
+      "premise": "Someone comes to your house at 2 AM and quietly does the dishes. You never see them. The plates are just clean.",
+      "tone": "hushed luxury concierge",
+      "structure": null
+    },
+    {
+      "brand": "Pothole Adoption Society"
+    }
+  ]
+}

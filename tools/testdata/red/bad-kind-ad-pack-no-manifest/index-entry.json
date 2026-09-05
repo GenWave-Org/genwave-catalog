@@ -1,0 +1,13 @@
+{
+  "slug": "bad-kind-ad-pack-no-manifest",
+  "kind": "ad-pack",
+  "audience": "everyone",
+  "card": {
+    "path": "entries/personas/bad-kind-ad-pack-no-manifest/bad-kind-ad-pack-no-manifest.persona.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "meta": {
+    "path": "entries/ad-packs/bad-kind-ad-pack-no-manifest/bad-kind-ad-pack-no-manifest.meta.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  }
+}

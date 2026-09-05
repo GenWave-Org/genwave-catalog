@@ -95,6 +95,18 @@ per SPEC F103.2 / T179):
     manifest itself is a HARD reject — licence/provenance belongs in the
     companion `<slug>.meta.json` ONLY (`validate_icon_licence_not_in_manifest`;
     schemas/icon-meta.schema.json requires `license`+`sourceUrl` there).
+  - An ad pack (kind:\"ad-pack\", <slug>.ad-pack.json, SPEC F162.2) is DATA
+    ONLY — `packName` plus `briefs[]` of fictional-brand briefs the station's
+    own LLM writes parody spots from. schemas/ad-pack-manifest.schema.json
+    mirrors the app's CatalogAdPackManifestSerializer caps (1-100 briefs,
+    brand 1-200 non-blank chars, each hint <= 500 chars, closed member sets).
+    tools/validate.py adds the one cross-item rule JSON Schema cannot
+    express: no two briefs in a pack may share a brand after case/whitespace
+    folding (`validate_ad_pack` — the app upserts keyed (pack_slug, brand),
+    so an exact duplicate silently overwrites, and a case-only variant would
+    list as two brands), plus the <= 256 KiB manifest-size cap (the app's
+    own manifest fetch cap, CatalogProxyService.MaxCardBytes — reachable by
+    a schema-valid document only through whitespace padding, but reachable).
   - `added` is a real calendar date, not just YYYY-MM-DD shaped (the schema
     pattern lets '9999-99-99' through; datetime.date.fromisoformat doesn't).
   - slug == entry directory name == both filenames' stems.
@@ -257,6 +269,15 @@ ICON_DEFINITION_SIZE_CAP = 256 * 1024  # 262,144 bytes
 # contributor copying either convention into <slug>.icon.json is caught.
 ICON_LICENCE_KEYS = ("license", "licence")
 
+# SPEC F162.2's ad-pack manifest rides the app's ordinary manifest fetch cap
+# (GenWave.Host.Catalog.CatalogProxyService.MaxCardBytes, 256 KiB — the SAME
+# number every non-persona manifest is fetched under) — wired through
+# KindSpec.size_cap like the icon definition cap above. The schema's own
+# caps (100 briefs x (200 + 3 x 500) chars) keep any REAL pack far below it;
+# only whitespace padding can reach it, which is exactly why the cap stays a
+# validate.py gate rather than being left to the schema.
+AD_PACK_MANIFEST_SIZE_CAP = 256 * 1024  # 262,144 bytes
+
 # SPEC F104.9's "unbreakable themes" invariant (Dean's ruling 2026-08-05, PLAN T205: "themes never
 # reference font packs in the catalog") — mirrors the app's own GenWave.Host/wwwroot/fonts/fonts-
 # provenance.json (FONTS.md's curated set) exactly. The app's ThemeFontProvenanceValidator widens to
@@ -388,6 +409,15 @@ def build_kind_specs() -> dict[str, KindSpec]:
             size_cap=ICON_DEFINITION_SIZE_CAP,  # SPEC F130.1's own 256 KiB definition cap
             allows_extra=lambda path: False,
             unexpected_file_hint="only <slug>.icon.json and <slug>.meta.json are allowed in an entry directory",
+        ),
+        "ad-pack": KindSpec(
+            suffix=KIND_SUFFIXES["ad-pack"],
+            label="ad-pack manifest",
+            manifest_schema=load_schema("ad-pack-manifest.schema.json"),
+            meta_schema=load_schema("ad-pack-meta.schema.json"),
+            size_cap=AD_PACK_MANIFEST_SIZE_CAP,  # the app's manifest fetch cap — see that constant's own remarks
+            allows_extra=lambda path: False,
+            unexpected_file_hint="only <slug>.ad-pack.json and <slug>.meta.json are allowed in an entry directory",
         ),
     }
     # Order pin (T196 review note): precedence order must BE KIND_SUFFIXES' order —
@@ -833,6 +863,52 @@ def validate_icon_pack(manifest_path: Path, manifest: object) -> list[str]:
     )
 
 
+def fold_brand(brand: str) -> str:
+    """The brand-identity fold validate_ad_pack compares under: case-folded,
+    with every internal whitespace run collapsed to one space and the ends
+    trimmed. Deliberately STRICTER than the app's own upsert key (raw text
+    equality on `(pack_slug, brand)`): two briefs the app would happily store
+    as separate rows ("Acme Widgets" / "acme   widgets") are one brand to any
+    human reading the shelf, so they are a contributor mistake here."""
+    return " ".join(brand.split()).casefold()
+
+
+def validate_ad_pack(manifest_path: Path, manifest: object) -> list[str]:
+    """Ad-pack gates (SPEC F162.2) beyond the schema check next to it:
+    the one cross-item rule draft-07 cannot express. Every brief's `brand`
+    must be unique within the pack under `fold_brand` — the app installs a
+    pack as one transaction of per-brief upserts keyed `(pack_slug, brand)`
+    (AdBriefRepository.UpsertAllAsync), so an exact duplicate would silently
+    overwrite its earlier twin's premise/tone/structure, and a case- or
+    spacing-only variant would land as two rows the shelf shows as two
+    brands. Shape (types, caps, closed member sets, non-blank brand) is the
+    schema's job; this function trusts it already ran and tolerates a
+    malformed document by simply having nothing to say about it."""
+    if not isinstance(manifest, dict):
+        return []
+    briefs = manifest.get("briefs")
+    if not isinstance(briefs, list):
+        return []
+    violations: list[str] = []
+    first_seen: dict[str, int] = {}
+    for index, brief in enumerate(briefs):
+        if not isinstance(brief, dict) or not isinstance(brief.get("brand"), str):
+            continue
+        folded = fold_brand(brief["brand"])
+        if not folded:
+            continue  # the schema's own \S pattern already names a blank brand
+        if folded in first_seen:
+            violations.append(
+                f"{rel(REPO_ROOT, manifest_path)}: ad-pack-duplicate-brand: briefs/{index}/brand "
+                f"{brief['brand']!r} repeats briefs/{first_seen[folded]}/brand after case/whitespace "
+                "folding — the app upserts keyed (pack_slug, brand), so one would silently overwrite "
+                "or shadow the other; merge them into one brief"
+            )
+        else:
+            first_seen[folded] = index
+    return violations
+
+
 def validate_added_date(meta_path: Path, meta: object) -> list[str]:
     """`added` passing the meta schema's pattern only proves it's shaped like
     YYYY-MM-DD — '9999-99-99' matches that pattern but isn't a real calendar
@@ -971,6 +1047,8 @@ def validate_entry(entry_dir: Path, kind_specs: dict[str, KindSpec], kind_folder
                 violations.extend(validate_avatar_pack(entry_dir, slug, manifest_instance))
             elif kind == "icon":
                 violations.extend(validate_icon_pack(manifest_path, manifest_instance))
+            elif kind == "ad-pack":
+                violations.extend(validate_ad_pack(manifest_path, manifest_instance))
 
     if len(meta_candidates) == 1:
         meta_path = meta_candidates[0]
@@ -1031,12 +1109,12 @@ def validate_entries_top_level(entries_dir: Path) -> list[str]:
                 violations.append(f"{rel(REPO_ROOT, path)}: symlink: symlinks are not allowed under entries/")
             else:
                 violations.append(
-                    f"{rel(REPO_ROOT, path)}: unexpected-file: entries/ may only contain the six known "
+                    f"{rel(REPO_ROOT, path)}: unexpected-file: entries/ may only contain the known "
                     f"kind folders ({', '.join(sorted(known_folders))})"
                 )
         elif path.name not in known_folders:
             violations.append(
-                f"{rel(REPO_ROOT, path)}: unexpected-file: entries/ may only contain the six known kind "
+                f"{rel(REPO_ROOT, path)}: unexpected-file: entries/ may only contain the known kind "
                 f"folders ({', '.join(sorted(known_folders))})"
             )
 
