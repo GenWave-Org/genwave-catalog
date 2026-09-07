@@ -26,7 +26,7 @@ if [ "$#" -ne 1 ] || [ ! -r "$1" ]; then
 fi
 
 changed_file="$1"
-KNOWN_KIND_FOLDERS="personas themes fonts shows avatars icons ad-packs"
+KNOWN_KIND_FOLDERS="personas themes fonts shows avatars icons ad-packs voice-packs jingle-packs"
 entry_touched=false
 declare -A entry_dirs=()
 fail=false

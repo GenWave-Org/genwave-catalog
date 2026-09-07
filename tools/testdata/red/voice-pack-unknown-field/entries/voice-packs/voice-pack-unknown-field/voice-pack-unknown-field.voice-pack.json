@@ -1,0 +1,14 @@
+{
+  "packName": "Voice Pack Unknown Field",
+  "engine": "kokoro",
+  "synthetic": true,
+  "sourceRef": null,
+  "voices": [
+    {
+      "voiceId": "river",
+      "file": "river.pt"
+    }
+  ],
+  "preview": "voice-pack-unknown-field.preview.mp3",
+  "notes": "this member does not exist in the schema"
+}

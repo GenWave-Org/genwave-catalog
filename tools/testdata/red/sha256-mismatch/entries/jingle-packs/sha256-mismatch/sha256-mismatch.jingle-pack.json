@@ -1,0 +1,12 @@
+{
+  "packName": "Sha256 Mismatch",
+  "assets": [
+    {
+      "file": "bed.wav",
+      "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "role": "bed",
+      "title": "Bed",
+      "license": "CC0"
+    }
+  ]
+}

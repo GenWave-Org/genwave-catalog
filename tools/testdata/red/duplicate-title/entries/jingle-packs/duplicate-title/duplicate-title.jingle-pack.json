@@ -1,0 +1,19 @@
+{
+  "packName": "Duplicate Title",
+  "assets": [
+    {
+      "file": "bed.wav",
+      "sha256": "449b3c6c1e5a683f84d00a4983511bbe866aacd839ae96743d3bb6a3a161766d",
+      "role": "bed",
+      "title": "Cozy Bed",
+      "license": "CC0"
+    },
+    {
+      "file": "sting.mp3",
+      "sha256": "d54fc970d82e23b081944e40f8e4f9ffa2382ac94c05140de29c2a5241ac968e",
+      "role": "sting",
+      "title": "  COZY   bed  ",
+      "license": "CC0"
+    }
+  ]
+}

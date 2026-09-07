@@ -1,0 +1,17 @@
+{
+  "packName": "Cc By Bad Source Url",
+  "assets": [
+    {
+      "file": "bed.wav",
+      "sha256": "449b3c6c1e5a683f84d00a4983511bbe866aacd839ae96743d3bb6a3a161766d",
+      "role": "bed",
+      "title": "Bed",
+      "license": "CC-BY",
+      "attribution": {
+        "creator": "Jane Doe",
+        "sourceUrl": "https:// not a uri at all \n<script>",
+        "license": "CC-BY"
+      }
+    }
+  ]
+}

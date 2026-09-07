@@ -1,0 +1,28 @@
+{
+  "slug": "valid-voice-pack-index-entry",
+  "kind": "voice-pack",
+  "audience": "everyone",
+  "bestFor": [
+    "late-night"
+  ],
+  "manifest": {
+    "path": "entries/voice-packs/valid-voice-pack-index-entry/valid-voice-pack-index-entry.voice-pack.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "meta": {
+    "path": "entries/voice-packs/valid-voice-pack-index-entry/valid-voice-pack-index-entry.meta.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "assets": [
+    {
+      "path": "entries/voice-packs/valid-voice-pack-index-entry/river.pt",
+      "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "bytes": 183
+    },
+    {
+      "path": "entries/voice-packs/valid-voice-pack-index-entry/valid-voice-pack-index-entry.preview.mp3",
+      "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "bytes": 853
+    }
+  ]
+}

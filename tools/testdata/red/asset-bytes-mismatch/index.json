@@ -1,0 +1,30 @@
+{
+  "generatedAt": "2026-09-06",
+  "entries": [
+    {
+      "slug": "asset-bytes-mismatch",
+      "kind": "voice-pack",
+      "audience": "everyone",
+      "manifest": {
+        "path": "entries/voice-packs/asset-bytes-mismatch/asset-bytes-mismatch.voice-pack.json",
+        "sha256": "580aafc89dcda0f807534dabb3d30e3dd48a66062fc2efbbbe32dd5a637c5d5e"
+      },
+      "meta": {
+        "path": "entries/voice-packs/asset-bytes-mismatch/asset-bytes-mismatch.meta.json",
+        "sha256": "7c4454f171d7461aa1a6aef170d28c8f6d99281785ebcee95d516fe5ea067635"
+      },
+      "assets": [
+        {
+          "path": "entries/voice-packs/asset-bytes-mismatch/river.pt",
+          "sha256": "0a9c033d4e459222b5710ac84e74e2e30646a4602d20a7bfc40ad13a0d146125",
+          "bytes": 183
+        },
+        {
+          "path": "entries/voice-packs/asset-bytes-mismatch/asset-bytes-mismatch.preview.mp3",
+          "sha256": "83e898631dcb1dc0e711d7bab1dacb272f4a6274960a048e7bdfce5211ff476a",
+          "bytes": 999
+        }
+      ]
+    }
+  ]
+}

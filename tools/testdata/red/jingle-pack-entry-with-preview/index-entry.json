@@ -1,0 +1,24 @@
+{
+  "slug": "jingle-pack-entry-with-preview",
+  "kind": "jingle-pack",
+  "audience": "everyone",
+  "manifest": {
+    "path": "entries/jingle-packs/jingle-pack-entry-with-preview/jingle-pack-entry-with-preview.jingle-pack.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "meta": {
+    "path": "entries/jingle-packs/jingle-pack-entry-with-preview/jingle-pack-entry-with-preview.meta.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "assets": [
+    {
+      "path": "entries/jingle-packs/jingle-pack-entry-with-preview/bed.wav",
+      "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "bytes": 1
+    }
+  ],
+  "preview": {
+    "path": "entries/jingle-packs/jingle-pack-entry-with-preview/jingle-pack-entry-with-preview.preview.png",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  }
+}

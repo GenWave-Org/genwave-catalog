@@ -1,0 +1,13 @@
+{
+  "packName": "Preview Bad Magic",
+  "engine": "kokoro",
+  "synthetic": true,
+  "sourceRef": null,
+  "voices": [
+    {
+      "voiceId": "river",
+      "file": "river.pt"
+    }
+  ],
+  "preview": "preview-bad-magic.preview.mp3"
+}

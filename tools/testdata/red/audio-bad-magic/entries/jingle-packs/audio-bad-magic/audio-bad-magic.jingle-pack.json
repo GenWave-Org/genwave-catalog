@@ -1,0 +1,12 @@
+{
+  "packName": "Audio Bad Magic",
+  "assets": [
+    {
+      "file": "bed.wav",
+      "sha256": "128556906cb1e7cb4f94e28a088fd2388da6e310319cb009c809d0c6f71b0d6c",
+      "role": "bed",
+      "title": "Bed",
+      "license": "CC0"
+    }
+  ]
+}

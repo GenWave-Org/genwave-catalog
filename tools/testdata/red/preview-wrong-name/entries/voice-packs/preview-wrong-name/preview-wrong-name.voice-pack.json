@@ -1,0 +1,13 @@
+{
+  "packName": "Preview Wrong Name",
+  "engine": "kokoro",
+  "synthetic": true,
+  "sourceRef": null,
+  "voices": [
+    {
+      "voiceId": "river",
+      "file": "river.pt"
+    }
+  ],
+  "preview": "someone-else.preview.mp3"
+}

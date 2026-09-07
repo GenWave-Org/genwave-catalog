@@ -1,0 +1,13 @@
+{
+  "packName": "Stowaway File",
+  "engine": "kokoro",
+  "synthetic": true,
+  "sourceRef": null,
+  "voices": [
+    {
+      "voiceId": "river",
+      "file": "river.pt"
+    }
+  ],
+  "preview": "stowaway-file.preview.mp3"
+}

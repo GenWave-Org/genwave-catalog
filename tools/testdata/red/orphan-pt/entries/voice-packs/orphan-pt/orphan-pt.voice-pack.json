@@ -1,0 +1,13 @@
+{
+  "packName": "Orphan Pt",
+  "engine": "kokoro",
+  "synthetic": true,
+  "sourceRef": null,
+  "voices": [
+    {
+      "voiceId": "river",
+      "file": "river.pt"
+    }
+  ],
+  "preview": "orphan-pt.preview.mp3"
+}

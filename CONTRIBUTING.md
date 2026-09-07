@@ -1,19 +1,24 @@
 # 🤝 Contributing to genwave-catalog
 
 Thanks for wanting to add to the shelf. This is a community catalog for
-[GenWave](https://github.com/GenWave-Org/genwave), carrying seven kinds of entry: DJ **personas**,
-**themes**, **shows**, **avatar packs**, and **ad packs** (all five open to community submission) and
+[GenWave](https://github.com/GenWave-Org/genwave), carrying nine kinds of entry: DJ **personas**,
+**themes**, **shows**, **avatar packs**, and **ad packs** (all five open to community submission),
 **font packs** and **icon packs** (Dean-curated only — see [Font packs](#font-packs-kind-font) and
-[Icon packs](#icon-packs-kind-icon) below). Every entry here is something someone else's radio
-station can drop straight in. That's a gift to strangers, so we ask a bit of care in return. This
-doc is the full bar: what CI checks mechanically, and what a human reviews.
+[Icon packs](#icon-packs-kind-icon) below), and **voice packs** and **jingle packs** (first-party
+packs this cycle; community submissions are not yet open — see
+[gh-#709](https://github.com/GenWave-Org/genwave/issues/709), and
+[Voice packs](#voice-packs-kind-voice-pack) and [Jingle packs](#jingle-packs-kind-jingle-pack)
+below). Every entry here is something someone else's radio station can drop straight in. That's a
+gift to strangers, so we ask a bit of care in return. This doc is the full bar: what CI checks
+mechanically, and what a human reviews.
 
 This walkthrough below is the **persona** path. Submitting a **theme**, **show**, **avatar
 pack**, or **ad pack** instead? Read this section for the shared mechanics (prerequisites, validate/lint/index/
 selftest, the PR template), then jump to [🎨 Theme submission](#-theme-submission),
 [🎙 Show submission](#-show-submission), [🖼 Avatar pack submission](#-avatar-pack-submission), or
-[📣 Ad pack submission](#-ad-pack-submission) for what's different. Font packs and icon packs don't follow this path at all — see
-[Font packs](#font-packs-kind-font) and [Icon packs](#icon-packs-kind-icon).
+[📣 Ad pack submission](#-ad-pack-submission) for what's different. Font packs, icon packs, voice packs, and jingle packs don't follow this path
+at all — see [Font packs](#font-packs-kind-font), [Icon packs](#icon-packs-kind-icon),
+[Voice packs](#voice-packs-kind-voice-pack), and [Jingle packs](#jingle-packs-kind-jingle-pack).
 
 ## 🚀 Start to finish
 
@@ -110,9 +115,10 @@ theme submission adds two gates of its own with no persona equivalent (AA contra
 faces) — see [🎨 Theme submission](#-theme-submission) below; a show submission adds one (the
 `suggestedPersona` slug-shape/64-char cap) — see [🎙 Show submission](#-show-submission); an avatar
 pack submission adds the PNG image bar itself (magic bytes, exact 512×512, size ceilings, no
-animated PNGs) — see [🖼 Avatar pack submission](#-avatar-pack-submission). Font packs and icon
-packs don't clear this bar at all — curated only, see [Font packs](#font-packs-kind-font) and
-[Icon packs](#icon-packs-kind-icon).
+animated PNGs) — see [🖼 Avatar pack submission](#-avatar-pack-submission). Font packs, icon packs,
+voice packs, and jingle packs don't clear this bar at all — none of the four take community
+submissions right now, see [Font packs](#font-packs-kind-font), [Icon packs](#icon-packs-kind-icon),
+[Voice packs](#voice-packs-kind-voice-pack), and [Jingle packs](#jingle-packs-kind-jingle-pack).
 
 An **ad pack** follows items 1, 2, 4, 5, and 8 as written (against `schemas/ad-pack-*.schema.json`),
 has its own distinctness equivalent (what makes this *brand universe* distinct), and takes
@@ -450,3 +456,69 @@ This table is a mirror, not the source of truth — `GenWave.Host.Icons.IconName
 repo) and `icons.tsx` (its own parity fact, `Story337_IconPacksSwapTheChrome.cs`) are what actually
 govern the admin UI's rendering; if this table and that constant ever disagree, the app repo wins
 and this table is stale (file an issue).
+
+## Voice packs (kind: voice-pack)
+
+Voice packs are first-party packs this cycle; community submissions are not yet open — see
+[gh-#709](https://github.com/GenWave-Org/genwave/issues/709). A voice pack ships one or
+more Kokoro voice weights (`<voiceId>.pt`) plus a required preview clip (app repo SPEC F164). The
+consent-verification bar here is stricter than font/icon's licence-only concern: F164.3's consent
+attestation exists precisely because a voice is a much more personal thing to get wrong than a
+typeface or an icon, and this catalog has no mechanism to verify a submitter's consent claim about
+whose voice went into a `.pt` file. An entry is
+`entries/voice-packs/<slug>/` holding `<slug>.voice-pack.json`, `<slug>.meta.json`,
+`<slug>.preview.mp3`, and one `<voiceId>.pt` per voice — nothing else.
+
+**The manifest** (`<slug>.voice-pack.json`) validates against
+`schemas/voice-pack-manifest.schema.json` (app repo SPEC F164.1–F164.4): `packName`; `engine`
+(closed to `"kokoro"` this cycle, F164.2 — the app does its own runtime engine check at install,
+this catalog is stricter by design); `synthetic: true` and `sourceRef: null`/absent, both pinned
+(F164.3 — **no soft-cloning of a real voice via this shelf, by construction**); 1–16 `voices[]`,
+each `voiceId` matching the same lowercase pattern as the app's own
+`SettingValidator.VoiceIdFormat()` and the `station.voice_pack_voice` CHECK constraint, `file`
+required to equal `<voiceId>.pt` exactly, and an optional `blend[]` (informational stock-voice
+provenance — the `.pt` itself is always the ground truth); a required `preview` filename that must
+equal `<slug>.preview.mp3` (F164.4 — the shelf detail modal plays this before install, the
+honest-preview principle; an untested PCA blend structurally cannot reach the shelf).
+`tools/validate.py` layers on what JSON Schema can't express: every `.pt` exists, is a real
+zip/torch archive (checked by magic bytes only — **never unpickled or loaded**, since the file is
+untrusted pickle end to end), ≤ 1 MiB each and ≤ 8 MiB summed per pack; no duplicate `voiceId`; the
+preview exists, is a real MP3, and is ≤ 150 KiB (`Packs:PreviewMaxBytes`); no orphaned or stowaway
+files.
+
+**Meta sidecar** (`<slug>.meta.json`) follows the ad-pack-meta shape: `author`/`description`/
+`audience`/`added`, closed, no licence field (a pack ships opaque synthetic weights, not
+attributable source audio).
+
+## Jingle packs (kind: jingle-pack)
+
+Jingle packs are first-party packs this cycle; community submissions are not yet open — see
+[gh-#709](https://github.com/GenWave-Org/genwave/issues/709) — the FONTS.md posture
+applied to background music instead of typefaces: every asset needs its licence and (for CC-BY)
+its attribution independently verified against the source before it ships, the same provenance
+discipline a font pack's OFL confirmation already demands. An entry is
+`entries/jingle-packs/<slug>/` holding `<slug>.jingle-pack.json`, `<slug>.meta.json`, and the
+asset audio files (`.wav`/`.mp3`/`.flac`) — nothing else.
+
+**The manifest** (`<slug>.jingle-pack.json`) validates against
+`schemas/jingle-pack-manifest.schema.json` (app repo SPEC F165.1–F165.4): `packName` (becomes
+`library.media.artist` on install); 1–32 `assets[]`, each with a `file`, a `sha256`, an explicit
+`role` closed to `bed`/`sting`/`station_id` (F165.3 — **no auto-classification**; a curator states
+intent, CI doesn't guess it from clip length), a `title`, and a `license` closed to `CC0`/`CC-BY`
+(F165.4 — **CC-BY-SA and everything else is rejected by the closed enum**, since share-alike is
+viral on a derivative ad spot). A CC-BY asset MUST carry a structured per-asset `attribution`
+(`{creator, sourceUrl, license}`, all three required); a CC0 asset must NOT carry one at all — a
+schema `if`/`then`/`else` enforces both directions, and the manifest's own top level is closed
+against a pack-level `attribution` field (STORY-400 AC6 — free-form or pack-level attribution
+would defeat the point: the About page attribution surface needs one structured record per asset,
+not a paragraph to parse). `tools/validate.py` layers on what JSON Schema can't express: each
+asset's declared `sha256` matches the real bytes on disk; the bytes match the extension's own
+magic (RIFF/WAVE, ID3/MPEG-sync, or `fLaC`); ≤ 5 MiB per asset (`Packs:JingleAssetMaxBytes`) and ≤
+40 MiB summed per pack (a catalog ruling — F165 itself sets no pack ceiling, so this mirrors the
+font/avatar/voice-pack precedent of bounding a pack's total footprint); no duplicate `file` or
+duplicate `title` after the same case/whitespace fold `fold_brand` already applies to ad-pack
+brands; no orphaned or stowaway files.
+
+**Meta sidecar** (`<slug>.meta.json`) is the ad-pack-meta shape plus an optional `tags[]` (1–8
+short lowercase tokens, F165.1 — words for the shelf card, e.g. `"chill"`, `"upbeat"`, `"retro"`);
+no swatch field, no licence field (licence lives per-asset in the manifest, not here).

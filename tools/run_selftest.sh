@@ -90,6 +90,48 @@
 #      manifest only, no card/assets/family/preview), and the index-entry
 #      schema's own ad-pack branch (manifest-only accepted, a card-carrying or
 #      assets-carrying ad-pack entry rejected)
+#
+#  17. kind-aware voice-pack-entry validation (schemas/voice-pack-manifest.schema.json
+#      + schemas/voice-pack-meta.schema.json, SPEC F164, app PLAN T410/T412/T413): a
+#      green valid-voice-pack fixture end to end (a plain voice plus a blended one,
+#      sourceRef: null) and a valid-voice-pack-no-sourceref sibling (the key absent
+#      entirely), the closed engine/synthetic/sourceRef shape as red schema gates
+#      (a non-kokoro engine — mirrored generically as synthetic-false's own const
+#      failure — synthetic: false, a non-null sourceRef, an uppercase/traversal/too-
+#      long voiceId, 17 voices past maxItems 16), validate.py's own cross-item gates
+#      (voice-pack-file-mismatch, voice-pack-duplicate-voice), the deep asset gates
+#      ported from the app's own weight/preview handling (real zip/torch magic on
+#      every .pt, real MP3 magic on the preview, the 1 MiB per-weight and 150 KiB
+#      preview byte ceilings generated at test time, the 8 MiB per-pack ceiling —
+#      9 weights generated at test time), the preview's own filename==slug rule
+#      (voice-pack-preview-name), and the same orphan/stowaway "a pack IS its
+#      files" posture as font/avatar (voice-pack-orphan-file; the T411 brief's own
+#      wording reserves "orphan" for an unclaimed disk file here — a manifest
+#      reference to a MISSING file is an ordinary missing-file finding instead,
+#      the opposite of font-pack's own "orphan" direction); build_index.py's
+#      voice-pack projection (kind + manifest + assets[], no card/family/preview)
+#      and the index-entry schema's own voice-pack branch (manifest+assets
+#      required, a card/preview-carrying voice-pack entry rejected).
+#
+#  18. kind-aware jingle-pack-entry validation (schemas/jingle-pack-manifest.schema.json
+#      + schemas/jingle-pack-meta.schema.json, SPEC F165, app PLAN T410/T412,
+#      STORY-400): a green valid-jingle-pack fixture end to end (a CC0 bed/wav, a
+#      CC-BY sting/mp3 with full attribution, a CC0 station_id/flac), the closed
+#      license/role shape as red schema gates (CC-BY-SA refused by the enum itself,
+#      an unknown role, CC-BY missing attribution/creator/sourceUrl, CC0 carrying an
+#      attribution object anyway, a top-level attribution array — STORY-400 AC6),
+#      validate.py's own cross-item and per-asset gates (jingle-pack-sha256-mismatch
+#      against the real bytes on disk, jingle-pack-audio-magic per extension via
+#      JINGLE_AUDIO_MAGIC_CHECKS, the 5 MiB per-asset ceiling generated at test time
+#      alongside its own manifest so the sha256 stays self-consistent,
+#      jingle-pack-duplicate-asset on both file and case/whitespace-folded title),
+#      the reverse orphan check (jingle-pack-orphan-audio), build_index.py's
+#      jingle-pack projection (kind + manifest + assets[], no card/family/preview),
+#      the index-entry schema's own jingle-pack branch, and
+#      validate_index_asset_integrity (T411, new at this task): every index.json
+#      entry's own declared sha256/bytes actually matches the real file on disk —
+#      a stale claim neither validate_index_slug_ownership nor
+#      validate_index_duplicate_asset_paths ever opens the file to catch.
 
 # Every python3/build_index.py invocation below has its exit status checked
 # explicitly (`set -uo pipefail`, not `set -e`, since several steps below —
@@ -164,6 +206,16 @@ ICON_OVER_CEILING_DIR="$RED_DIR/icon-over-ceiling/entries/icons/icon-over-ceilin
 AD_PACK_GREEN_FIXTURE="tools/testdata/green/valid-ad-pack"
 AD_PACK_OVER_CEILING_DIR="$RED_DIR/ad-pack-over-ceiling/entries/ad-packs/ad-pack-over-ceiling"
 
+VOICE_PACK_GREEN_FIXTURE="tools/testdata/green/valid-voice-pack"
+VOICE_PACK_NO_SOURCEREF_GREEN_FIXTURE="tools/testdata/green/valid-voice-pack-no-sourceref"
+VOICE_PACK_PREVIEW_OVER_MAX="$RED_DIR/preview-over-max/entries/voice-packs/preview-over-max/preview-over-max.preview.mp3"
+VOICE_PACK_PT_OVER_MAX="$RED_DIR/pt-over-max/entries/voice-packs/pt-over-max/river.pt"
+VOICE_PACK_OVER_CEILING_DIR="$RED_DIR/over-ceiling/entries/voice-packs/over-ceiling"
+
+JINGLE_PACK_GREEN_FIXTURE="tools/testdata/green/valid-jingle-pack"
+JINGLE_PACK_ASSET_OVER_MAX_DIR="$RED_DIR/asset-over-max/entries/jingle-packs/asset-over-max"
+JINGLE_PACK_OVER_CEILING_DIR="$RED_DIR/jingle-pack-over-ceiling/entries/jingle-packs/jingle-pack-over-ceiling"
+
 TMP_GREEN_TREE=""
 TMP_PRON_TREE=""
 TMP_SYMLINK_TREE=""
@@ -183,6 +235,10 @@ TMP_ICON_INDEX_TREE=""
 TMP_AVATAR_INDEX_TREE=""
 TMP_AD_PACK_TREE=""
 TMP_AD_PACK_INDEX_TREE=""
+TMP_VOICE_PACK_TREE=""
+TMP_VOICE_PACK_INDEX_TREE=""
+TMP_JINGLE_PACK_TREE=""
+TMP_JINGLE_PACK_INDEX_TREE=""
 TMP_SHOW_ROTATION_TREE=""
 TMP_SHOW_ROTATION_NULL_BOUND_TREE=""
 TMP_SHOW_ROTATION_NULL_ROTATION_TREE=""
@@ -193,6 +249,10 @@ cleanup() {
     rm -f "$RED_DIR"/avatar-pack-ceiling/entries/avatars/avatar-pack-ceiling/face-*.png
     rm -f "$ICON_OVER_CEILING_DIR"/icon-over-ceiling.icon.json "$ICON_OVER_CEILING_DIR"/icon-over-ceiling.meta.json
     rm -f "$AD_PACK_OVER_CEILING_DIR"/ad-pack-over-ceiling.ad-pack.json "$AD_PACK_OVER_CEILING_DIR"/ad-pack-over-ceiling.meta.json
+    rm -f "$VOICE_PACK_PREVIEW_OVER_MAX" "$VOICE_PACK_PT_OVER_MAX"
+    rm -f "$VOICE_PACK_OVER_CEILING_DIR"/voice*.pt
+    rm -f "$JINGLE_PACK_ASSET_OVER_MAX_DIR"/bed.wav "$JINGLE_PACK_ASSET_OVER_MAX_DIR"/asset-over-max.jingle-pack.json "$JINGLE_PACK_ASSET_OVER_MAX_DIR"/asset-over-max.meta.json
+    rm -f "$JINGLE_PACK_OVER_CEILING_DIR"/asset*.wav "$JINGLE_PACK_OVER_CEILING_DIR"/jingle-pack-over-ceiling.jingle-pack.json "$JINGLE_PACK_OVER_CEILING_DIR"/jingle-pack-over-ceiling.meta.json
     [[ -n "$TMP_GREEN_TREE" ]] && rm -rf "$TMP_GREEN_TREE"
     [[ -n "$TMP_PRON_TREE" ]] && rm -rf "$TMP_PRON_TREE"
     [[ -n "$TMP_SYMLINK_TREE" ]] && rm -rf "$TMP_SYMLINK_TREE"
@@ -212,6 +272,10 @@ cleanup() {
     [[ -n "$TMP_AVATAR_INDEX_TREE" ]] && rm -rf "$TMP_AVATAR_INDEX_TREE"
     [[ -n "$TMP_AD_PACK_TREE" ]] && rm -rf "$TMP_AD_PACK_TREE"
     [[ -n "$TMP_AD_PACK_INDEX_TREE" ]] && rm -rf "$TMP_AD_PACK_INDEX_TREE"
+    [[ -n "$TMP_VOICE_PACK_TREE" ]] && rm -rf "$TMP_VOICE_PACK_TREE"
+    [[ -n "$TMP_VOICE_PACK_INDEX_TREE" ]] && rm -rf "$TMP_VOICE_PACK_INDEX_TREE"
+    [[ -n "$TMP_JINGLE_PACK_TREE" ]] && rm -rf "$TMP_JINGLE_PACK_TREE"
+    [[ -n "$TMP_JINGLE_PACK_INDEX_TREE" ]] && rm -rf "$TMP_JINGLE_PACK_INDEX_TREE"
     [[ -n "$TMP_SHOW_ROTATION_TREE" ]] && rm -rf "$TMP_SHOW_ROTATION_TREE"
     [[ -n "$TMP_SHOW_ROTATION_NULL_BOUND_TREE" ]] && rm -rf "$TMP_SHOW_ROTATION_NULL_BOUND_TREE"
     [[ -n "$TMP_SHOW_ROTATION_NULL_ROTATION_TREE" ]] && rm -rf "$TMP_SHOW_ROTATION_NULL_ROTATION_TREE"
@@ -880,6 +944,484 @@ else
     fail "skipped ad-pack-kind projection assertions because build_index.py failed above"
 fi
 rm -f "$tmp_ad_pack_index"
+echo
+
+echo "== validate.py: kind-aware voice-pack-entry validation (schemas/voice-pack-manifest.schema.json + schemas/voice-pack-meta.schema.json, SPEC F164, app PLAN T410/T412/T413) =="
+
+echo "-- green valid-voice-pack fixture (a plain voice plus a blended one, sourceRef: null) validates clean end-to-end as a kind:\"voice-pack\" entry --"
+TMP_VOICE_PACK_TREE="$(mktemp -d)"
+mkdir -p "$TMP_VOICE_PACK_TREE/entries/voice-packs/valid-voice-pack"
+cp "$VOICE_PACK_GREEN_FIXTURE"/* "$TMP_VOICE_PACK_TREE/entries/voice-packs/valid-voice-pack/"
+output=$(python3 tools/validate.py --root "$TMP_VOICE_PACK_TREE" 2>&1)
+status=$?
+echo "$output"
+if [[ $status -eq 0 ]]; then
+    pass "green valid-voice-pack fixture validates clean as a kind:\"voice-pack\" entry"
+else
+    fail "green valid-voice-pack fixture did not validate clean as a kind:\"voice-pack\" entry (expected exit 0, got $status)"
+fi
+echo
+
+echo "-- green valid-voice-pack-no-sourceref fixture (sourceRef key absent entirely, not merely null) validates clean --"
+tmp_voice_pack_no_sourceref_tree="$(mktemp -d)"
+mkdir -p "$tmp_voice_pack_no_sourceref_tree/entries/voice-packs/valid-voice-pack-no-sourceref"
+cp "$VOICE_PACK_NO_SOURCEREF_GREEN_FIXTURE"/* "$tmp_voice_pack_no_sourceref_tree/entries/voice-packs/valid-voice-pack-no-sourceref/"
+output=$(python3 tools/validate.py --root "$tmp_voice_pack_no_sourceref_tree" 2>&1)
+status=$?
+echo "$output"
+if [[ $status -eq 0 ]]; then
+    pass "green valid-voice-pack-no-sourceref fixture validates clean (sourceRef absent is legal, SPEC F164.3)"
+else
+    fail "green valid-voice-pack-no-sourceref fixture did not validate clean (expected exit 0, got $status)"
+fi
+rm -rf "$tmp_voice_pack_no_sourceref_tree"
+echo
+
+echo "-- red missing-preview: schema-shape gate, 'preview' is a required manifest member --"
+check_red_variant missing-preview "'preview' is a required property"
+
+echo "-- red preview-over-max: a real MP3 (ID3 magic) padded past the 150 KiB preview cap (SPEC F164) --"
+if python3 - "$VOICE_PACK_PREVIEW_OVER_MAX" <<'PY'
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+path.parent.mkdir(parents=True, exist_ok=True)
+# A real ID3-tagged MP3 header (has_mp3_magic checks only the first bytes),
+# padded well past the 153,600-byte (150 KiB) preview cap — same "real
+# magic, junk payload" posture as avatar-item-oversize's PNG chunk.
+path.write_bytes(b"ID3\x04\x00\x00\x00\x00\x00\x00" + b"\x00" * 160_000)
+print(f"generated {path} ({path.stat().st_size} bytes)")
+PY
+then
+    check_red_variant preview-over-max "voice-pack-preview-over-max"
+else
+    fail "failed to generate the preview-over-max fixture asset"
+fi
+rm -f "$VOICE_PACK_PREVIEW_OVER_MAX"
+
+echo "-- red preview-bad-magic: a preview file, correctly named, that isn't an MP3 at all — extension is never trusted --"
+check_red_variant preview-bad-magic "voice-pack-preview-magic"
+
+echo "-- red preview-wrong-name: the preview's own stem does not equal THIS entry's slug (voice-pack-preview-name; the schema only pins the SHAPE of preview) --"
+check_red_variant preview-wrong-name "voice-pack-preview-name"
+
+echo "-- red synthetic-false: schema-shape gate, 'synthetic' is pinned const true (SPEC F164.3) --"
+check_red_variant synthetic-false "True was expected"
+
+echo "-- red sourceref-non-null: schema-shape gate, sourceRef must be null when present (SPEC F164.3) --"
+check_red_variant sourceref-non-null "is not of type 'null'"
+
+echo "-- red voiceid-uppercase: schema-shape gate, voiceId must match the lowercase SettingValidator.VoiceIdFormat() class --"
+check_red_variant voiceid-uppercase "does not match"
+
+echo "-- red voiceid-traversal: schema-shape gate, a '../x' voiceId fails the same lowercase pattern --"
+check_red_variant voiceid-traversal "does not match"
+
+echo "-- red voiceid-too-long: schema-shape gate, a 65-character voiceId is one over maxLength 64 --"
+check_red_variant voiceid-too-long "is too long"
+
+echo "-- red file-mismatch: voices[].file does not equal '<voiceId>.pt' for that item's own voiceId (voice-pack-file-mismatch — the schema only pins file's SHAPE, never this cross-property equality) --"
+check_red_variant file-mismatch "voice-pack-file-mismatch"
+
+echo "-- red duplicate-voice: the same voiceId declared twice with different gender/age (voice-pack-duplicate-voice — schema uniqueItems alone only forbids two IDENTICAL objects) --"
+check_red_variant duplicate-voice "voice-pack-duplicate-voice"
+
+echo "-- red too-many-voices: schema-shape gate, 17 voices[] elements is one over maxItems 16 --"
+check_red_variant too-many-voices "is too long"
+
+echo "-- red pt-bad-magic: a .pt-named file that isn't zip/torch bytes at all — extension is never trusted --"
+check_red_variant pt-bad-magic "voice-pack-pt-magic"
+
+echo "-- red pt-over-max: a real zip/torch archive padded past the 1 MiB per-weight cap (SPEC F164) --"
+if python3 - "$VOICE_PACK_PT_OVER_MAX" <<'PY'
+import sys
+import zipfile
+from pathlib import Path
+
+path = Path(sys.argv[1])
+path.parent.mkdir(parents=True, exist_ok=True)
+with zipfile.ZipFile(path, "w", zipfile.ZIP_STORED) as zf:
+    # Padded well past the 1,048,576-byte (1 MiB) per-weight cap — a real
+    # zip/torch archive (has_zip_magic checks the local-file-header magic
+    # only), same "real container, junk payload" posture as
+    # avatar-item-oversize's PNG chunk.
+    zf.writestr("data.bin", b"\x00" * 1_100_000)
+print(f"generated {path} ({path.stat().st_size} bytes)")
+PY
+then
+    check_red_variant pt-over-max "voice-pack-pt-over-max"
+else
+    fail "failed to generate the pt-over-max fixture asset"
+fi
+rm -f "$VOICE_PACK_PT_OVER_MAX"
+
+echo "-- red over-ceiling: 9 weights, each under the per-weight cap, summing past the 8 MiB per-pack ceiling (SPEC F164) --"
+if python3 - "$VOICE_PACK_OVER_CEILING_DIR" <<'PY'
+import sys
+import zipfile
+from pathlib import Path
+
+directory = Path(sys.argv[1])
+directory.mkdir(parents=True, exist_ok=True)
+# 9 weights at ~950 KiB each (under the 1,048,576-byte per-weight cap alone)
+# sum to ~8.35 MiB, past the 8,388,608-byte (8 MiB) per-pack ceiling —
+# proves the PACK ceiling fires independently of the per-weight one, same
+# posture as avatar-pack-ceiling's 13 faces.
+total = 0
+for i in range(9):
+    weight_path = directory / f"voice{i}.pt"
+    with zipfile.ZipFile(weight_path, "w", zipfile.ZIP_STORED) as zf:
+        zf.writestr("data.bin", b"\x00" * 950_000)
+    total += weight_path.stat().st_size
+print(f"generated 9 weights under {directory} (summed {total} bytes)")
+PY
+then
+    check_red_variant over-ceiling "voice-pack-over-ceiling"
+else
+    fail "failed to generate the over-ceiling fixture assets"
+fi
+rm -f "$VOICE_PACK_OVER_CEILING_DIR"/voice*.pt
+
+echo "-- red orphan-pt: the entry ships an extra .pt file no voices[] entry names (voice-pack-orphan-file — T411 brief wording, the OPPOSITE of font-pack's own \"orphan\" direction) --"
+check_red_variant orphan-pt "voice-pack-orphan-file"
+
+echo "-- red stowaway-file: a file that doesn't even match VOICE_ASSET_NAME_PATTERN (the KindSpec-level unexpected-file gate, before validate_voice_pack ever runs) --"
+check_red_variant stowaway-file "unexpected-file"
+
+echo "-- red voice-pack-unknown-field: an unrecognized top-level manifest member fails CI rather than installing silently --"
+check_red_variant voice-pack-unknown-field "Additional properties are not allowed"
+
+echo "== build_index.py + schemas/index.schema.json: voice-pack kind projects manifest + assets[] (weights and preview), no card/family (SPEC F164) =="
+TMP_VOICE_PACK_INDEX_TREE="$(mktemp -d)"
+mkdir -p "$TMP_VOICE_PACK_INDEX_TREE/entries/voice-packs/valid-voice-pack"
+cp "$VOICE_PACK_GREEN_FIXTURE"/* "$TMP_VOICE_PACK_INDEX_TREE/entries/voice-packs/valid-voice-pack/"
+
+tmp_voice_pack_index="$(mktemp)"
+voice_pack_index_build_ok=1
+if ! python3 tools/build_index.py --root "$TMP_VOICE_PACK_INDEX_TREE" --out "$tmp_voice_pack_index"; then
+    fail "build_index.py exited non-zero building the voice-pack-kind fixture tree"
+    voice_pack_index_build_ok=0
+fi
+
+if [[ $voice_pack_index_build_ok -eq 1 ]]; then
+    tmp_voice_pack_index_check="$(mktemp)"
+    cat >"$tmp_voice_pack_index_check" <<'PY'
+import hashlib
+import json
+import sys
+from pathlib import Path
+
+sys.path.insert(0, sys.argv[4])
+from index_entry_schema import load_entry_validator
+
+index_path, tree_root, schema_path = Path(sys.argv[1]), Path(sys.argv[2]), Path(sys.argv[3])
+data = json.loads(index_path.read_text())
+by_slug = {e["slug"]: e for e in data["entries"]}
+validator = load_entry_validator(schema_path)
+
+errors = []
+
+pack = by_slug.get("valid-voice-pack")
+if pack is None:
+    errors.append("valid-voice-pack entry missing from built index")
+else:
+    if pack.get("kind") != "voice-pack":
+        errors.append(f"valid-voice-pack: expected kind 'voice-pack', got {pack.get('kind')!r}")
+    for absent_key in ("card", "family"):
+        if absent_key in pack:
+            errors.append(f"valid-voice-pack: unexpected '{absent_key}' key on a voice-pack entry")
+    entry_dir = tree_root / "entries/voice-packs/valid-voice-pack"
+    on_disk = sorted(
+        p for p in entry_dir.iterdir()
+        if p.is_file() and p.name not in ("valid-voice-pack.voice-pack.json", "valid-voice-pack.meta.json")
+    )
+    assets = pack.get("assets")
+    if not isinstance(assets, list) or not assets:
+        errors.append("valid-voice-pack: missing non-empty 'assets' key")
+    else:
+        got_paths = sorted(a.get("path") for a in assets)
+        want_paths = sorted(f"entries/voice-packs/valid-voice-pack/{p.name}" for p in on_disk)
+        if got_paths != want_paths:
+            errors.append(f"valid-voice-pack.assets paths mismatch: got {got_paths}, want {want_paths}")
+        if len(assets) != len(on_disk):
+            errors.append(f"valid-voice-pack.assets count {len(assets)} != on-disk file count {len(on_disk)}")
+        for asset in assets:
+            asset_path = tree_root / asset["path"]
+            want_sha256 = hashlib.sha256(asset_path.read_bytes()).hexdigest()
+            if asset.get("sha256") != want_sha256:
+                errors.append(f"{asset['path']}: sha256 mismatch: recomputed {want_sha256}, index has {asset.get('sha256')}")
+            want_bytes = asset_path.stat().st_size
+            if asset.get("bytes") != want_bytes:
+                errors.append(f"{asset['path']}: bytes mismatch: recomputed {want_bytes}, index has {asset.get('bytes')}")
+    manifest = pack.get("manifest")
+    if not isinstance(manifest, dict):
+        errors.append("valid-voice-pack: missing 'manifest' key")
+    else:
+        path = manifest.get("path")
+        if not isinstance(path, str) or not path.endswith("valid-voice-pack.voice-pack.json"):
+            errors.append(f"valid-voice-pack.manifest.path unexpected: {path!r}")
+    pack_errors = [e.message for e in validator.iter_errors(pack)]
+    if pack_errors:
+        errors.append(f"valid-voice-pack entry does not validate against schemas/index.schema.json: {pack_errors}")
+
+if errors:
+    for line in errors:
+        print(line)
+    sys.exit(1)
+print(
+    "voice-pack-kind index shape OK: kind/manifest/assets[] projected (sha256+bytes verified, sorted, "
+    "count matches on-disk files), no card/family, entry validates against schemas/index.schema.json"
+)
+PY
+    if python3 "$tmp_voice_pack_index_check" "$tmp_voice_pack_index" "$TMP_VOICE_PACK_INDEX_TREE" "schemas/index.schema.json" "$TMP_SCHEMA_HELPERS_DIR"; then
+        pass "build_index.py projects a voice-pack entry's kind+manifest+assets[] (weights+preview, no card/family); entry schema-valid"
+    else
+        fail "build_index.py voice-pack-kind projection assertions failed"
+    fi
+    rm -f "$tmp_voice_pack_index_check"
+else
+    fail "skipped voice-pack-kind projection assertions because build_index.py failed above"
+fi
+rm -f "$tmp_voice_pack_index"
+echo
+
+echo "== validate.py: kind-aware jingle-pack-entry validation (schemas/jingle-pack-manifest.schema.json + schemas/jingle-pack-meta.schema.json, SPEC F165, app PLAN T410/T412, STORY-400) =="
+
+echo "-- green valid-jingle-pack fixture (CC0 bed/wav, CC-BY sting/mp3 with full attribution, CC0 station_id/flac) validates clean end-to-end as a kind:\"jingle-pack\" entry --"
+TMP_JINGLE_PACK_TREE="$(mktemp -d)"
+mkdir -p "$TMP_JINGLE_PACK_TREE/entries/jingle-packs/valid-jingle-pack"
+cp "$JINGLE_PACK_GREEN_FIXTURE"/* "$TMP_JINGLE_PACK_TREE/entries/jingle-packs/valid-jingle-pack/"
+output=$(python3 tools/validate.py --root "$TMP_JINGLE_PACK_TREE" 2>&1)
+status=$?
+echo "$output"
+if [[ $status -eq 0 ]]; then
+    pass "green valid-jingle-pack fixture validates clean as a kind:\"jingle-pack\" entry"
+else
+    fail "green valid-jingle-pack fixture did not validate clean as a kind:\"jingle-pack\" entry (expected exit 0, got $status)"
+fi
+echo
+
+echo "-- red cc-by-sa: CC-BY-SA's share-alike obligation is refused by the closed license enum itself (SPEC F165.4) --"
+check_red_variant cc-by-sa "is not one of"
+
+echo "-- red cc-by-missing-attribution: license CC-BY with no attribution object at all (schema if/then, STORY-400 AC1) --"
+check_red_variant cc-by-missing-attribution "'attribution' is a required property"
+
+echo "-- red cc-by-missing-creator: attribution present but missing 'creator' --"
+check_red_variant cc-by-missing-creator "'creator' is a required property"
+
+echo "-- red cc-by-missing-sourceurl: attribution present but missing 'sourceUrl' --"
+check_red_variant cc-by-missing-sourceurl "'sourceUrl' is a required property"
+
+echo "-- red cc-by-bad-source-url: sourceUrl carries whitespace and an angle bracket after the scheme — the OLD prefix-only pattern let this through since it had no end anchor (T411 review round 1 finding 3) --"
+check_red_variant cc-by-bad-source-url "does not match"
+
+echo "-- red cc0-with-attribution: a CC0 asset has nothing to attribute — carrying an attribution object anyway is refused (schema if/then/else, STORY-400 AC1) --"
+check_red_variant cc0-with-attribution "should not be valid under"
+
+echo "-- red top-level-attribution: a pack-level attribution array is refused — attribution belongs to the ASSET, never the pack as a whole (STORY-400 AC6) --"
+check_red_variant top-level-attribution "Additional properties are not allowed"
+
+echo "-- red unknown-role: a role outside the closed bed/sting/station_id enum (SPEC F165.3) --"
+check_red_variant unknown-role "is not one of"
+
+echo "-- red sha256-mismatch: the declared sha256 does not match the real bytes on disk (jingle-pack-sha256-mismatch — the schema only pins sha256's SHAPE) --"
+check_red_variant sha256-mismatch "jingle-pack-sha256-mismatch"
+
+echo "-- red audio-bad-magic: a .wav-named file that isn't RIFF/WAVE bytes at all — extension is never trusted (jingle-pack-audio-magic) --"
+check_red_variant audio-bad-magic "jingle-pack-audio-magic"
+
+echo "-- red asset-over-max: a real RIFF/WAVE file padded past the 5 MiB per-asset cap, generated alongside its own manifest so sha256 stays self-consistent (SPEC F165) --"
+if python3 - "$JINGLE_PACK_ASSET_OVER_MAX_DIR" <<'PY'
+import hashlib
+import json
+import sys
+from pathlib import Path
+
+directory = Path(sys.argv[1])
+directory.mkdir(parents=True, exist_ok=True)
+slug = directory.name
+
+# A real RIFF/WAVE header, then padded well past the 5,242,880-byte (5 MiB)
+# per-asset cap. The manifest is generated alongside it (not committed) so
+# its own sha256 always matches these exact bytes — jingle-pack's sha256 is
+# a REQUIRED, checked field, unlike voice-pack/avatar/font's asset refs, so
+# committing a manifest separately from a regenerated oversized file would
+# risk exactly the staleness this fixture is meant to avoid.
+data = b"RIFF" + (5_300_000).to_bytes(4, "little") + b"WAVE" + b"\x00" * 5_300_000
+audio_path = directory / "bed.wav"
+audio_path.write_bytes(data)
+
+manifest = {
+    "packName": "Asset Over Max",
+    "assets": [{
+        "file": "bed.wav",
+        "sha256": hashlib.sha256(data).hexdigest(),
+        "role": "bed",
+        "title": "Bed",
+        "license": "CC0",
+    }],
+}
+meta = {"author": "GenWave", "description": "Red-variant fixture.", "audience": "everyone", "added": "2026-09-05"}
+(directory / f"{slug}.jingle-pack.json").write_text(json.dumps(manifest, indent=2) + "\n")
+(directory / f"{slug}.meta.json").write_text(json.dumps(meta, indent=2) + "\n")
+print(f"generated {audio_path} ({audio_path.stat().st_size} bytes)")
+PY
+then
+    check_red_variant asset-over-max "jingle-pack-asset-over-max"
+else
+    fail "failed to generate the asset-over-max fixture"
+fi
+rm -f "$JINGLE_PACK_ASSET_OVER_MAX_DIR"/bed.wav "$JINGLE_PACK_ASSET_OVER_MAX_DIR"/asset-over-max.jingle-pack.json "$JINGLE_PACK_ASSET_OVER_MAX_DIR"/asset-over-max.meta.json
+
+echo "-- red jingle-pack-over-ceiling: 9 RIFF/WAVE assets, each under the 5 MiB per-asset cap, summing past the 40 MiB per-pack ceiling (T411 review round 1 finding 5 — this rule shipped with zero red coverage; mirrors voice-pack's own over-ceiling fixture) --"
+if python3 - "$JINGLE_PACK_OVER_CEILING_DIR" <<'PY'
+import hashlib
+import json
+import sys
+from pathlib import Path
+
+directory = Path(sys.argv[1])
+directory.mkdir(parents=True, exist_ok=True)
+slug = directory.name
+
+# 9 assets at 4,700,012 bytes each (well under the 5,242,880-byte per-asset
+# cap alone) sum to 42,300,108 bytes, past the 41,943,040-byte (40 MiB)
+# per-pack ceiling — proves the PACK ceiling fires independently of the
+# per-asset one, same posture as voice-pack's over-ceiling fixture. The
+# whole entry (manifest + meta + audio) is generated together so every
+# asset's required sha256 stays self-consistent, same posture as
+# asset-over-max above.
+assets = []
+total = 0
+for i in range(9):
+    data = b"RIFF" + (4_700_000).to_bytes(4, "little") + b"WAVE" + b"\x00" * 4_700_000
+    file_name = f"asset{i}.wav"
+    (directory / file_name).write_bytes(data)
+    total += len(data)
+    assets.append({
+        "file": file_name,
+        "sha256": hashlib.sha256(data).hexdigest(),
+        "role": "bed",
+        "title": f"Bed {i}",
+        "license": "CC0",
+    })
+
+manifest = {"packName": "Jingle Pack Over Ceiling", "assets": assets}
+meta = {"author": "GenWave", "description": "Red-variant fixture.", "audience": "everyone", "added": "2026-09-06"}
+(directory / f"{slug}.jingle-pack.json").write_text(json.dumps(manifest, indent=2) + "\n")
+(directory / f"{slug}.meta.json").write_text(json.dumps(meta, indent=2) + "\n")
+print(f"generated 9 assets under {directory} (summed {total} bytes)")
+PY
+then
+    check_red_variant jingle-pack-over-ceiling "jingle-pack-over-ceiling"
+else
+    fail "failed to generate the jingle-pack-over-ceiling fixture"
+fi
+rm -f "$JINGLE_PACK_OVER_CEILING_DIR"/asset*.wav "$JINGLE_PACK_OVER_CEILING_DIR"/jingle-pack-over-ceiling.jingle-pack.json "$JINGLE_PACK_OVER_CEILING_DIR"/jingle-pack-over-ceiling.meta.json
+
+echo "-- red duplicate-title: two different assets sharing a title under fold_brand's own case/whitespace fold (jingle-pack-duplicate-asset) --"
+check_red_variant duplicate-title "jingle-pack-duplicate-asset"
+
+echo "-- red orphan-audio: the entry ships an audio file no assets[] entry names — the reverse of the missing-file check (jingle-pack-orphan-audio) --"
+check_red_variant orphan-audio "jingle-pack-orphan-audio"
+
+echo "-- red jingle-pack-unknown-field: an unrecognized member inside one asset item fails CI rather than being silently ignored --"
+check_red_variant jingle-pack-unknown-field "Additional properties are not allowed"
+
+echo "== build_index.py + schemas/index.schema.json: jingle-pack kind projects manifest + assets[], no card/family (SPEC F165) =="
+TMP_JINGLE_PACK_INDEX_TREE="$(mktemp -d)"
+mkdir -p "$TMP_JINGLE_PACK_INDEX_TREE/entries/jingle-packs/valid-jingle-pack"
+cp "$JINGLE_PACK_GREEN_FIXTURE"/* "$TMP_JINGLE_PACK_INDEX_TREE/entries/jingle-packs/valid-jingle-pack/"
+
+tmp_jingle_pack_index="$(mktemp)"
+jingle_pack_index_build_ok=1
+if ! python3 tools/build_index.py --root "$TMP_JINGLE_PACK_INDEX_TREE" --out "$tmp_jingle_pack_index"; then
+    fail "build_index.py exited non-zero building the jingle-pack-kind fixture tree"
+    jingle_pack_index_build_ok=0
+fi
+
+if [[ $jingle_pack_index_build_ok -eq 1 ]]; then
+    tmp_jingle_pack_index_check="$(mktemp)"
+    cat >"$tmp_jingle_pack_index_check" <<'PY'
+import hashlib
+import json
+import sys
+from pathlib import Path
+
+sys.path.insert(0, sys.argv[4])
+from index_entry_schema import load_entry_validator
+
+index_path, tree_root, schema_path = Path(sys.argv[1]), Path(sys.argv[2]), Path(sys.argv[3])
+data = json.loads(index_path.read_text())
+by_slug = {e["slug"]: e for e in data["entries"]}
+validator = load_entry_validator(schema_path)
+
+errors = []
+
+pack = by_slug.get("valid-jingle-pack")
+if pack is None:
+    errors.append("valid-jingle-pack entry missing from built index")
+else:
+    if pack.get("kind") != "jingle-pack":
+        errors.append(f"valid-jingle-pack: expected kind 'jingle-pack', got {pack.get('kind')!r}")
+    for absent_key in ("card", "family"):
+        if absent_key in pack:
+            errors.append(f"valid-jingle-pack: unexpected '{absent_key}' key on a jingle-pack entry")
+    entry_dir = tree_root / "entries/jingle-packs/valid-jingle-pack"
+    on_disk = sorted(
+        p for p in entry_dir.iterdir()
+        if p.is_file() and p.name not in ("valid-jingle-pack.jingle-pack.json", "valid-jingle-pack.meta.json")
+    )
+    assets = pack.get("assets")
+    if not isinstance(assets, list) or not assets:
+        errors.append("valid-jingle-pack: missing non-empty 'assets' key")
+    else:
+        got_paths = sorted(a.get("path") for a in assets)
+        want_paths = sorted(f"entries/jingle-packs/valid-jingle-pack/{p.name}" for p in on_disk)
+        if got_paths != want_paths:
+            errors.append(f"valid-jingle-pack.assets paths mismatch: got {got_paths}, want {want_paths}")
+        if len(assets) != len(on_disk):
+            errors.append(f"valid-jingle-pack.assets count {len(assets)} != on-disk file count {len(on_disk)}")
+        for asset in assets:
+            asset_path = tree_root / asset["path"]
+            want_sha256 = hashlib.sha256(asset_path.read_bytes()).hexdigest()
+            if asset.get("sha256") != want_sha256:
+                errors.append(f"{asset['path']}: sha256 mismatch: recomputed {want_sha256}, index has {asset.get('sha256')}")
+            want_bytes = asset_path.stat().st_size
+            if asset.get("bytes") != want_bytes:
+                errors.append(f"{asset['path']}: bytes mismatch: recomputed {want_bytes}, index has {asset.get('bytes')}")
+    manifest = pack.get("manifest")
+    if not isinstance(manifest, dict):
+        errors.append("valid-jingle-pack: missing 'manifest' key")
+    else:
+        path = manifest.get("path")
+        if not isinstance(path, str) or not path.endswith("valid-jingle-pack.jingle-pack.json"):
+            errors.append(f"valid-jingle-pack.manifest.path unexpected: {path!r}")
+    pack_errors = [e.message for e in validator.iter_errors(pack)]
+    if pack_errors:
+        errors.append(f"valid-jingle-pack entry does not validate against schemas/index.schema.json: {pack_errors}")
+
+if errors:
+    for line in errors:
+        print(line)
+    sys.exit(1)
+print(
+    "jingle-pack-kind index shape OK: kind/manifest/assets[] projected (sha256+bytes verified, sorted, "
+    "count matches on-disk files), no card/family, entry validates against schemas/index.schema.json"
+)
+PY
+    if python3 "$tmp_jingle_pack_index_check" "$tmp_jingle_pack_index" "$TMP_JINGLE_PACK_INDEX_TREE" "schemas/index.schema.json" "$TMP_SCHEMA_HELPERS_DIR"; then
+        pass "build_index.py projects a jingle-pack entry's kind+manifest+assets[] (no card/family); entry schema-valid"
+    else
+        fail "build_index.py jingle-pack-kind projection assertions failed"
+    fi
+    rm -f "$tmp_jingle_pack_index_check"
+else
+    fail "skipped jingle-pack-kind projection assertions because build_index.py failed above"
+fi
+rm -f "$tmp_jingle_pack_index"
 echo
 
 echo "== build_index.py + schemas/index.schema.json: show kind projects manifest only — no card/assets/family/preview (SPEC F118.1, T253) =="
@@ -2200,6 +2742,125 @@ fi
 rm -f "$tmp_dup_asset_path_green_check"
 echo
 
+echo "== validate.py: index.json asset-integrity cross-check (T411 — closes a gap that predates both new kinds) =="
+echo "-- red preview-index-hash-mismatch: index.json declares a WRONG sha256 for a voice-pack preview asset — neither validate_index_slug_ownership nor validate_index_duplicate_asset_paths ever opens the file, so validate_index_asset_integrity is the actual gate --"
+tmp_asset_integrity_check="$(mktemp)"
+cat >"$tmp_asset_integrity_check" <<'PY'
+import sys
+from pathlib import Path
+
+sys.path.insert(0, "tools")
+import validate
+
+index_path = Path(sys.argv[1])
+violations = validate.validate_index(index_path)
+if not violations:
+    print(f"{index_path}: expected validate_index to reject it, but it passed")
+    sys.exit(1)
+if not any("asset-hash-mismatch" in v for v in violations):
+    print(f"{index_path}: violations did not name the asset-hash-mismatch offense: {violations}")
+    sys.exit(1)
+for v in violations:
+    print(v)
+print(f"{index_path}: validate_index correctly rejected the mismatched preview sha256")
+PY
+if python3 "$tmp_asset_integrity_check" "tools/testdata/red/preview-index-hash-mismatch/index.json"; then
+    pass "validate_index rejects an index.json asset declaring a sha256 that doesn't match the real file (asset-hash-mismatch)"
+else
+    fail "validate_index did not reject an index.json asset declaring a mismatched sha256 (asset-hash-mismatch)"
+fi
+rm -f "$tmp_asset_integrity_check"
+echo
+
+echo "-- red asset-bytes-mismatch: index.json declares the CORRECT sha256 but a WRONG bytes count for a voice-pack preview asset (T411 review round 1 finding 5) — a bytes-only mutation of preview-index-hash-mismatch, proving validate_index_asset_integrity's bytes check fires independently of its sha256 check --"
+tmp_asset_bytes_mismatch_check="$(mktemp)"
+cat >"$tmp_asset_bytes_mismatch_check" <<'PY'
+import sys
+from pathlib import Path
+
+sys.path.insert(0, "tools")
+import validate
+
+index_path = Path(sys.argv[1])
+violations = validate.validate_index(index_path)
+if not violations:
+    print(f"{index_path}: expected validate_index to reject it, but it passed")
+    sys.exit(1)
+if not any("asset-bytes-mismatch" in v for v in violations):
+    print(f"{index_path}: violations did not name the asset-bytes-mismatch offense: {violations}")
+    sys.exit(1)
+for v in violations:
+    print(v)
+print(f"{index_path}: validate_index correctly rejected the mismatched preview bytes")
+PY
+if python3 "$tmp_asset_bytes_mismatch_check" "tools/testdata/red/asset-bytes-mismatch/index.json"; then
+    pass "validate_index rejects an index.json asset declaring a bytes count that doesn't match the real file (asset-bytes-mismatch)"
+else
+    fail "validate_index did not reject an index.json asset declaring a mismatched bytes count (asset-bytes-mismatch)"
+fi
+rm -f "$tmp_asset_bytes_mismatch_check"
+echo
+
+echo "-- red index-asset-path-escape: an assets[] path with 20 ../ segments — deliberately more than any plausible checkout depth, since POSIX Path.resolve() clamps excess .. at the filesystem root rather than erroring, so this fixture reaches the real /etc/hostname on any machine or CI runner regardless of how deep the repo happens to be checked out (T411 review round 2 finding: a shallower 6-segment path used to resolve to a nonexistent file under the workspace, so the mutation below yielded no violation at all) (T411 review round 1 finding 2, security) — calls validate_index_asset_integrity DIRECTLY (not validate_index), bypassing failed_entry_indices entirely, so this fixture exercises the jail (asset_path.is_relative_to(root)) in isolation; a mutation that removes the jail line falls through to a real read of /etc/hostname and reports asset-hash-mismatch, naming that real file's leaked sha256 in the violation text, so this also proves the jail runs BEFORE any hash is disclosed --"
+tmp_path_escape_check="$(mktemp)"
+cat >"$tmp_path_escape_check" <<'PY'
+import json
+import re
+import sys
+from pathlib import Path
+
+sys.path.insert(0, "tools")
+import validate
+
+index_path = Path(sys.argv[1])
+index = json.loads(index_path.read_text())
+violations = validate.validate_index_asset_integrity(index_path, index)
+if not violations:
+    print(f"{index_path}: expected validate_index_asset_integrity to reject it, but it passed")
+    sys.exit(1)
+if not any("asset-path-escapes-root" in v for v in violations):
+    print(f"{index_path}: violations did not name the asset-path-escapes-root offense: {violations}")
+    sys.exit(1)
+if any(re.search(r"[0-9a-f]{64}", v) for v in violations):
+    print(f"{index_path}: a violation disclosed a sha256-shaped hash — the read-oracle this fixture guards against: {violations}")
+    sys.exit(1)
+for v in violations:
+    print(v)
+print(f"{index_path}: validate_index_asset_integrity jailed the escaping path before reading or hashing it")
+PY
+if python3 "$tmp_path_escape_check" "tools/testdata/red/index-asset-path-escape/index.json"; then
+    pass "validate_index_asset_integrity rejects a path that resolves outside the catalog root, discloses no hash (asset-path-escapes-root)"
+else
+    fail "validate_index_asset_integrity did not reject a path escaping the catalog root, or leaked a hash (asset-path-escapes-root)"
+fi
+rm -f "$tmp_path_escape_check"
+echo
+
+echo "-- green: the real repo's own committed index.json carries no stale sha256/bytes claims --"
+tmp_asset_integrity_green_check="$(mktemp)"
+cat >"$tmp_asset_integrity_green_check" <<'PY'
+import sys
+from pathlib import Path
+
+sys.path.insert(0, "tools")
+import validate
+
+index_path = Path("index.json")
+violations = validate.validate_index_asset_integrity(index_path, __import__("json").loads(index_path.read_text()))
+if violations:
+    for v in violations:
+        print(v)
+    sys.exit(1)
+print("index.json: every card/manifest/meta/assets[] sha256 and bytes claim matches the real file on disk")
+PY
+if python3 "$tmp_asset_integrity_green_check"; then
+    pass "the real repo's committed index.json carries no stale sha256/bytes claims"
+else
+    fail "the real repo's committed index.json carries a stale sha256/bytes claim"
+fi
+rm -f "$tmp_asset_integrity_green_check"
+echo
+
 check_kind_entry_red() {
     local variant="$1" expect="$2"
     local output status
@@ -2310,8 +2971,24 @@ echo "== schemas/index.schema.json: ad-pack kind admits manifest-only entries, r
 check_kind_entry_green valid-ad-pack-index-entry "tools/testdata/green/valid-ad-pack-index-entry"
 check_kind_entry_red bad-kind-ad-pack-no-manifest "'manifest' is a required property"
 
-echo "-- red avatar-asset-bytes-over-max: the shared assetRef definition's own GENERIC 524288-byte (512 KiB) ceiling, tested on a kind with no narrower per-kind override (retargeted from a font fixture, rider fold 1, T309 review — a font entry now ALSO trips a narrower 262144 override at this same byte count, which would no longer isolate the generic bound cleanly) --"
+echo "== schemas/index.schema.json: voice-pack/jingle-pack kinds admit manifest+assets[], reject malformed ones (SPEC F164/F165, T411) =="
+check_kind_entry_green valid-voice-pack-index-entry "tools/testdata/green/valid-voice-pack-index-entry"
+check_kind_entry_red bad-kind-voice-pack-no-assets "'assets' is a required property"
+check_kind_entry_green valid-jingle-pack-index-entry "tools/testdata/green/valid-jingle-pack-index-entry"
+check_kind_entry_red bad-kind-jingle-pack-no-manifest "'manifest' is a required property"
+
+echo "-- kind-exclusive fields, extended to voice-pack/jingle-pack: neither kind may carry 'card' or 'preview' (T411) --"
+check_kind_entry_red voice-pack-entry-with-card "should not be valid under {'required': ['card']}"
+check_kind_entry_red jingle-pack-entry-with-preview "should not be valid under {'required': ['preview']}"
+
+echo "-- red avatar-asset-bytes-over-max: the avatar \`then\` branch's OWN narrower assets[].items.bytes ceiling (524288, GenWave.Host.Catalog.CatalogIndexValidator.MaxPngAssetBytes) — T411 review round 1 finding 6: before T411 widened the shared assetRef bound past 524288 for jingle-pack's sake, this fixture happened to also test the GENERIC bound (the two ceilings were numerically identical); now that the shared bound is 5242880, this fixture exercises ONLY the avatar-specific override (same posture as font-asset-bytes-over-font-max above) --"
 check_kind_entry_red avatar-asset-bytes-over-max "is greater than the maximum of 524288"
+
+echo "-- red persona-avatar-bytes-over-max: the persona \`else\` branch's OWN narrower assets[].items.bytes ceiling (524288, the same MaxPngAssetBytes cap as avatar's — T411 review round 1 finding 1) — the persona branch's avatar-sidecar override was the one kind this widening silently skipped; this fixture pins it can never regress silently again --"
+check_kind_entry_red persona-avatar-bytes-over-max "is greater than the maximum of 524288"
+
+echo "-- red jingle-asset-bytes-over-generic-max: the shared assetRef definition's own GENERIC 5242880-byte (5 MiB) ceiling — jingle-pack carries no per-kind override narrower than the shared bound (its own real cap IS the shared bound), so this is the only fixture that actually isolates the generic ceiling post-widening (T411 review round 1 finding 6) --"
+check_kind_entry_red jingle-asset-bytes-over-generic-max "is greater than the maximum of 5242880"
 
 echo "-- kind/extension cross-dressing, extended to avatar/icon --"
 check_kind_entry_red avatar-entry-with-preview "should not be valid under {'required': ['preview']}"

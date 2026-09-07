@@ -1,0 +1,19 @@
+{
+  "slug": "persona-avatar-bytes-over-max",
+  "audience": "everyone",
+  "card": {
+    "path": "entries/personas/persona-avatar-bytes-over-max/persona-avatar-bytes-over-max.persona.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "meta": {
+    "path": "entries/personas/persona-avatar-bytes-over-max/persona-avatar-bytes-over-max.meta.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "assets": [
+    {
+      "path": "entries/personas/persona-avatar-bytes-over-max/persona-avatar-bytes-over-max.avatar.png",
+      "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "bytes": 524289
+    }
+  ]
+}

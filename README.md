@@ -1,16 +1,20 @@
 # 📻 genwave-catalog
 
 A community shelf for [GenWave](https://github.com/GenWave-Org/genwave) — a self-hosted internet
-radio control plane. The shelf carries seven kinds of entry: **12 DJ personas** (portable,
+radio control plane. The shelf carries nine kinds of entry: **12 DJ personas** (portable,
 byte-valid exports of a GenWave DJ's personality — name, voice, lore, taste rules, pronunciation
 corrections; a persona may also wear one optional sidecar face), **4 themes** (station-wide
 look-and-feel manifests), **1 font pack** (vendored webfont faces for the Wardrobe), **show cards**
 (portable named-show identity packages — name, tagline, and prompt-only flavor), **avatar packs**
 (curated sets of 512×512 DJ faces for the Wardrobe's Avatars tab), **icon packs** (curated sets of
-vector chrome icons for the admin UI's third swappable layer), and **ad packs** (brand briefs — the
-fictional sponsors a station's own LLM writes parody ad spots from; data only, no audio) — each
-byte-valid and ready for a station to drop straight in. Personas, themes, shows, avatar packs, and
-ad packs are open to community submission; font packs and icon packs are Dean-curated only (see [Contributing](#-contributing)).
+vector chrome icons for the admin UI's third swappable layer), **ad packs** (brand briefs — the
+fictional sponsors a station's own LLM writes parody ad spots from; data only, no audio), **voice
+packs** (Kokoro voice weights plus a required preview clip), and **jingle packs** (background
+music (beds), stings, and station IDs, licence-verified) — each byte-valid and ready for a
+station to drop straight in. Personas, themes, shows, avatar packs, and ad packs are open to
+community submission; font packs and icon packs are Dean-curated only; voice packs and jingle
+packs are first-party packs this cycle, with community submissions not yet open (see
+[Contributing](#-contributing)).
 
 This repo holds content — data files, schemas, and docs — plus the small set of Python tools under
 `tools/` (and the CI that runs them) that keep it valid. There is no build and no runtime service;
@@ -56,6 +60,17 @@ entries/
     <slug>/                         # an ad pack entry
       <slug>.ad-pack.json              # the ad-pack manifest (app repo SPEC F162.2): packName + briefs[] — data only
       <slug>.meta.json                  # catalog-only metadata
+  voice-packs/
+    <slug>/                         # a voice pack entry
+      <slug>.voice-pack.json           # the voice-pack manifest (app repo SPEC F164): packName + engine + voices[]
+      <slug>.meta.json                  # catalog-only metadata
+      <slug>.preview.mp3                # required preview clip, played before install (SPEC F164.4)
+      river.pt                           # one Kokoro voice weight per voices[] entry, named <voiceId>.pt
+  jingle-packs/
+    <slug>/                         # a jingle pack entry
+      <slug>.jingle-pack.json          # the jingle-pack manifest (app repo SPEC F165): packName + assets[]
+      <slug>.meta.json                  # catalog-only metadata, incl. optional tags[]
+      bed.wav                            # one audio file per assets[] entry (.wav/.mp3/.flac)
 schemas/
   persona-card.schema.json  # validates <slug>.persona.json
   persona-meta.schema.json  # validates a persona's <slug>.meta.json
@@ -71,6 +86,10 @@ schemas/
   icon-meta.schema.json        # validates an icon pack's <slug>.meta.json (requires license/sourceUrl)
   ad-pack-manifest.schema.json # validates <slug>.ad-pack.json — the app's own brief caps, mirrored
   ad-pack-meta.schema.json     # validates an ad pack's <slug>.meta.json
+  voice-pack-manifest.schema.json # validates <slug>.voice-pack.json (SPEC F164.1–F164.4)
+  voice-pack-meta.schema.json     # validates a voice pack's <slug>.meta.json
+  jingle-pack-manifest.schema.json # validates <slug>.jingle-pack.json (SPEC F165.1–F165.4)
+  jingle-pack-meta.schema.json     # validates a jingle pack's <slug>.meta.json
   index.schema.json         # validates the committed index.json
 fixtures/
   golden.persona.json       # real bytes from the app's PersonaCardSerializer, pinned for parity
@@ -179,8 +198,12 @@ closed to style+icons only (SPEC F130.1), so licence/provenance live here instea
 ruling; see [Icon packs](./CONTRIBUTING.md#icon-packs-kind-icon) in CONTRIBUTING.md). An ad pack's
 `<slug>.meta.json` has neither either — its shelf card renders from the manifest's own `packName`
 plus `author`/`description`/`audience`/`added`/`bestFor`, and carries no licence field: a pack is
-original prose, CC0 like a persona card. All seven kinds
-share `author`/`description`/`audience`/`added`, and all seven schemas are
+original prose, CC0 like a persona card. A voice pack's `<slug>.meta.json` follows the same
+ad-pack-meta shape (no licence — a pack ships opaque synthetic weights, not attributable source
+audio). A jingle pack's `<slug>.meta.json` is the ad-pack-meta shape plus an optional `tags[]`
+(1–8 short lowercase tokens for the shelf card); no licence field here either — a jingle pack's
+licence lives per-asset, inside the manifest, not the meta sidecar. All nine kinds
+share `author`/`description`/`audience`/`added`, and all nine schemas are
 `additionalProperties: false`.
 
 ### The avatar manifest (`<slug>.avatar.json`) and a persona's own sidecar face
@@ -223,6 +246,36 @@ JSON Schema cannot express — no two briefs may share a brand after case/whites
 (`ad-pack-duplicate-brand`). See [📣 Ad pack submission](./CONTRIBUTING.md#-ad-pack-submission) in
 CONTRIBUTING.md for the review bar (every brand invented — the trademark hard ban is the whole game).
 
+### The voice-pack manifest (`<slug>.voice-pack.json`)
+
+Format is owned by the [GenWave app repo](https://github.com/GenWave-Org/genwave) (SPEC
+F164.1–F164.4): `packName`, `engine` (closed to `"kokoro"` this cycle), `synthetic: true` +
+`sourceRef: null`/absent (a hard consent attestation — **no soft-cloning of a real voice via this
+shelf, by construction**), and 1–16 `voices[]`, each `{ voiceId, file, gender?, age?, blend? }`
+where `file` must equal `<voiceId>.pt` and a required top-level `preview` must equal
+`<slug>.preview.mp3` (F164.4 — played in the shelf detail modal before install). `tools/validate.py`
+adds what JSON Schema cannot express: every `.pt` is a real zip/torch archive (magic bytes only,
+**never unpickled**) ≤ 1 MiB each and ≤ 8 MiB summed, the preview is a real MP3 ≤ 150 KiB, and no
+orphaned or stowaway files. See [Voice packs](./CONTRIBUTING.md#voice-packs-kind-voice-pack) in
+CONTRIBUTING.md — first-party packs this cycle, community submissions not yet open: this catalog
+has no way to verify a submitter's consent claim about whose voice a `.pt` file carries.
+
+### The jingle-pack manifest (`<slug>.jingle-pack.json`)
+
+Format is owned by the [GenWave app repo](https://github.com/GenWave-Org/genwave) (SPEC
+F165.1–F165.4): `packName` plus 1–32 `assets[]`, each `{ file, sha256, role, title, license,
+attribution? }` — `role` closed to `bed`/`sting`/`station_id` (no auto-classification), `license`
+closed to `CC0`/`CC-BY` (**CC-BY-SA rejected** — share-alike is viral on a derivative ad spot), and
+a structured per-asset `attribution` (`{creator, sourceUrl, license}`) required iff `license ==
+"CC-BY"`, forbidden otherwise — the manifest's own top level is closed against a pack-level
+`attribution` field (STORY-400 AC6). `tools/validate.py` adds what JSON Schema cannot express: each
+asset's declared `sha256` matches the real bytes on disk, the bytes match the extension's own magic
+(RIFF/WAVE, ID3/MPEG-sync, or `fLaC`), ≤ 5 MiB per asset and ≤ 40 MiB summed, no duplicate `file`
+or case/whitespace-folded `title`, and no orphaned or stowaway files. See
+[Jingle packs](./CONTRIBUTING.md#jingle-packs-kind-jingle-pack) in CONTRIBUTING.md — first-party
+packs this cycle, community submissions not yet open: every asset's licence and any CC-BY
+attribution is verified against its source before it ships.
+
 ### Slug format
 
 A `<slug>` must match `^[a-z0-9]+(-[a-z0-9]+)*$` — lowercase letters and digits, single hyphens
@@ -235,16 +288,21 @@ app both enforce.
 ### Size caps
 
 - `<slug>.persona.json` ≤ **256 KB** (matches the app's own import cap, SPEC F79.6)
-- `<slug>.meta.json` ≤ **64 KB** — same cap for all seven kinds
+- `<slug>.meta.json` ≤ **64 KB** — same cap for all nine kinds
 - `<slug>.icon.json` ≤ **256 KiB** (SPEC F130.1's own definition-size cap)
 - `<slug>.ad-pack.json` ≤ **256 KiB** (the app's manifest fetch cap, `CatalogProxyService.MaxCardBytes`)
-- No size cap is enforced on `<slug>.theme.json`, `<slug>.font.json`, `<slug>.show.json`, or
-  `<slug>.avatar.json` text itself — deliberate; neither SPEC F103.2 nor F104.2 nor F118.1 nor
-  F128.1 defines one on the manifest, and the app imposes none on a loaded manifest either
+- No size cap is enforced on `<slug>.theme.json`, `<slug>.font.json`, `<slug>.show.json`,
+  `<slug>.avatar.json`, `<slug>.voice-pack.json`, or `<slug>.jingle-pack.json` text itself —
+  deliberate; neither SPEC F103.2 nor F104.2 nor F118.1 nor F128.1 nor F164 nor F165 defines one on
+  the manifest, and the app imposes none on a loaded manifest either
 - A font pack's own asset files (its woff2 face(s) + `OFL.txt`), summed, must stay **≤ 200 KiB**
   (204,800 bytes) — the per-pack ceiling, separate from and on top of the meta cap above
 - A PNG this catalog carries (an avatar pack item, or a persona's own sidecar face) must stay
   **≤ 512 KiB** per item (SPEC F128.1); an avatar pack's items, summed, must stay **≤ 6 MiB**
+- A voice pack's `<voiceId>.pt` file must stay **≤ 1 MiB** each, **≤ 8 MiB** summed per pack; its
+  `<slug>.preview.mp3` must stay **≤ 150 KiB** (`Packs:PreviewMaxBytes`)
+- A jingle pack's audio asset must stay **≤ 5 MiB** each (`Packs:JingleAssetMaxBytes`), **≤ 40 MiB**
+  summed per pack (a catalog ruling — SPEC F165 sets no pack ceiling itself)
 
 ## 🔨 How `index.json` is built
 
@@ -311,9 +369,18 @@ CI (`tools/validate.py`) validates every PR before merge:
 - ad-pack gates: the app's own caps pinned in `schemas/ad-pack-manifest.schema.json` (1–100 briefs,
   non-blank `brand` ≤ 200 chars, hints ≤ 500 chars, closed member sets), brand uniqueness after
   case/whitespace folding (`ad-pack-duplicate-brand`), and the ≤ 256 KiB manifest cap
+- voice-pack gates: `engine`/`synthetic`/`sourceRef` pinned (SPEC F164.2/F164.3), every `.pt` a
+  real zip/torch archive (magic bytes, ≤ 1 MiB each, ≤ 8 MiB summed), no duplicate `voiceId`, the
+  required preview a real MP3 ≤ 150 KiB matching the pack's own slug, and no orphan/stowaway
+  asset references
+- jingle-pack gates: every asset's `sha256` matching the real bytes on disk, the bytes matching
+  the extension's own magic (RIFF/WAVE, ID3/MPEG-sync, `fLaC`), the closed CC0/CC-BY licence enum
+  with structured per-asset attribution required iff CC-BY (STORY-400), ≤ 5 MiB per asset and
+  ≤ 40 MiB summed, no duplicate `file`/`title`, and no orphan/stowaway asset references
 - `index.json` slug-ownership (every entry's paths resolve under its own
-  `entries/<kind-folder>/<slug>/`, never a sibling's) and duplicate-asset-path checks
-- entries/ is nested by kind: only the seven known kind folders directly under `entries/`, only
+  `entries/<kind-folder>/<slug>/`, never a sibling's), duplicate-asset-path checks, and
+  asset-integrity checks (every declared `sha256`/`bytes` matches the real file on disk)
+- entries/ is nested by kind: only the nine known kind folders directly under `entries/`, only
   `<slug>/` directories inside each; a slug used by more than one kind folder, or a kind folder
   that disagrees with what an entry's own manifest filename implies, is a violation
 - no unexpected files in an entry directory, and no symlinks anywhere under `entries/`
@@ -332,10 +399,13 @@ confirm your PR is clean before pushing.
 See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for the full 9-item quality bar (schema-valid,
 required fields, a distinctness statement, `audience` self-rating, CC0 checkbox, English-first,
 submission-length lint, scoped diff, and the likeness/CC0 image attestation for image-carrying
-entries) and the PR template. **Personas, themes, shows, and avatar packs are open to community
-submission; font packs and icon packs are Dean-curated only** — see CONTRIBUTING's
-[Font packs](./CONTRIBUTING.md#font-packs-kind-font) and
-[Icon packs](./CONTRIBUTING.md#icon-packs-kind-icon) sections.
+entries) and the PR template. **Personas, themes, shows, avatar packs, and ad packs are open to
+community submission; font packs and icon packs are Dean-curated only; voice packs and jingle
+packs are first-party packs this cycle, with community submissions not yet open** — see
+CONTRIBUTING's [Font packs](./CONTRIBUTING.md#font-packs-kind-font),
+[Icon packs](./CONTRIBUTING.md#icon-packs-kind-icon),
+[Voice packs](./CONTRIBUTING.md#voice-packs-kind-voice-pack), and
+[Jingle packs](./CONTRIBUTING.md#jingle-packs-kind-jingle-pack) sections.
 
 Short version, personas: copy `entries/personas/example-dj/` to `entries/personas/<your-slug>/`,
 rename both files to match your slug, write your card and metadata, and open a PR. Themes follow
@@ -379,3 +449,15 @@ see in `entries/` is exactly the file the station uses:
    updates a brief's hints and never duplicates it or resets the owner's enabled/disabled choice.
    The station's ad-spot worker then writes, validates, and renders spots from them off the air
    clock; nothing airs until the owner approves each one (or turns on `Station:Ads:AutoApprove`).
+8. **Voice packs** — installed via `POST /api/voice-packs/{slug}/install` (SPEC F164.5): the
+   `.pt` weights and preview clip are copied in flat, keyed by their `voiceId`; an engine mismatch
+   against the station's configured TTS engine, or a `voiceId` collision with an already-installed
+   voice, refuses the whole install rather than partially landing it. Uninstalling refuses if any
+   persona, ad-cast slot, or announcer setting still references one of the pack's voices (SPEC
+   F164.6) — a voice in use is never pulled out from under something using it.
+9. **Jingle packs** — installed via `POST /api/jingle-packs/{slug}/install` (SPEC F165.5): each
+   asset is hash-verified against `index.json`'s own `sha256`/`bytes`, then run through the same
+   loudness/cue-point enrichment pipeline as scanned media and written into `library.media` —
+   background music (beds), stings, and station IDs join the mix like any other track. Uninstalling
+   refuses while any of the pack's rows are still referenced by a schedule or in-flight render
+   (SPEC F165.6).

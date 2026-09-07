@@ -1,0 +1,13 @@
+{
+  "packName": "Asset Bytes Mismatch",
+  "engine": "kokoro",
+  "synthetic": true,
+  "sourceRef": null,
+  "voices": [
+    {
+      "voiceId": "river",
+      "file": "river.pt"
+    }
+  ],
+  "preview": "asset-bytes-mismatch.preview.mp3"
+}

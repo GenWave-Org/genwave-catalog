@@ -1,12 +1,15 @@
 <!--
-Thanks for submitting to the shelf! The catalog carries seven kinds of entry — persona, theme,
-font pack, show, avatar pack, icon pack, and ad pack. Please read CONTRIBUTING.md before filling this out —
-it explains every item below in full. Fill in the section for YOUR kind (Persona, Theme, Show,
-Avatar Pack, or Ad Pack) below and delete the others; the checklists further down apply to any kind. Both CI
-and this checklist need to pass before a maintainer will review.
+Thanks for submitting to the shelf! The catalog carries nine kinds of entry — persona, theme,
+font pack, show, avatar pack, icon pack, ad pack, voice pack, and jingle pack. Please read
+CONTRIBUTING.md before filling this out — it explains every item below in full. Fill in the
+section for YOUR kind (Persona, Theme, Show, Avatar Pack, or Ad Pack) below and delete the others;
+the checklists further down apply to any kind. Both CI and this checklist need to pass before a
+maintainer will review.
 
-Font packs AND icon packs are Dean-curated only — no community PRs; by arrangement only. See
-CONTRIBUTING.md's "Font packs" and "Icon packs" sections.
+Font packs and icon packs are Dean-curated only — no community PRs; by arrangement only. Voice
+packs and jingle packs are first-party packs this cycle — community submissions are not yet open
+(see gh-#709). See CONTRIBUTING.md's "Font packs", "Icon packs", "Voice packs", and
+"Jingle packs" sections.
 -->
 
 ## Persona

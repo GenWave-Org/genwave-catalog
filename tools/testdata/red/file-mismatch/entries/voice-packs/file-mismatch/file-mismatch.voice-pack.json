@@ -1,0 +1,13 @@
+{
+  "packName": "File Mismatch",
+  "engine": "kokoro",
+  "synthetic": true,
+  "sourceRef": null,
+  "voices": [
+    {
+      "voiceId": "river",
+      "file": "wrong.pt"
+    }
+  ],
+  "preview": "file-mismatch.preview.mp3"
+}

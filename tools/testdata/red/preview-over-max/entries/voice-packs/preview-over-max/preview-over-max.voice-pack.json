@@ -1,0 +1,13 @@
+{
+  "packName": "Preview Over Max",
+  "engine": "kokoro",
+  "synthetic": true,
+  "sourceRef": null,
+  "voices": [
+    {
+      "voiceId": "river",
+      "file": "river.pt"
+    }
+  ],
+  "preview": "preview-over-max.preview.mp3"
+}

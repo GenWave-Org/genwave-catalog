@@ -1,0 +1,13 @@
+{
+  "packName": "Pt Bad Magic",
+  "engine": "kokoro",
+  "synthetic": true,
+  "sourceRef": null,
+  "voices": [
+    {
+      "voiceId": "river",
+      "file": "river.pt"
+    }
+  ],
+  "preview": "pt-bad-magic.preview.mp3"
+}
