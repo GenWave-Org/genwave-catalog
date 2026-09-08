@@ -1,0 +1,13 @@
+{
+  "packName": "Sourceref Non Null",
+  "engine": "kokoro",
+  "synthetic": true,
+  "sourceRef": "https://example.com/a-real-person",
+  "voices": [
+    {
+      "voiceId": "river",
+      "file": "river.pt"
+    }
+  ],
+  "preview": "sourceref-non-null.preview.mp3"
+}

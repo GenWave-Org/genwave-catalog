@@ -1,0 +1,13 @@
+{
+  "packName": "Synthetic False",
+  "engine": "kokoro",
+  "synthetic": false,
+  "sourceRef": null,
+  "voices": [
+    {
+      "voiceId": "river",
+      "file": "river.pt"
+    }
+  ],
+  "preview": "synthetic-false.preview.mp3"
+}

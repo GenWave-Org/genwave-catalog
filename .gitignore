@@ -27,6 +27,40 @@
 /tools/testdata/red/icon-over-ceiling/entries/icons/icon-over-ceiling/icon-over-ceiling.icon.json
 /tools/testdata/red/icon-over-ceiling/entries/icons/icon-over-ceiling/icon-over-ceiling.meta.json
 
+# Generated at tools/run_selftest.sh runtime to exercise the voice pack's
+# preview-clip byte ceiling without committing a 150KB+ fixture to the repo —
+# see tools/run_selftest.sh (mirrors avatar-item-oversize above).
+/tools/testdata/red/preview-over-max/entries/voice-packs/preview-over-max/preview-over-max.preview.mp3
+
+# Generated at tools/run_selftest.sh runtime to exercise the voice pack's
+# per-weight byte ceiling without committing a 1MB+ fixture to the repo —
+# see tools/run_selftest.sh (mirrors avatar-item-oversize above).
+/tools/testdata/red/pt-over-max/entries/voice-packs/pt-over-max/river.pt
+
+# Generated at tools/run_selftest.sh runtime to exercise the voice pack's
+# per-pack byte ceiling (9 weights, ~950 KiB each, summing past 8 MiB)
+# without committing several megabytes of fixture weights to the repo —
+# see tools/run_selftest.sh (mirrors avatar-pack-ceiling above).
+/tools/testdata/red/over-ceiling/entries/voice-packs/over-ceiling/voice*.pt
+
+# Generated at tools/run_selftest.sh runtime to exercise the jingle pack's
+# per-asset byte ceiling. jingle-pack manifests declare a required sha256
+# per asset, so the whole entry (manifest + meta + audio) is generated and
+# torn down at test time to keep that hash self-consistent — see
+# tools/run_selftest.sh (mirrors icon-over-ceiling's "whole entry" posture).
+/tools/testdata/red/asset-over-max/entries/jingle-packs/asset-over-max/bed.wav
+/tools/testdata/red/asset-over-max/entries/jingle-packs/asset-over-max/asset-over-max.jingle-pack.json
+/tools/testdata/red/asset-over-max/entries/jingle-packs/asset-over-max/asset-over-max.meta.json
+
+# Generated at tools/run_selftest.sh runtime to exercise the jingle pack's
+# per-pack byte ceiling (9 RIFF/WAVE assets, ~4.7 MiB each, summing past
+# 40 MiB) without committing several megabytes of fixture audio to the
+# repo — see tools/run_selftest.sh (mirrors asset-over-max above and
+# voice-pack's own over-ceiling fixture).
+/tools/testdata/red/jingle-pack-over-ceiling/entries/jingle-packs/jingle-pack-over-ceiling/asset*.wav
+/tools/testdata/red/jingle-pack-over-ceiling/entries/jingle-packs/jingle-pack-over-ceiling/jingle-pack-over-ceiling.jingle-pack.json
+/tools/testdata/red/jingle-pack-over-ceiling/entries/jingle-packs/jingle-pack-over-ceiling/jingle-pack-over-ceiling.meta.json
+
 # Python bytecode cache from running the tools/ scripts.
 __pycache__/
 *.pyc

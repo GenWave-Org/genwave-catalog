@@ -50,10 +50,27 @@ FONT_ASSET_NAME_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*\.(?:woff2|txt
 # filename", never two drifting copies.
 AVATAR_ASSET_NAME_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*\.png\Z")
 
+# A voice pack's own asset files (SPEC F164.1): the torch-format voice
+# weights (`<voiceId>.pt`) plus the pack's single preview clip
+# (`<slug>.preview.mp3`) — lowercase-only, unlike FONT/AVATAR's mixed-case
+# patterns, because every name here is either a voiceId
+# (SettingValidator.VoiceIdFormat()/db/45's CHECK, lowercase only) or the
+# pack's own lowercase slug. Shared by tools/validate.py (validate_voice_pack's
+# ceiling/orphan/stowaway gates) and tools/build_index.py (the assets[] index
+# projection), same posture as FONT_ASSET_NAME_PATTERN/AVATAR_ASSET_NAME_PATTERN.
+VOICE_ASSET_NAME_PATTERN = re.compile(r"^[a-z0-9][a-z0-9_.-]*\.(?:pt|mp3)\Z")
+
+# A jingle pack's own asset files (SPEC F165.1): background music / stings /
+# station IDs, one of three audio containers. Lowercase-only, matching the
+# manifest's own `file` pattern (STORY-400) — bare filename only. Shared by
+# tools/validate.py (validate_jingle_pack's ceiling/orphan/stowaway gates)
+# and tools/build_index.py (the assets[] index projection).
+JINGLE_ASSET_NAME_PATTERN = re.compile(r"^[a-z0-9][a-z0-9._-]*\.(?:wav|mp3|flac)\Z")
+
 # Kind -> manifest filename suffix, in PRECEDENCE order: persona wins if,
 # bizarrely, more than one manifest file is present in an entry directory,
 # then every other kind in the order below (SPEC F103.2 / F104.1 / F118.1 /
-# F128.1 / F130.6 / F162.2) — the dict's own key order below IS the precedence order;
+# F128.1 / F130.6 / F162.2 / F164 / F165) — the dict's own key order below IS the precedence order;
 # read it here rather than trusting a kind count hand-copied into a comment
 # elsewhere, the exact staleness T196 review M3 already paid for once.
 # tools/build_index.py's resolve_manifest and tools/validate.py's
@@ -71,6 +88,8 @@ KIND_SUFFIXES: dict[str, str] = {
     "avatar": ".avatar.json",
     "icon": ".icon.json",
     "ad-pack": ".ad-pack.json",  # SPEC F162.2 (app PLAN T405): brand briefs, data only
+    "voice-pack": ".voice-pack.json",  # SPEC F164 (app PLAN T410/T412): kokoro voice weights
+    "jingle-pack": ".jingle-pack.json",  # SPEC F165 (app PLAN T410/T412): background music/stings/IDs
 }
 
 # Kind -> entries/ subfolder name (gh-33: entries/<slug>/ moved to
@@ -96,6 +115,8 @@ KIND_FOLDERS: dict[str, str] = {
     "avatar": "avatars",
     "icon": "icons",
     "ad-pack": "ad-packs",
+    "voice-pack": "voice-packs",
+    "jingle-pack": "jingle-packs",
 }
 
 
@@ -182,3 +203,24 @@ def avatar_asset_paths(entry_dir: Path) -> list[Path]:
     (validate_avatar_pack's own ceiling/orphan/stowaway gates) and
     tools/build_index.py (the assets[] index projection)."""
     return sorted(p for p in entry_dir.iterdir() if p.is_file() and AVATAR_ASSET_NAME_PATTERN.match(p.name))
+
+
+def voice_asset_paths(entry_dir: Path) -> list[Path]:
+    """Every one of a voice pack's OWN asset files — every sibling file in
+    its directory matching VOICE_ASSET_NAME_PATTERN (voice weights AND the
+    preview clip; validate_voice_pack tells the two apart by name against
+    the manifest, not by extension alone, since both `.pt` and `.mp3` names
+    can appear). Sorted for determinism. Same "what's really on disk is the
+    source of truth" posture as font_asset_paths/avatar_asset_paths, shared
+    by tools/validate.py and tools/build_index.py."""
+    return sorted(p for p in entry_dir.iterdir() if p.is_file() and VOICE_ASSET_NAME_PATTERN.match(p.name))
+
+
+def jingle_asset_paths(entry_dir: Path) -> list[Path]:
+    """Every one of a jingle pack's OWN audio asset files — every sibling
+    file in its directory matching JINGLE_ASSET_NAME_PATTERN. Sorted for
+    determinism. Same posture as font_asset_paths/avatar_asset_paths/
+    voice_asset_paths, shared by tools/validate.py (validate_jingle_pack's
+    ceiling/orphan/stowaway gates) and tools/build_index.py (the assets[]
+    index projection)."""
+    return sorted(p for p in entry_dir.iterdir() if p.is_file() and JINGLE_ASSET_NAME_PATTERN.match(p.name))

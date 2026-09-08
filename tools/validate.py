@@ -107,6 +107,37 @@ per SPEC F103.2 / T179):
     list as two brands), plus the <= 256 KiB manifest-size cap (the app's
     own manifest fetch cap, CatalogProxyService.MaxCardBytes — reachable by
     a schema-valid document only through whitespace padding, but reachable).
+  - A voice pack (kind:\"voice-pack\", <slug>.voice-pack.json, SPEC F164) ships
+    kokoro voice weights (`<voiceId>.pt`, a torch zip archive this module NEVER
+    unpickles — only its magic bytes and size are ever read) plus one
+    `<slug>.preview.mp3` clip. schemas/voice-pack-manifest.schema.json pins the
+    closed shape (engine locked to \"kokoro\", `synthetic` pinned true,
+    `sourceRef` null-or-absent only); tools/validate.py adds what JSON Schema
+    cannot express: every `voices[].file` exists, is a real zip archive, <=
+    1 MiB (`voice-pack-pt-over-max`), summed <= 8 MiB (`voice-pack-over-ceiling`);
+    no duplicate `voiceId` (`voice-pack-duplicate-voice`); `file` equals
+    `<voiceId>.pt` exactly (`voice-pack-file-mismatch`); the preview exists, is a
+    real MP3, <= 150 KiB (`voice-pack-preview-over-max`), and its name equals
+    `<slug>.preview.mp3` (`voice-pack-preview-name`); and the same orphan/stowaway
+    "a pack IS its files" posture validate_font_pack/validate_avatar_pack already
+    take (`voice-pack-orphan-file`; a wrongly-named stowaway is the ordinary
+    unexpected-file gate). All HARD gates (`validate_voice_pack`).
+  - A jingle pack (kind:\"jingle-pack\", <slug>.jingle-pack.json, SPEC F165) ships
+    background music beds, stings, and station IDs (`role`) as wav/mp3/flac
+    assets. schemas/jingle-pack-manifest.schema.json pins the closed shape
+    (license closed to CC0/CC-BY, a per-item `if`/`then` requiring `attribution`
+    iff `license == \"CC-BY\"` and forbidding it for CC0 — STORY-400 AC1);
+    tools/validate.py adds what JSON Schema cannot express: every asset's
+    declared `sha256` matches the file on disk (`jingle-pack-sha256-mismatch`),
+    the bytes match the extension's own magic (`jingle-pack-audio-magic`), <=
+    5 MiB per asset (`jingle-pack-asset-over-max`), summed <= 40 MiB (a ruling,
+    `jingle-pack-over-ceiling` — no ceiling is specified by SPEC F165 itself, so
+    this mirrors the font/avatar/voice-pack precedent of a summed-pack bound
+    rather than leaving one kind alone unbounded), no duplicate `file` or
+    case/whitespace-folded `title` (`jingle-pack-duplicate-asset`, the same fold
+    `fold_brand` already applies for ad-pack brands), and the same orphan/
+    stowaway posture as every other pack kind (`jingle-pack-orphan-audio`). All
+    HARD gates (`validate_jingle_pack`).
   - `added` is a real calendar date, not just YYYY-MM-DD shaped (the schema
     pattern lets '9999-99-99' through; datetime.date.fromisoformat doesn't).
   - slug == entry directory name == both filenames' stems.
@@ -169,6 +200,13 @@ per SPEC F103.2 / T179):
     dropping one of the two the moment it's parsed. Another cross-property
     constraint draft-07 can't express, so validate_index_duplicate_asset_paths
     is the actual gate, same posture as slug-ownership above.
+  - Every index.json entry's `card`/`manifest`/`meta`/`assets[]` own declared
+    `sha256` (and `bytes`, for `assets[]`) matches the REAL file sitting on disk
+    at that path (T411): neither cross-check above ever opens the file a path
+    names, so a stale or hand-edited claim would otherwise sail through both
+    untouched. validate_index_asset_integrity is the actual gate — added at
+    T411 alongside the voice-pack/jingle-pack kinds, since it is not specific to
+    either and closes a gap that predates both.
 
 Prints one line per violation, each naming the offending file (or directory)
 and the rule it broke. Exits 0 with no output beyond a summary when the tree
@@ -189,6 +227,7 @@ from __future__ import annotations
 
 import argparse
 import datetime
+import hashlib
 import json
 import math
 import re
@@ -202,15 +241,19 @@ import jsonschema
 from catalog_lib import (
     AVATAR_ASSET_NAME_PATTERN,
     FONT_ASSET_NAME_PATTERN,
+    JINGLE_ASSET_NAME_PATTERN,
     KIND_FOLDERS,
     KIND_SUFFIXES,
     REPO_ROOT,
     SCHEMAS_DIR,
+    VOICE_ASSET_NAME_PATTERN,
     avatar_asset_paths,
     discover_entry_dirs,
     find_symlinks,
     font_asset_paths,
+    jingle_asset_paths,
     rel,
+    voice_asset_paths,
 )
 from contrast import check_theme_aa
 from png_image import has_animation_chunk, has_signature, try_read_dimensions
@@ -277,6 +320,72 @@ ICON_LICENCE_KEYS = ("license", "licence")
 # only whitespace padding can reach it, which is exactly why the cap stays a
 # validate.py gate rather than being left to the schema.
 AD_PACK_MANIFEST_SIZE_CAP = 256 * 1024  # 262,144 bytes
+
+# SPEC F164's voice-pack byte ceilings (T411): per-.pt-weight, summed pack,
+# and preview clip. The preview number mirrors the app's own
+# Packs:PreviewMaxBytes default; there is no app-side per-weight or
+# per-pack config to mirror (kokoro's own export size sets the practical
+# floor), so those two are catalog-only ceilings, same posture as
+# FONT_PACK_BYTE_CEILING/AVATAR_PACK_BYTE_CEILING before them.
+VOICE_PACK_PT_BYTE_CEILING = 1024 * 1024  # 1,048,576 bytes per .pt weight
+VOICE_PACK_PACK_BYTE_CEILING = 8 * 1024 * 1024  # 8,388,608 bytes summed
+VOICE_PACK_PREVIEW_BYTE_CEILING = 150 * 1024  # 153,600 bytes; = Packs:PreviewMaxBytes
+
+# SPEC F165's jingle-pack byte ceilings (T411): per-asset mirrors the app's
+# own Packs:JingleAssetMaxBytes default; the summed-pack ceiling is a
+# catalog ruling (SPEC F165 itself sets none) mirroring the font/avatar/
+# voice-pack precedent of bounding a pack's total footprint, not just its
+# individual items — see validate_jingle_pack's own docstring.
+JINGLE_PACK_ASSET_BYTE_CEILING = 5 * 1024 * 1024  # 5,242,880 bytes
+JINGLE_PACK_PACK_BYTE_CEILING = 40 * 1024 * 1024  # 41,943,040 bytes summed
+
+
+def has_zip_magic(data: bytes) -> bool:
+    """A kokoro voice weight (`.pt`) is a torch archive, which is a ZIP
+    container under the hood — checked by its local-file-header magic ONLY
+    (`PK\x03\x04`), never by unzipping or unpickling it: the file is
+    untrusted pickle end to end, so this module treats it as opaque bytes,
+    exactly like PngImageHeader treats a PNG's own signature as the whole
+    story for "is this the format it claims to be"."""
+    return data[:4] == b"PK\x03\x04"
+
+
+def has_mp3_magic(data: bytes) -> bool:
+    """An MP3's bytes either open with an `ID3` tag or, tag-less, the first
+    frame's own 11-bit sync word (the top byte 0xFF followed by a second
+    byte whose top three bits are all set, `& 0xE0 == 0xE0`) — the same two
+    shapes ffmpeg itself emits depending on whether it writes an ID3v2
+    header, and the only two this module bothers to recognise."""
+    if data[:3] == b"ID3":
+        return True
+    return len(data) >= 2 and data[0] == 0xFF and (data[1] & 0xE0) == 0xE0
+
+
+def has_wav_magic(data: bytes) -> bool:
+    """A WAV file's own RIFF/WAVE container header: `RIFF` at offset 0, a
+    4-byte little-endian chunk size (not itself checked — ffmpeg's own
+    output is trusted to be internally consistent; this module only ever
+    asks "is this a WAV", never "is this a WELL-FORMED WAV"), then `WAVE`
+    at offset 8."""
+    return data[:4] == b"RIFF" and data[8:12] == b"WAVE"
+
+
+def has_flac_magic(data: bytes) -> bool:
+    """A FLAC stream's fixed 4-byte marker."""
+    return data[:4] == b"fLaC"
+
+
+# extension -> (this file's audio-format check, the human name used in a
+# jingle-pack-audio-magic violation) — one dict rather than an if/elif
+# ladder inside validate_jingle_pack, mirroring KindSpec's own "one
+# structure instead of a ladder" posture (T196 review N5). Keyed on the
+# extension actually recovered from `file`, which schemas/jingle-pack-
+# manifest.schema.json's own pattern already closed to exactly these three.
+JINGLE_AUDIO_MAGIC_CHECKS: dict[str, tuple[Callable[[bytes], bool], str]] = {
+    "wav": (has_wav_magic, "RIFF/WAVE"),
+    "mp3": (has_mp3_magic, "ID3 or an MPEG sync word"),
+    "flac": (has_flac_magic, "fLaC"),
+}
 
 # SPEC F104.9's "unbreakable themes" invariant (Dean's ruling 2026-08-05, PLAN T205: "themes never
 # reference font packs in the catalog") — mirrors the app's own GenWave.Host/wwwroot/fonts/fonts-
@@ -419,6 +528,30 @@ def build_kind_specs() -> dict[str, KindSpec]:
             allows_extra=lambda path: False,
             unexpected_file_hint="only <slug>.ad-pack.json and <slug>.meta.json are allowed in an entry directory",
         ),
+        "voice-pack": KindSpec(
+            suffix=KIND_SUFFIXES["voice-pack"],
+            label="voice-pack manifest",
+            manifest_schema=load_schema("voice-pack-manifest.schema.json"),
+            meta_schema=load_schema("voice-pack-meta.schema.json"),
+            size_cap=None,  # SPEC F164 defines none on the manifest text itself; see validate_voice_pack
+            allows_extra=lambda path: path.is_file() and bool(VOICE_ASSET_NAME_PATTERN.match(path.name)),
+            unexpected_file_hint=(
+                "only <slug>.voice-pack.json, <slug>.meta.json, and asset files matching "
+                "[a-z0-9][a-z0-9_.-]*.(pt|mp3) are allowed in a voice-pack entry directory"
+            ),
+        ),
+        "jingle-pack": KindSpec(
+            suffix=KIND_SUFFIXES["jingle-pack"],
+            label="jingle-pack manifest",
+            manifest_schema=load_schema("jingle-pack-manifest.schema.json"),
+            meta_schema=load_schema("jingle-pack-meta.schema.json"),
+            size_cap=None,  # SPEC F165 defines none on the manifest text itself; see validate_jingle_pack
+            allows_extra=lambda path: path.is_file() and bool(JINGLE_ASSET_NAME_PATTERN.match(path.name)),
+            unexpected_file_hint=(
+                "only <slug>.jingle-pack.json, <slug>.meta.json, and asset files matching "
+                "[a-z0-9][a-z0-9._-]*.(wav|mp3|flac) are allowed in a jingle-pack entry directory"
+            ),
+        ),
     }
     # Order pin (T196 review note): precedence order must BE KIND_SUFFIXES' order —
     # a reorder of either side without the other fails here at startup, loudly,
@@ -450,6 +583,27 @@ def validate_schema(path: Path, instance: object, schema: dict) -> list[str]:
         pointer = "/".join(str(p) for p in error.path) or "(root)"
         violations.append(f"{rel(REPO_ROOT, path)}: schema: {pointer}: {error.message}")
     return violations
+
+
+def index_schema_failed_entry_indices(instance: object, schema: dict) -> frozenset[int]:
+    """T411 review round 1, finding 2: the set of top-level `entries[]`
+    indices with at least one schemas/index.schema.json violation, fed to
+    validate_index_asset_integrity so it never resolves-and-hashes a `path`
+    string belonging to an entry the schema already rejected (a schema-
+    rejected `path` — e.g. one that never matched the closed per-kind
+    pattern, such as a `..`-escaping string — is not a value this script
+    should trust enough to join onto a filesystem root and read). A second,
+    independent re-run of `iter_errors` rather than a shared call with
+    validate_schema above: index.json is small (a build artifact, not
+    user input at scale), and keeping this function free of validate_schema's
+    own string-formatting keeps each function's one job legible."""
+    validator_cls = jsonschema.validators.validator_for(schema)
+    validator = validator_cls(schema)
+    indices: set[int] = set()
+    for error in validator.iter_errors(instance):
+        if len(error.path) >= 2 and error.path[0] == "entries" and isinstance(error.path[1], int):
+            indices.add(error.path[1])
+    return frozenset(indices)
 
 
 def check_size_cap(path: Path, cap: int, kind: str) -> list[str]:
@@ -671,6 +825,44 @@ def validate_png_asset(path: Path, label: str, rule_prefix: str, max_bytes: int)
             "the first IDAT) — APNG faces are rejected"
         )
 
+    return violations
+
+
+def validate_binary_asset(
+    data: bytes,
+    file_name: str,
+    label: str,
+    magic_check: Callable[[bytes], bool],
+    magic_rule: str,
+    magic_human: str,
+    over_max_rule: str,
+    max_bytes: int,
+    over_max_suffix: str = "cap",
+) -> list[str]:
+    """T411 review round 1 advisory: the non-PNG sibling of validate_png_asset
+    just above — magic bytes (never the extension) plus a byte ceiling,
+    the two checks voice-pack's own `.pt` weight and `.mp3` preview
+    validation duplicated near-verbatim before this extraction. Takes
+    already-read `data` rather than a `Path` (the caller already needed the
+    bytes in hand for its own sha256/running-total bookkeeping in at least
+    one call site — jingle-pack's own per-asset loop — so this avoids a
+    second read there). `magic_rule`/`over_max_rule` are full violation ids,
+    not a shared prefix + fixed suffix: voice-pack's own two call sites
+    happen to share a stem (`voice-pack-pt-magic`/`voice-pack-pt-over-max`)
+    but jingle-pack's own pair doesn't (`jingle-pack-audio-magic`/
+    `jingle-pack-asset-over-max`), so a single `rule_prefix` can't name
+    both correctly for every caller."""
+    violations: list[str] = []
+    if not magic_check(data):
+        violations.append(
+            f"{label}: {magic_rule}: '{file_name}' is not {magic_human} (bad magic bytes) — "
+            "the file extension is never trusted"
+        )
+    size = len(data)
+    if size > max_bytes:
+        violations.append(
+            f"{label}: {over_max_rule}: '{file_name}' is {size} bytes, over the {max_bytes}-byte {over_max_suffix}"
+        )
     return violations
 
 
@@ -909,6 +1101,329 @@ def validate_ad_pack(manifest_path: Path, manifest: object) -> list[str]:
     return violations
 
 
+def validate_voice_pack(entry_dir: Path, slug: str, manifest: object) -> list[str]:
+    """Voice pack gates (SPEC F164), on top of the schema check next to this
+    call — mirrors validate_font_pack's own structure and "a pack IS its
+    files" posture, adapted for two DIFFERENT asset roles (weights vs. the
+    one preview) rather than one uniform asset set:
+
+      - every `voices[].file` exists on disk, is a real ZIP/torch archive
+        (has_zip_magic — `voice-pack-pt-magic`; NEVER unpickled), and is
+        <= 1 MiB (`voice-pack-pt-over-max`);
+      - the pack's own `.pt` weights sum to <= 8 MiB
+        (`voice-pack-over-ceiling`);
+      - no duplicate `voiceId` across `voices[]` (`voice-pack-duplicate-voice`
+        — schemas/voice-pack-manifest.schema.json's own `uniqueItems` only
+        forbids two IDENTICAL objects, not two voices sharing an id with
+        different gender/age/blend);
+      - `voices[].file` equals `<voiceId>.pt` for THAT item's own `voiceId`
+        (`voice-pack-file-mismatch` — the schema only pins the shape of
+        `file`, never the cross-property equality);
+      - the preview exists, is a real MP3 (has_mp3_magic —
+        `voice-pack-preview-magic`), and is <= 150 KiB
+        (`voice-pack-preview-over-max`);
+      - the preview's OWN filename equals `<slug>.preview.mp3` for the
+        entry's actual slug (`voice-pack-preview-name` — the schema pins
+        the shape of `preview`, never that its stem is THIS entry's slug);
+      - the same orphan/stowaway "a pack IS its files" posture
+        validate_font_pack/validate_avatar_pack already take, adapted to
+        this kind's own vocabulary (T411 brief, deliberately the OPPOSITE
+        of font-pack's own "orphan" direction): a real `.pt`/`.mp3` file the
+        entry ships that the manifest does not name is `voice-pack-orphan-file`
+        here (an unclaimed weight/preview sitting in the directory); a
+        manifest `voices[].file`/`preview` naming a file the entry does NOT
+        ship is reported as an ordinary missing-file finding inline, below,
+        since font/avatar call that shape "orphan" too but this brief's own
+        wording reserves "orphan" for the unclaimed-disk-file direction —
+        the KindSpec-level `unexpected-file` gate (validate_entry) already
+        catches a wrongly-NAMED stowaway (one that doesn't even match
+        VOICE_ASSET_NAME_PATTERN) before this function ever runs.
+
+    A missing `voices[]` (`voice-pack-no-voices`) is reported only when
+    the manifest DID parse as an object but the field itself is absent —
+    an empty `voices: []` does NOT fire this (the schema's own
+    `minItems: 1` already backstops that shape); when the manifest fails
+    to parse as an object at all, this function returns before
+    `voices`/`preview` are ever inspected (T411 review round 1 advisory —
+    this docstring previously claimed the opposite), same as the
+    duplicate/mismatch/orphan checks below — the schema check next to
+    this call already names that shape failure once."""
+    label = rel(REPO_ROOT, entry_dir)
+    violations: list[str] = []
+
+    asset_paths = list(voice_asset_paths(entry_dir))
+    pt_paths = {p.name: p for p in asset_paths if p.suffix == ".pt"}
+    mp3_paths = {p.name: p for p in asset_paths if p.suffix == ".mp3"}
+
+    if not isinstance(manifest, dict):
+        return violations
+
+    voices = manifest.get("voices")
+    declared_pt_files: set[str] = set()
+    if isinstance(voices, list):
+        seen_voice_ids: set[str] = set()
+        duplicated_voice_ids: set[str] = set()
+        for voice in voices:
+            if not isinstance(voice, dict):
+                continue
+            voice_id = voice.get("voiceId")
+            if isinstance(voice_id, str):
+                if voice_id in seen_voice_ids:
+                    duplicated_voice_ids.add(voice_id)
+                seen_voice_ids.add(voice_id)
+
+            file_name = voice.get("file")
+            if not isinstance(file_name, str):
+                continue
+            declared_pt_files.add(file_name)
+
+            if isinstance(voice_id, str) and file_name != f"{voice_id}.pt":
+                violations.append(
+                    f"{label}: voice-pack-file-mismatch: voices[] entry '{voice_id}' declares file "
+                    f"'{file_name}', expected '{voice_id}.pt'"
+                )
+
+            pt_path = pt_paths.get(file_name)
+            if pt_path is None:
+                violations.append(
+                    f"{label}: missing-file: voices[] names '{file_name}' but the entry does not ship "
+                    "that weight file"
+                )
+                continue
+
+            violations.extend(
+                validate_binary_asset(
+                    pt_path.read_bytes(),
+                    file_name,
+                    label,
+                    has_zip_magic,
+                    "voice-pack-pt-magic",
+                    "a zip/torch archive",
+                    "voice-pack-pt-over-max",
+                    VOICE_PACK_PT_BYTE_CEILING,
+                    over_max_suffix="per-weight cap",
+                )
+            )
+
+        for voice_id in sorted(duplicated_voice_ids):
+            violations.append(
+                f"{label}: voice-pack-duplicate-voice: manifest declares voiceId '{voice_id}' more than "
+                "once in voices[]"
+            )
+    else:
+        violations.append(f"{label}: voice-pack-no-voices: voice pack ships no readable voices[]")
+
+    total_pt_bytes = sum(p.stat().st_size for p in pt_paths.values())
+    if total_pt_bytes > VOICE_PACK_PACK_BYTE_CEILING:
+        violations.append(
+            f"{label}: voice-pack-over-ceiling: summed weight bytes {total_pt_bytes} exceeds the "
+            f"{VOICE_PACK_PACK_BYTE_CEILING}-byte per-pack ceiling (SPEC F164)"
+        )
+
+    preview_name = manifest.get("preview")
+    if isinstance(preview_name, str):
+        expected_preview_name = f"{slug}.preview.mp3"
+        if preview_name != expected_preview_name:
+            violations.append(
+                f"{label}: voice-pack-preview-name: manifest declares preview '{preview_name}', expected "
+                f"'{expected_preview_name}' — a voice pack's preview filename must match its own slug"
+            )
+        preview_path = mp3_paths.get(preview_name)
+        if preview_path is None:
+            violations.append(
+                f"{label}: missing-file: manifest names preview '{preview_name}' but the entry does not "
+                "ship that file"
+            )
+        else:
+            violations.extend(
+                validate_binary_asset(
+                    preview_path.read_bytes(),
+                    preview_name,
+                    label,
+                    has_mp3_magic,
+                    "voice-pack-preview-magic",
+                    "an MP3 file",
+                    "voice-pack-preview-over-max",
+                    VOICE_PACK_PREVIEW_BYTE_CEILING,
+                )
+            )
+
+    # Orphan (T411 brief wording, the OPPOSITE of font-pack's own "orphan"
+    # direction): a real .pt/.mp3 file the entry ships that nothing in the
+    # manifest claims — declared_pt_files above for weights, the preview
+    # name itself for the one preview clip.
+    accounted_for_pt = declared_pt_files
+    for file_name in sorted(set(pt_paths) - accounted_for_pt):
+        violations.append(
+            f"{label}: voice-pack-orphan-file: entry ships '{file_name}' but no voices[] entry names it "
+            "— every shipped weight must be accounted for"
+        )
+    accounted_for_mp3 = {preview_name} if isinstance(preview_name, str) else set()
+    for file_name in sorted(set(mp3_paths) - accounted_for_mp3):
+        violations.append(
+            f"{label}: voice-pack-orphan-file: entry ships '{file_name}' but the manifest's preview does "
+            "not name it — every shipped file must be accounted for"
+        )
+
+    return violations
+
+
+def validate_jingle_pack(entry_dir: Path, slug: str, manifest: object) -> list[str]:
+    """Jingle pack gates (SPEC F165), on top of the schema check next to
+    this call — mirrors validate_font_pack's own structure and "a pack IS
+    its files" posture:
+
+      - every `assets[].file` exists on disk;
+      - its declared `sha256` matches the REAL bytes on disk
+        (`jingle-pack-sha256-mismatch` — the schema only pins the SHAPE of
+        `sha256`, never that it's the truth);
+      - the bytes actually match the extension's own audio-container magic
+        (`jingle-pack-audio-magic`, via JINGLE_AUDIO_MAGIC_CHECKS — the file
+        extension named in `file` is never trusted on its own);
+      - <= 5 MiB per asset (`jingle-pack-asset-over-max`);
+      - the pack's own assets sum to <= 40 MiB (`jingle-pack-over-ceiling` —
+        a ruling: SPEC F165 sets no summed-pack ceiling itself, so this
+        mirrors the font/avatar/voice-pack precedent of bounding a pack's
+        total footprint rather than leaving one asset-carrying kind alone
+        unbounded);
+      - no duplicate `file`, and no duplicate `title` under the same
+        case/whitespace fold `fold_brand` already applies to ad-pack's own
+        `brand` (`jingle-pack-duplicate-asset` — two assets sharing a
+        differently-cased title would show as the same clip twice on any
+        shelf that lists titles);
+      - the REVERSE of the missing-file check above: every physical audio
+        file the entry ships is accounted for by some `assets[].file`
+        (`jingle-pack-orphan-audio` — a stowaway clip that nothing in the
+        manifest names is just as malformed as a manifest entry pointing at
+        nothing).
+
+    A missing `assets[]` (`jingle-pack-no-assets`) is reported only when
+    the manifest DID parse as an object but the field itself is absent —
+    an empty `assets: []` does NOT fire this (the schema's own
+    `minItems: 1` already backstops that shape); when the manifest fails
+    to parse as an object at all, this function returns before `assets`
+    is ever inspected (T411 review round 1 advisory — this docstring
+    previously claimed the opposite), same as the sha256/magic/duplicate/
+    orphan checks below — the schema check next to this call already
+    names that shape failure once."""
+    label = rel(REPO_ROOT, entry_dir)
+    violations: list[str] = []
+
+    asset_paths = {p.name: p for p in jingle_asset_paths(entry_dir)}
+
+    if not isinstance(manifest, dict):
+        return violations
+
+    assets = manifest.get("assets")
+    declared_files: list[str] = []
+    declared_titles: list[str] = []
+    total_bytes = 0
+    if isinstance(assets, list):
+        for index, asset in enumerate(assets):
+            if not isinstance(asset, dict):
+                continue
+            file_name = asset.get("file")
+            title = asset.get("title")
+            if isinstance(title, str):
+                declared_titles.append(title)
+            if not isinstance(file_name, str):
+                continue
+            declared_files.append(file_name)
+
+            asset_path = asset_paths.get(file_name)
+            if asset_path is None:
+                violations.append(
+                    f"{label}: missing-file: assets[{index}] names '{file_name}' but the entry does not "
+                    "ship that file"
+                )
+                continue
+
+            data = asset_path.read_bytes()
+            total_bytes += len(data)
+
+            declared_sha256 = asset.get("sha256")
+            if isinstance(declared_sha256, str):
+                actual_sha256 = hashlib.sha256(data).hexdigest()
+                if declared_sha256 != actual_sha256:
+                    violations.append(
+                        f"{label}: jingle-pack-sha256-mismatch: assets[{index}] '{file_name}' declares "
+                        f"sha256 '{declared_sha256}' but actually hashes to '{actual_sha256}'"
+                    )
+
+            # `file_name` is only reachable here once `asset_paths.get(file_name)`
+            # above returned non-None, and asset_paths's keys are exactly the
+            # names jingle_asset_paths(entry_dir) matched against
+            # JINGLE_ASSET_NAME_PATTERN — closed to wav|mp3|flac — so this
+            # extension always has an entry in JINGLE_AUDIO_MAGIC_CHECKS.
+            extension = file_name.rsplit(".", 1)[-1] if "." in file_name else ""
+            audio_magic = JINGLE_AUDIO_MAGIC_CHECKS[extension]
+            magic_check = audio_magic[0]
+            magic_human = f"{audio_magic[1]} bytes"
+            violations.extend(
+                validate_binary_asset(
+                    data,
+                    file_name,
+                    label,
+                    magic_check,
+                    "jingle-pack-audio-magic",
+                    magic_human,
+                    "jingle-pack-asset-over-max",
+                    JINGLE_PACK_ASSET_BYTE_CEILING,
+                    over_max_suffix="per-asset cap",
+                )
+            )
+
+        seen_files: set[str] = set()
+        duplicated_files: set[str] = set()
+        for file_name in declared_files:
+            if file_name in seen_files:
+                duplicated_files.add(file_name)
+            seen_files.add(file_name)
+        for file_name in sorted(duplicated_files):
+            violations.append(
+                f"{label}: jingle-pack-duplicate-asset: manifest declares file '{file_name}' more than "
+                "once in assets[]"
+            )
+
+        seen_titles: dict[str, str] = {}
+        duplicated_titles: set[str] = set()
+        for title in declared_titles:
+            folded = fold_brand(title)
+            if not folded:
+                continue
+            if folded in seen_titles:
+                duplicated_titles.add(folded)
+            else:
+                seen_titles[folded] = title
+        for folded in sorted(duplicated_titles):
+            violations.append(
+                f"{label}: jingle-pack-duplicate-asset: manifest declares title {seen_titles[folded]!r} "
+                "more than once in assets[] after case/whitespace folding"
+            )
+    else:
+        violations.append(f"{label}: jingle-pack-no-assets: jingle pack ships no readable assets[]")
+
+    if total_bytes > JINGLE_PACK_PACK_BYTE_CEILING:
+        violations.append(
+            f"{label}: jingle-pack-over-ceiling: summed asset bytes {total_bytes} exceeds the "
+            f"{JINGLE_PACK_PACK_BYTE_CEILING}-byte per-pack ceiling (T411 ruling; SPEC F165 sets none "
+            "itself)"
+        )
+
+    # Reverse (the flip side of the missing-file check above): a physical
+    # audio file the entry ships that no assets[] entry names is a
+    # stowaway — "a pack IS its files" cuts both ways, same posture as
+    # validate_font_pack's own font-stowaway-asset.
+    accounted_for = set(declared_files)
+    for file_name in sorted(set(asset_paths) - accounted_for):
+        violations.append(
+            f"{label}: jingle-pack-orphan-audio: entry ships '{file_name}' but no assets[] entry names "
+            "it — every shipped asset must be accounted for"
+        )
+
+    return violations
+
+
 def validate_added_date(meta_path: Path, meta: object) -> list[str]:
     """`added` passing the meta schema's pattern only proves it's shaped like
     YYYY-MM-DD — '9999-99-99' matches that pattern but isn't a real calendar
@@ -1049,6 +1564,10 @@ def validate_entry(entry_dir: Path, kind_specs: dict[str, KindSpec], kind_folder
                 violations.extend(validate_icon_pack(manifest_path, manifest_instance))
             elif kind == "ad-pack":
                 violations.extend(validate_ad_pack(manifest_path, manifest_instance))
+            elif kind == "voice-pack":
+                violations.extend(validate_voice_pack(entry_dir, slug, manifest_instance))
+            elif kind == "jingle-pack":
+                violations.extend(validate_jingle_pack(entry_dir, slug, manifest_instance))
 
     if len(meta_candidates) == 1:
         meta_path = meta_candidates[0]
@@ -1377,24 +1896,150 @@ def validate_index_duplicate_asset_paths(index_path: Path, index: object) -> lis
     return violations
 
 
+def validate_index_asset_integrity(
+    index_path: Path, index: object, failed_entry_indices: frozenset[int] = frozenset()
+) -> list[str]:
+    """T411: every index.json entry's own declared `sha256` (`card`/
+    `manifest`/`meta`/`assets[]`) — and `bytes`, for `assets[]` — must match
+    the REAL file sitting on disk at that path, resolved relative to
+    index_path's own parent directory (index.json's repo-root-relative path
+    convention). Neither validate_index_slug_ownership nor
+    validate_index_duplicate_asset_paths above ever opens the file a `path`
+    names — both compare path STRINGS to each other only — so a stale or
+    hand-edited sha256/bytes claim would otherwise sail through both
+    untouched. Not specific to voice-pack/jingle-pack — the gap predates
+    both — but added alongside them at T411, the kind that made someone go
+    looking for it.
+
+    The jail below (`asset_path.is_relative_to(root)`) runs for EVERY ref,
+    regardless of `failed_entry_indices` — a schema-rejected `path` (e.g.
+    one that never matched the closed per-kind pattern in the first place,
+    such as `../../../../etc/hostname`) is exactly the shape of a
+    path-traversal read oracle (existence + size + hash of any
+    runner-readable file, disclosed in a public CI log) and gets caught
+    HERE, unconditionally, before this function ever calls `is_file()` or
+    `read_bytes()` on it.
+
+    `failed_entry_indices` (T411 review round 1, finding 2) is the set of
+    top-level `entries[]` indices `index_schema_failed_entry_indices` found
+    a schema.json violation under — once a ref has passed the jail above,
+    this function still skips its hash/bytes comparison (the `read_bytes()`
+    below) when the ref's own entry already failed schema: don't spend a
+    real disk read proving a claim about a shape the schema has already
+    rejected wholesale, and don't let a coincidentally-valid `sha256`/`bytes`
+    pair on an otherwise-malformed entry read as "this entry's assets are
+    fine." The jail above and this skip are independent defenses, not an
+    either/or — the jail alone is what a fixture calling this function
+    directly (bypassing `failed_entry_indices` entirely) exercises.
+
+    A path that doesn't resolve to a real file is DELIBERATELY skipped, not
+    reported, by this function: tools/run_selftest.sh's own font-asset-
+    slug-mismatch and persona-avatar-sibling-face red fixtures call
+    validate_index directly against a bare, standalone index.json with no
+    accompanying entries/ tree at all, specifically to exercise the
+    string-only checks above in isolation. Flagging every referenced path
+    in those fixtures as unreadable would be a false positive this function
+    has nothing useful to say about — a dangling reference is a DIFFERENT
+    failure mode, and one no existing fixture or gate names; out of scope
+    here.
+
+    Defensive throughout (isinstance-guarded at every level), same posture
+    as the two checks above: a shape violation here is already reported
+    once by the schema check next to this call in validate_index, so a
+    malformed `index`/`entries`/ref shape is silently skipped rather than
+    raising or double-reporting."""
+    if not isinstance(index, dict):
+        return []
+    entries = index.get("entries")
+    if not isinstance(entries, list):
+        return []
+
+    root = index_path.parent.resolve()
+    violations: list[str] = []
+    for entry_index, entry in enumerate(entries):
+        if not isinstance(entry, dict):
+            continue
+        slug = entry.get("slug")
+        if not isinstance(slug, str):
+            continue
+
+        entry_schema_failed = entry_index in failed_entry_indices
+
+        refs: list[tuple[str, dict]] = []
+        for field in ("card", "manifest", "meta"):
+            ref = entry.get(field)
+            if isinstance(ref, dict) and isinstance(ref.get("path"), str):
+                refs.append((field, ref))
+        assets = entry.get("assets")
+        if isinstance(assets, list):
+            for i, asset in enumerate(assets):
+                if isinstance(asset, dict) and isinstance(asset.get("path"), str):
+                    refs.append((f"assets[{i}]", asset))
+
+        for label, ref in refs:
+            path_str = ref["path"]
+            asset_path = (root / path_str).resolve()
+            if not asset_path.is_relative_to(root):
+                violations.append(
+                    f"{rel(REPO_ROOT, index_path)}: asset-path-escapes-root: entry '{slug}' {label} "
+                    f"path '{path_str}' resolves outside the catalog root"
+                )
+                continue
+            if entry_schema_failed:
+                continue  # the schema already rejected this entry; don't hash a path it flagged
+            if not asset_path.is_file():
+                continue  # dangling reference: a different failure mode, out of scope here
+            data = asset_path.read_bytes()
+
+            declared_sha256 = ref.get("sha256")
+            if isinstance(declared_sha256, str):
+                actual_sha256 = hashlib.sha256(data).hexdigest()
+                if declared_sha256 != actual_sha256:
+                    violations.append(
+                        f"{rel(REPO_ROOT, index_path)}: asset-hash-mismatch: entry '{slug}' {label} "
+                        f"declares sha256 '{declared_sha256}' but '{path_str}' actually hashes to "
+                        f"'{actual_sha256}'"
+                    )
+
+            declared_bytes = ref.get("bytes")
+            if isinstance(declared_bytes, int) and not isinstance(declared_bytes, bool):
+                actual_bytes = len(data)
+                if declared_bytes != actual_bytes:
+                    violations.append(
+                        f"{rel(REPO_ROOT, index_path)}: asset-bytes-mismatch: entry '{slug}' {label} "
+                        f"declares bytes {declared_bytes} but '{path_str}' is actually {actual_bytes} "
+                        "bytes"
+                    )
+    return violations
+
+
 def validate_index(index_path: Path) -> list[str]:
     """Only called for the real repo (see main()) — index.json must exist at
     the repo root, validate against schemas/index.schema.json, AND pass both
     Python-side cross-property checks above: a schema-shape-clean `assets[]`/
     `manifest`/`meta`/`card` path borrowed from a SIBLING entry's directory
-    (validate_index_slug_ownership) or two assets within one entry sharing a
-    `path` with different `sha256`/`bytes` (validate_index_duplicate_asset_paths)
-    would each pass every pattern in schemas/index.schema.json, since
-    draft-07 can't express either cross-property constraint — these two
-    Python checks are what actually catch them."""
+    (validate_index_slug_ownership), two assets within one entry sharing a
+    `path` with different `sha256`/`bytes` (validate_index_duplicate_asset_paths),
+    or a `sha256`/`bytes` claim that no longer matches the real file on disk
+    (validate_index_asset_integrity, T411) would each pass every pattern in
+    schemas/index.schema.json, since draft-07 can't express any of the three —
+    these Python checks are what actually catch them. validate_index_asset_
+    integrity additionally never hashes a path belonging to an entry the
+    schema already rejected (index_schema_failed_entry_indices, T411 review
+    round 1 finding 2), even though its own path-escape jail still runs for
+    every ref regardless — a schema-flagged entry's `sha256`/`bytes` claims
+    aren't worth a real disk read to disprove."""
     if not index_path.is_file():
         return [f"{rel(REPO_ROOT, index_path)}: missing-file: index.json not found at repo root"]
     instance, violations = parse_json(index_path)
     if instance is None:
         return violations
-    violations += validate_schema(index_path, instance, load_schema("index.schema.json"))
+    index_schema = load_schema("index.schema.json")
+    violations += validate_schema(index_path, instance, index_schema)
     violations += validate_index_slug_ownership(index_path, instance)
     violations += validate_index_duplicate_asset_paths(index_path, instance)
+    failed_entry_indices = index_schema_failed_entry_indices(instance, index_schema)
+    violations += validate_index_asset_integrity(index_path, instance, failed_entry_indices)
     return violations
 
 

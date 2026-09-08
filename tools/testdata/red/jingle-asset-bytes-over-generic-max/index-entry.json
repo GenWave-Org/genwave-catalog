@@ -1,0 +1,20 @@
+{
+  "slug": "jingle-asset-bytes-over-generic-max",
+  "kind": "jingle-pack",
+  "audience": "everyone",
+  "manifest": {
+    "path": "entries/jingle-packs/jingle-asset-bytes-over-generic-max/jingle-asset-bytes-over-generic-max.jingle-pack.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "meta": {
+    "path": "entries/jingle-packs/jingle-asset-bytes-over-generic-max/jingle-asset-bytes-over-generic-max.meta.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "assets": [
+    {
+      "path": "entries/jingle-packs/jingle-asset-bytes-over-generic-max/bed.wav",
+      "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "bytes": 5242881
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "slug": "voice-pack-entry-with-card",
+  "kind": "voice-pack",
+  "audience": "everyone",
+  "manifest": {
+    "path": "entries/voice-packs/voice-pack-entry-with-card/voice-pack-entry-with-card.voice-pack.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "meta": {
+    "path": "entries/voice-packs/voice-pack-entry-with-card/voice-pack-entry-with-card.meta.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "assets": [
+    {
+      "path": "entries/voice-packs/voice-pack-entry-with-card/river.pt",
+      "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "bytes": 1
+    }
+  ],
+  "card": {
+    "path": "entries/personas/voice-pack-entry-with-card/voice-pack-entry-with-card.persona.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  }
+}

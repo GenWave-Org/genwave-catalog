@@ -1,0 +1,16 @@
+{
+  "packName": "Cc By Missing Creator",
+  "assets": [
+    {
+      "file": "bed.wav",
+      "sha256": "449b3c6c1e5a683f84d00a4983511bbe866aacd839ae96743d3bb6a3a161766d",
+      "role": "bed",
+      "title": "Bed",
+      "license": "CC-BY",
+      "attribution": {
+        "sourceUrl": "https://example.com/bed",
+        "license": "CC-BY"
+      }
+    }
+  ]
+}

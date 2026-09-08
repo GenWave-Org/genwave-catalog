@@ -1,0 +1,12 @@
+{
+  "packName": "Missing Preview",
+  "engine": "kokoro",
+  "synthetic": true,
+  "sourceRef": null,
+  "voices": [
+    {
+      "voiceId": "river",
+      "file": "river.pt"
+    }
+  ]
+}

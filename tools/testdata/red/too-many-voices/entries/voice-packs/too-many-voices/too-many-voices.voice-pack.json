@@ -1,0 +1,77 @@
+{
+  "packName": "Too Many Voices",
+  "engine": "kokoro",
+  "synthetic": true,
+  "sourceRef": null,
+  "voices": [
+    {
+      "voiceId": "voice0",
+      "file": "voice0.pt"
+    },
+    {
+      "voiceId": "voice1",
+      "file": "voice1.pt"
+    },
+    {
+      "voiceId": "voice2",
+      "file": "voice2.pt"
+    },
+    {
+      "voiceId": "voice3",
+      "file": "voice3.pt"
+    },
+    {
+      "voiceId": "voice4",
+      "file": "voice4.pt"
+    },
+    {
+      "voiceId": "voice5",
+      "file": "voice5.pt"
+    },
+    {
+      "voiceId": "voice6",
+      "file": "voice6.pt"
+    },
+    {
+      "voiceId": "voice7",
+      "file": "voice7.pt"
+    },
+    {
+      "voiceId": "voice8",
+      "file": "voice8.pt"
+    },
+    {
+      "voiceId": "voice9",
+      "file": "voice9.pt"
+    },
+    {
+      "voiceId": "voice10",
+      "file": "voice10.pt"
+    },
+    {
+      "voiceId": "voice11",
+      "file": "voice11.pt"
+    },
+    {
+      "voiceId": "voice12",
+      "file": "voice12.pt"
+    },
+    {
+      "voiceId": "voice13",
+      "file": "voice13.pt"
+    },
+    {
+      "voiceId": "voice14",
+      "file": "voice14.pt"
+    },
+    {
+      "voiceId": "voice15",
+      "file": "voice15.pt"
+    },
+    {
+      "voiceId": "voice16",
+      "file": "voice16.pt"
+    }
+  ],
+  "preview": "too-many-voices.preview.mp3"
+}

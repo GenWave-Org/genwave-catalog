@@ -105,7 +105,9 @@ from catalog_lib import (
     discover_entry_dirs,
     find_symlinks,
     font_asset_paths,
+    jingle_asset_paths,
     rel,
+    voice_asset_paths,
 )
 
 EXCLUDED_SLUGS = {"example-dj"}  # documentation entry, never shelf stock (README.md)
@@ -311,6 +313,18 @@ def discover_entries(root: Path) -> tuple[list[dict], list[str]]:
                 # itself plus author/description/byte total, never a
                 # projected field.
                 record["assets"] = [asset_ref(root, asset_path) for asset_path in avatar_asset_paths(entry_dir)]
+            elif kind == "voice-pack":
+                # Same "real on-disk bytes, never the manifest's own declared
+                # claims" posture as font/avatar's own assets[] above —
+                # voice_asset_paths (tools/catalog_lib.py) sorts a voice pack's
+                # .pt weights ahead of its one .preview.mp3 (T411), the same
+                # selection tools/validate.py's validate_voice_pack already uses.
+                record["assets"] = [asset_ref(root, asset_path) for asset_path in voice_asset_paths(entry_dir)]
+            elif kind == "jingle-pack":
+                # Same posture again — jingle_asset_paths (tools/catalog_lib.py)
+                # is the same selection tools/validate.py's validate_jingle_pack
+                # already uses (T411).
+                record["assets"] = [asset_ref(root, asset_path) for asset_path in jingle_asset_paths(entry_dir)]
             # kind == "icon" and kind == "ad-pack" project nothing further —
             # the same minimal {kind, manifest, meta} shape a show entry gets
             # (SPEC F130.6; F162.2 — an ad pack's briefs are read off the

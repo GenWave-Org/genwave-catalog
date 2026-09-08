@@ -1,0 +1,13 @@
+{
+  "packName": "Voiceid Uppercase",
+  "engine": "kokoro",
+  "synthetic": true,
+  "sourceRef": null,
+  "voices": [
+    {
+      "voiceId": "River",
+      "file": "River.pt"
+    }
+  ],
+  "preview": "voiceid-uppercase.preview.mp3"
+}

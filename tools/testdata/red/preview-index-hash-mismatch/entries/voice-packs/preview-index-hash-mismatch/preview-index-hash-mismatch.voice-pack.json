@@ -1,0 +1,13 @@
+{
+  "packName": "Preview Index Hash Mismatch",
+  "engine": "kokoro",
+  "synthetic": true,
+  "sourceRef": null,
+  "voices": [
+    {
+      "voiceId": "river",
+      "file": "river.pt"
+    }
+  ],
+  "preview": "preview-index-hash-mismatch.preview.mp3"
+}

@@ -1,0 +1,19 @@
+{
+  "packName": "Duplicate Voice",
+  "engine": "kokoro",
+  "synthetic": true,
+  "sourceRef": null,
+  "voices": [
+    {
+      "voiceId": "river",
+      "file": "river.pt",
+      "gender": "female"
+    },
+    {
+      "voiceId": "river",
+      "file": "river.pt",
+      "gender": "male"
+    }
+  ],
+  "preview": "duplicate-voice.preview.mp3"
+}

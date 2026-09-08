@@ -1,0 +1,23 @@
+{
+  "slug": "valid-jingle-pack-index-entry",
+  "kind": "jingle-pack",
+  "audience": "everyone",
+  "bestFor": [
+    "top of hour"
+  ],
+  "manifest": {
+    "path": "entries/jingle-packs/valid-jingle-pack-index-entry/valid-jingle-pack-index-entry.jingle-pack.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "meta": {
+    "path": "entries/jingle-packs/valid-jingle-pack-index-entry/valid-jingle-pack-index-entry.meta.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "assets": [
+    {
+      "path": "entries/jingle-packs/valid-jingle-pack-index-entry/bed.wav",
+      "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "bytes": 8898
+    }
+  ]
+}

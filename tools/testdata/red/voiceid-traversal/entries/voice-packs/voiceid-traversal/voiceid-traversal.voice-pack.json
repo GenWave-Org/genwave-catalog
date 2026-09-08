@@ -1,0 +1,13 @@
+{
+  "packName": "Voiceid Traversal",
+  "engine": "kokoro",
+  "synthetic": true,
+  "sourceRef": null,
+  "voices": [
+    {
+      "voiceId": "../x",
+      "file": "river.pt"
+    }
+  ],
+  "preview": "voiceid-traversal.preview.mp3"
+}

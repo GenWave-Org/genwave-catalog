@@ -1,0 +1,16 @@
+{
+  "slug": "bad-kind-jingle-pack-no-manifest",
+  "kind": "jingle-pack",
+  "audience": "everyone",
+  "meta": {
+    "path": "entries/jingle-packs/bad-kind-jingle-pack-no-manifest/bad-kind-jingle-pack-no-manifest.meta.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "assets": [
+    {
+      "path": "entries/jingle-packs/bad-kind-jingle-pack-no-manifest/bed.wav",
+      "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "bytes": 1
+    }
+  ]
+}

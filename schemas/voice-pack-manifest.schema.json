@@ -1,0 +1,119 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/GenWave-Org/genwave-catalog/main/schemas/voice-pack-manifest.schema.json",
+  "title": "GenWave Voice Pack Manifest",
+  "description": "The <slug>.voice-pack.json shape a GenWave station fetches for a kind:\"voice-pack\" catalog entry (app repo SPEC F164, PLAN T410/T412/T413). A voice pack ships kokoro voice weights (`<voiceId>.pt` torch archives, never unpickled by this catalog's tools — treated as opaque bytes end to end) plus one preview clip. `additionalProperties` is false at every level, closed like ad-pack: an unknown member is a contributor mistake worth failing CI on, not a silent no-op. `engine` is closed to the one value this catalog ships weights for today (`kokoro`) — the app itself accepts any lowercase engine token and does its own compatibility check at install time (SPEC F164.2); this schema is stricter by design, on purpose, so a future engine's pack needs a deliberate schema change, not a silent pass-through. `synthetic` is pinned `true` (F164.3): every voice this catalog carries is a synthesized weight file, never a real person's recorded likeness. `sourceRef`, when present, must be `null` — F164.3's own 'not null or absent' framing is a double negative for 'absent or null both mean no provenance link'; anything else (a string, an object) is a contributor trying to smuggle in identifying provenance this catalog does not carry.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "packName",
+    "engine",
+    "synthetic",
+    "voices",
+    "preview"
+  ],
+  "properties": {
+    "packName": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "description": "Shelf title / attribution name for the pack."
+    },
+    "engine": {
+      "type": "string",
+      "enum": [
+        "kokoro"
+      ],
+      "description": "The TTS engine these weights were trained/exported for (SPEC F164.2). Closed to `kokoro` — the only engine this catalog carries voice weights for today."
+    },
+    "synthetic": {
+      "const": true,
+      "description": "Always `true` (SPEC F164.3): every voice here is a synthesized weight file, not a recording of a real person."
+    },
+    "sourceRef": {
+      "type": "null",
+      "description": "Optional; when present it must be `null` (SPEC F164.3 — absent and null both mean 'no provenance link', anything else is refused). No non-null value is legal in this catalog's manifests."
+    },
+    "voices": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 16,
+      "uniqueItems": true,
+      "description": "One entry per voice this pack carries. tools/validate.py separately rejects a duplicate `voiceId` across the array (`voice-pack-duplicate-voice`) — `uniqueItems` alone only forbids two IDENTICAL objects, not two voices sharing an id with different gender/age/blend.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "voiceId",
+          "file"
+        ],
+        "properties": {
+          "voiceId": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_-]*(?![\\s\\S])",
+            "maxLength": 64,
+            "description": "Lowercase voice identifier — the same class the app's SettingValidator.VoiceIdFormat() and db/45's own CHECK constraint enforce, so a pack that validates here installs cleanly there. The `(?![\\s\\S])` suffix is a portable absolute-end-of-string anchor (Python re's own `$` matches before a trailing newline; `\\Z` is not ECMA-262/.NET-portable), matched here for cross-tool consistency even though this schema only ever runs under Python."
+          },
+          "file": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_-]*\\.pt(?![\\s\\S])",
+            "maxLength": 67,
+            "description": "The voice weight filename, sibling to the manifest. Bounded to 67 chars — a 64-char `voiceId` (this same file's own `voiceId.maxLength`) plus the 3-char `.pt` suffix, no more (T411 review round 1 advisory; was 68, one too loose). This schema only pins the SHAPE (a lowercase voiceId-like stem plus `.pt`); tools/validate.py's `voice-pack-file-mismatch` separately pins the stronger rule this schema cannot express — `file` must equal `<voiceId>.pt` for THIS item's own `voiceId`, not merely look like some voice's filename."
+          },
+          "gender": {
+            "type": "string",
+            "enum": [
+              "female",
+              "male",
+              "neutral"
+            ],
+            "description": "Optional shelf-card / picker filter hint."
+          },
+          "age": {
+            "type": "string",
+            "enum": [
+              "child",
+              "young",
+              "adult",
+              "senior"
+            ],
+            "description": "Optional shelf-card / picker filter hint."
+          },
+          "blend": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 8,
+            "description": "Optional informational provenance (SPEC F164.3): which stock voices, and in what proportion, this weight was blended from. Never consumed at install or generation time — display-only.",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "voiceId",
+                "weight"
+              ],
+              "properties": {
+                "voiceId": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9][a-z0-9_-]*(?![\\s\\S])",
+                  "maxLength": 64,
+                  "description": "A stock voice identifier this weight was partly blended from. Not required to be one of THIS pack's own `voices[]` entries — it names a stock voice, which may ship elsewhere."
+                },
+                "weight": {
+                  "type": "number",
+                  "exclusiveMinimum": 0,
+                  "maximum": 1,
+                  "description": "Blend proportion, `(0, 1]`. Not required to sum to 1 across the array — informational only, never renormalized or enforced."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "preview": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*\\.preview\\.mp3(?![\\s\\S])",
+      "description": "The pack's single preview clip filename, sibling to the manifest. This schema only pins the SHAPE (a slug-like stem plus `.preview.mp3`); tools/validate.py's `voice-pack-preview-name` separately pins the stronger rule this schema cannot express — the stem must equal THIS entry's own slug, not merely look like some slug's preview."
+    }
+  }
+}

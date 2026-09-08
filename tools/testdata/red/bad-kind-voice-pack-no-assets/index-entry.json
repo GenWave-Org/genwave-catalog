@@ -1,0 +1,13 @@
+{
+  "slug": "bad-kind-voice-pack-no-assets",
+  "kind": "voice-pack",
+  "audience": "everyone",
+  "manifest": {
+    "path": "entries/voice-packs/bad-kind-voice-pack-no-assets/bad-kind-voice-pack-no-assets.voice-pack.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "meta": {
+    "path": "entries/voice-packs/bad-kind-voice-pack-no-assets/bad-kind-voice-pack-no-assets.meta.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  }
+}

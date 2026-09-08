@@ -1,0 +1,126 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/GenWave-Org/genwave-catalog/main/schemas/jingle-pack-manifest.schema.json",
+  "title": "GenWave Jingle Pack Manifest",
+  "description": "The <slug>.jingle-pack.json shape a GenWave station fetches for a kind:\"jingle-pack\" catalog entry (app repo SPEC F165, PLAN T410/T412). A jingle pack ships background music beds, stings, and station IDs (SPEC F165.3's `role` enum) — real audio bytes, unlike a persona/theme/show/ad-pack's pure-data manifests. `additionalProperties` is false at every level, closed like ad-pack: STORY-400 AC6 needs a top-level `attribution` array (as opposed to the per-asset `attribution` object below) to be an unknown-property rejection, since attribution belongs to the ASSET that needs it, never to the pack as a whole. `packName` becomes the station's `library.media.artist` for every spot played from this pack (SPEC F165.2). `license` is closed to `CC0`/`CC-BY` (SPEC F165.4) — CC-BY-SA and everything else is refused by the enum itself, not a validate.py rule, because there is nothing conditional about it: no third value is ever legal here.",
+  "$comment": "Every `(?![\\s\\S])` suffix below is the portable absolute-end-of-string anchor the rest of this catalog's schemas use in place of a bare `$`/`\\Z` (Python re's own `$` matches before a trailing newline; `\\Z` is not ECMA-262/.NET-portable).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "packName",
+    "assets"
+  ],
+  "properties": {
+    "packName": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "description": "Shelf title / attribution name for the pack. Becomes the station's `library.media.artist` for every spot played from this pack (SPEC F165.2)."
+    },
+    "assets": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 32,
+      "description": "One entry per audio asset this pack carries.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "file",
+          "sha256",
+          "role",
+          "title",
+          "license"
+        ],
+        "properties": {
+          "file": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9._-]*\\.(?:wav|mp3|flac)(?![\\s\\S])",
+            "maxLength": 96,
+            "description": "The asset filename, sibling to the manifest. One of three audio containers (wav/mp3/flac) — tools/validate.py's `jingle-pack-audio-magic` separately checks the bytes actually match the extension's own magic, not just the name."
+          },
+          "sha256": {
+            "$ref": "#/definitions/sha256"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "bed",
+              "sting",
+              "station_id"
+            ],
+            "description": "What this asset is for (SPEC F165.3): `bed` = background music under a generated spot, `sting` = a short standalone musical accent, `station_id` = a spoken/musical station identification clip."
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120,
+            "description": "Display title for this asset."
+          },
+          "license": {
+            "type": "string",
+            "enum": [
+              "CC0",
+              "CC-BY"
+            ],
+            "description": "Closed to CC0 and CC-BY (SPEC F165.4) — CC-BY-SA's share-alike obligation, and every other licence, is refused by this enum itself."
+          },
+          "attribution": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "creator",
+              "sourceUrl",
+              "license"
+            ],
+            "properties": {
+              "creator": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 120,
+                "description": "Who to credit, exactly as the licence requires."
+              },
+              "sourceUrl": {
+                "type": "string",
+                "pattern": "^https?://[^\\s<>\"']+(?![\\s\\S])",
+                "maxLength": 2048,
+                "description": "Where the original asset came from. `format: uri` is deliberately NOT set here — no FormatChecker is wired into any validator this repo's own tools/validate.py constructs (validate_schema builds `validator_cls(schema)` with none), so `format: uri` would be silently inert, not a gate. This pattern is the actual gate: scheme-anchored (`^https?://`), forbids whitespace/angle-brackets/quotes in the remainder (T411 review round 1 finding 3 — a value like `https:// not a uri at all \\n<script>` matched the old prefix-only pattern), and end-anchored with `(?![\\s\\S])` per this file's own top-level $comment."
+              },
+              "license": {
+                "const": "CC-BY",
+                "description": "Repeats the item's own `license` — always `CC-BY` here, since a CC0 asset must carry no `attribution` at all (see the per-item conditional below)."
+              }
+            }
+          }
+        },
+        "if": {
+          "properties": {
+            "license": {
+              "const": "CC-BY"
+            }
+          }
+        },
+        "then": {
+          "required": [
+            "attribution"
+          ]
+        },
+        "else": {
+          "not": {
+            "required": [
+              "attribution"
+            ]
+          },
+          "description": "A CC0 asset has nothing to attribute (STORY-400 AC1) — carrying an `attribution` object anyway is a contributor mistake worth failing CI on, not a harmless extra."
+        }
+      }
+    }
+  },
+  "definitions": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}(?![\\s\\S])",
+      "description": "Lowercase hex SHA-256 of the asset's bytes. tools/validate.py's `jingle-pack-sha256-mismatch` recomputes this from the file actually on disk and rejects a mismatch — this schema only pins the SHAPE."
+    }
+  }
+}

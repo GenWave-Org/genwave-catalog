@@ -1,0 +1,25 @@
+{
+  "generatedAt": "2026-09-06",
+  "entries": [
+    {
+      "slug": "index-asset-path-escape",
+      "kind": "voice-pack",
+      "audience": "everyone",
+      "manifest": {
+        "path": "entries/voice-packs/index-asset-path-escape/index-asset-path-escape.voice-pack.json",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "meta": {
+        "path": "entries/voice-packs/index-asset-path-escape/index-asset-path-escape.meta.json",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "assets": [
+        {
+          "path": "../../../../../../../../../../../../../../../../../../../../etc/hostname",
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "bytes": 999
+        }
+      ]
+    }
+  ]
+}

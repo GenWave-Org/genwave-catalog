@@ -1,0 +1,31 @@
+{
+  "packName": "River & Meadow",
+  "engine": "kokoro",
+  "synthetic": true,
+  "sourceRef": null,
+  "voices": [
+    {
+      "voiceId": "river",
+      "file": "river.pt",
+      "gender": "female",
+      "age": "adult"
+    },
+    {
+      "voiceId": "meadow",
+      "file": "meadow.pt",
+      "gender": "neutral",
+      "age": "young",
+      "blend": [
+        {
+          "voiceId": "river",
+          "weight": 0.6
+        },
+        {
+          "voiceId": "brook",
+          "weight": 0.4
+        }
+      ]
+    }
+  ],
+  "preview": "valid-voice-pack.preview.mp3"
+}

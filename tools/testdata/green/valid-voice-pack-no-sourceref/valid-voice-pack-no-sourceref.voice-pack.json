@@ -1,0 +1,12 @@
+{
+  "packName": "Solo Voice",
+  "engine": "kokoro",
+  "synthetic": true,
+  "voices": [
+    {
+      "voiceId": "solo",
+      "file": "solo.pt"
+    }
+  ],
+  "preview": "valid-voice-pack-no-sourceref.preview.mp3"
+}
