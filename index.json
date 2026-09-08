@@ -509,6 +509,91 @@
       "slug": "graveyard-shift"
     },
     {
+      "assets": [
+        {
+          "bytes": 858154,
+          "path": "entries/jingle-packs/gw-first-beds/a-brand-new-wisdom.flac",
+          "sha256": "d3bd5f9197619ae1202b78a5ed36afb2304c281ed91d7b68083fa0b82e6ce602"
+        },
+        {
+          "bytes": 1355765,
+          "path": "entries/jingle-packs/gw-first-beds/city-loop.mp3",
+          "sha256": "663903141e1487687d45c15115d2db7d355a70a6531af7da4d8a4940039d8608"
+        },
+        {
+          "bytes": 2089861,
+          "path": "entries/jingle-packs/gw-first-beds/happy-clappy-loop.flac",
+          "sha256": "cd4d2f87748c28f9c4308de96e6e2ccef67f6566100ffedc000e9537ddc03ff6"
+        },
+        {
+          "bytes": 205234,
+          "path": "entries/jingle-packs/gw-first-beds/hit-bright.wav",
+          "sha256": "b9f3f7967b5952953e04d031f2b4673e9f745a000acaec4f08d5a734b72f7047"
+        },
+        {
+          "bytes": 202386,
+          "path": "entries/jingle-packs/gw-first-beds/hit-pizzicato.wav",
+          "sha256": "7da840e6b5d2aa3e7513cc535b39e2cd02902fc7e6faecf527265d953718078d"
+        },
+        {
+          "bytes": 244790,
+          "path": "entries/jingle-packs/gw-first-beds/hit-steel.wav",
+          "sha256": "2c3a59efa04ebf9b7e9c160dc8ca0837375acacf3a355146aeaf87eefdf50bd4"
+        },
+        {
+          "bytes": 1513417,
+          "path": "entries/jingle-packs/gw-first-beds/just-saying-tho.flac",
+          "sha256": "6321ab60ba73a9fe6dfa88cb06e640bdb8320752fd9078fbc93e8c7d73719095"
+        },
+        {
+          "bytes": 1537296,
+          "path": "entries/jingle-packs/gw-first-beds/raspberry-jam.mp3",
+          "sha256": "44be62a71094dfa0c2f0bed90ffa79f3212998e2132e48e23fb448d1e7f14232"
+        },
+        {
+          "bytes": 307030,
+          "path": "entries/jingle-packs/gw-first-beds/signature-sax.wav",
+          "sha256": "b419172713b3f6f3b64f5b3f0bbd8223040def2c229e7f725c32f3ca3da121e8"
+        },
+        {
+          "bytes": 274326,
+          "path": "entries/jingle-packs/gw-first-beds/signature-steel.wav",
+          "sha256": "0873efa0e648556d671335ba0f40abe625d1cdd306ed8ea44cb1763544981d2e"
+        },
+        {
+          "bytes": 1990508,
+          "path": "entries/jingle-packs/gw-first-beds/swinging-sweet.flac",
+          "sha256": "79f2670a5db9d0658ad969a93740e94eeb9484d093cb60b40cbc457fc5a1848e"
+        },
+        {
+          "bytes": 3144830,
+          "path": "entries/jingle-packs/gw-first-beds/tropical.wav",
+          "sha256": "34d12b80a516b4c3c364c8bb31386988640421852e2bdfc38cdabaf7cafb5b8e"
+        },
+        {
+          "bytes": 2172493,
+          "path": "entries/jingle-packs/gw-first-beds/wild-jazz.mp3",
+          "sha256": "e19f74b5ea1de25bc254d84e5534ac87a702443fb5dd1f8a961a5a68cee3c4ad"
+        }
+      ],
+      "audience": "everyone",
+      "bestFor": [
+        "starter",
+        "ad spots",
+        "background music"
+      ],
+      "kind": "jingle-pack",
+      "manifest": {
+        "path": "entries/jingle-packs/gw-first-beds/gw-first-beds.jingle-pack.json",
+        "sha256": "bb2042687df22cc538f32ea4125ba2e524c3d814fab3e85e3b97f6cad1a7d0e5"
+      },
+      "meta": {
+        "path": "entries/jingle-packs/gw-first-beds/gw-first-beds.meta.json",
+        "sha256": "b2aa4079c00dd95113a2e97a88dd210dd783876d6a9f2a26ce39b557d588bbc0"
+      },
+      "slug": "gw-first-beds"
+    },
+    {
       "audience": "everyone",
       "bestFor": [
         "solid",
@@ -1043,5 +1128,5 @@
       "slug": "wow-and-flutter"
     }
   ],
-  "generatedAt": "2026-09-05"
+  "generatedAt": "2026-09-08"
 }
