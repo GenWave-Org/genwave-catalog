@@ -1,0 +1,96 @@
+{
+  "packName": "First Beds",
+  "assets": [
+    {
+      "file": "swinging-sweet.flac",
+      "sha256": "79f2670a5db9d0658ad969a93740e94eeb9484d093cb60b40cbc457fc5a1848e",
+      "role": "bed",
+      "title": "Swinging Sweet",
+      "license": "CC0"
+    },
+    {
+      "file": "just-saying-tho.flac",
+      "sha256": "6321ab60ba73a9fe6dfa88cb06e640bdb8320752fd9078fbc93e8c7d73719095",
+      "role": "bed",
+      "title": "Just Saying Tho",
+      "license": "CC0"
+    },
+    {
+      "file": "a-brand-new-wisdom.flac",
+      "sha256": "d3bd5f9197619ae1202b78a5ed36afb2304c281ed91d7b68083fa0b82e6ce602",
+      "role": "bed",
+      "title": "A Brand New Wisdom",
+      "license": "CC0"
+    },
+    {
+      "file": "happy-clappy-loop.flac",
+      "sha256": "cd4d2f87748c28f9c4308de96e6e2ccef67f6566100ffedc000e9537ddc03ff6",
+      "role": "bed",
+      "title": "Happy Clappy Loop",
+      "license": "CC0"
+    },
+    {
+      "file": "city-loop.mp3",
+      "sha256": "663903141e1487687d45c15115d2db7d355a70a6531af7da4d8a4940039d8608",
+      "role": "bed",
+      "title": "City Loop",
+      "license": "CC0"
+    },
+    {
+      "file": "wild-jazz.mp3",
+      "sha256": "e19f74b5ea1de25bc254d84e5534ac87a702443fb5dd1f8a961a5a68cee3c4ad",
+      "role": "bed",
+      "title": "Wild Jazz",
+      "license": "CC0"
+    },
+    {
+      "file": "raspberry-jam.mp3",
+      "sha256": "44be62a71094dfa0c2f0bed90ffa79f3212998e2132e48e23fb448d1e7f14232",
+      "role": "bed",
+      "title": "Raspberry Jam",
+      "license": "CC0"
+    },
+    {
+      "file": "tropical.wav",
+      "sha256": "34d12b80a516b4c3c364c8bb31386988640421852e2bdfc38cdabaf7cafb5b8e",
+      "role": "bed",
+      "title": "Tropical",
+      "license": "CC0"
+    },
+    {
+      "file": "hit-bright.wav",
+      "sha256": "b9f3f7967b5952953e04d031f2b4673e9f745a000acaec4f08d5a734b72f7047",
+      "role": "sting",
+      "title": "Bright Hit",
+      "license": "CC0"
+    },
+    {
+      "file": "hit-steel.wav",
+      "sha256": "2c3a59efa04ebf9b7e9c160dc8ca0837375acacf3a355146aeaf87eefdf50bd4",
+      "role": "sting",
+      "title": "Steel Hit",
+      "license": "CC0"
+    },
+    {
+      "file": "hit-pizzicato.wav",
+      "sha256": "7da840e6b5d2aa3e7513cc535b39e2cd02902fc7e6faecf527265d953718078d",
+      "role": "sting",
+      "title": "Pizzicato Hit",
+      "license": "CC0"
+    },
+    {
+      "file": "signature-sax.wav",
+      "sha256": "b419172713b3f6f3b64f5b3f0bbd8223040def2c229e7f725c32f3ca3da121e8",
+      "role": "station_id",
+      "title": "Sax Signature",
+      "license": "CC0"
+    },
+    {
+      "file": "signature-steel.wav",
+      "sha256": "0873efa0e648556d671335ba0f40abe625d1cdd306ed8ea44cb1763544981d2e",
+      "role": "station_id",
+      "title": "Steel Signature",
+      "license": "CC0"
+    }
+  ]
+}
