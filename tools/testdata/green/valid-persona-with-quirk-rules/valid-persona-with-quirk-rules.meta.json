@@ -1,0 +1,10 @@
+{
+  "author": "Test Fixture",
+  "description": "Green fixture: a card whose quirkRules text matches a quirk — must pass validate.py and lint.py (F218, T690).",
+  "samplePatter": [
+    "Line one.",
+    "Line two."
+  ],
+  "audience": "everyone",
+  "added": "2026-08-02"
+}

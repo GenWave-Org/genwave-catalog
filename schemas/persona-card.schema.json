@@ -35,6 +35,20 @@
       "type": "array",
       "items": { "type": "string" }
     },
+    "quirkRules": {
+      "type": "array",
+      "description": "Optional structured twin of quirks (app SPEC F218.5). Each rule's text must also appear in quirks (lint.py checks this); maxPerShift caps how many times a quirk may land in one shift; perBreakChance is the chance it is offered on any one break (the app default is 0.15). Absent on cards that predate the field.",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["text"],
+        "properties": {
+          "text": { "type": "string", "minLength": 1, "pattern": "\\S" },
+          "maxPerShift": { "type": "integer", "minimum": 1 },
+          "perBreakChance": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 }
+        }
+      }
+    },
     "voice": {
       "type": "object",
       "additionalProperties": true,

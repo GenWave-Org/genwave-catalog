@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "name": "Quirk Rule Test DJ",
+  "tagline": "Fixture.",
+  "soul": "A short fixture soul.",
+  "quirks": [
+    "Says hello once per shift",
+    "Counts down into songs"
+  ],
+  "quirkRules": [
+    {
+      "text": "Says hello once per shift",
+      "maxPerShift": 1
+    }
+  ],
+  "voice": { "engine": "kokoro", "voiceId": "af_heart", "pace": 1.0, "language": "en" },
+  "energyDisposition": 0,
+  "corrections": [],
+  "lore": []
+}

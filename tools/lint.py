@@ -6,6 +6,7 @@ Rules enforced, each a two-tier check (WARN, then HARD if far enough over):
 
   - soul-budget: len(soul) — warn > 600 chars, hard > 1200 chars.
   - quirk-budget: len(each quirks[i]) — warn > 120 chars, hard > 240 chars.
+  - quirk-rule-lockstep: every quirkRules[].text must appear in quirks — HARD only.
   - quirk-count: len(quirks) outside 2..6 — WARN ONLY, no hard tier.
   - lore-budget: len(each lore[i]) — warn > 200 chars, hard > 400 chars.
   - prompt-weight: worst-case prompt weight — warn > 900 chars, hard > 1800
@@ -189,16 +190,17 @@ HARD = "HARD"
 Finding = tuple[str, str, str]
 
 
-def load_card_fields(card_path: Path) -> tuple[str, list[str], list[str], str, object] | None:
+def load_card_fields(card_path: Path) -> tuple[str, list[str], list[str], str, object, object] | None:
     """Read and shape-check a persona card. Returns (soul, quirks, lore,
-    name, pronunciations) when soul/name/quirks/lore are present and
+    name, pronunciations, quirk_rules) when soul/name/quirks/lore are present and
     correctly typed, else None — a silent skip, per this tool's contract
     (shape law belongs to validate.py, not here). pronunciations is handed
     back RAW and unchecked — unlike the other four fields it is optional on
     a card (SPEC F89.5), so its own shape law (missing/null/not-a-list, or a
     malformed item within it) is check_pronunciation_rules' silent-skip
     contract to enforce, not a reason to drop the rest of the card's
-    findings."""
+    findings. quirk_rules (app SPEC F218.5) is handed back raw the same way;
+    check_quirk_rules owns its silent-skip contract."""
     try:
         raw = card_path.read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError):
@@ -215,6 +217,7 @@ def load_card_fields(card_path: Path) -> tuple[str, list[str], list[str], str, o
     quirks = card.get("quirks")
     lore = card.get("lore")
     pronunciations = card.get("pronunciations")
+    quirk_rules = card.get("quirkRules")
 
     if not isinstance(soul, str) or not isinstance(name, str):
         return None
@@ -223,7 +226,7 @@ def load_card_fields(card_path: Path) -> tuple[str, list[str], list[str], str, o
     if not isinstance(lore, list) or not all(isinstance(entry, str) for entry in lore):
         return None
 
-    return soul, quirks, lore, name, pronunciations
+    return soul, quirks, lore, name, pronunciations, quirk_rules
 
 
 def _load_json_object(path: Path) -> dict[str, object] | None:
@@ -421,6 +424,25 @@ def check_quirk_budget(quirks: list[str]) -> list[Finding]:
     return findings
 
 
+def check_quirk_rules(quirks: list[str], quirk_rules: object) -> list[Finding]:
+    """HARD: every quirkRules[i].text must appear in quirks (exact match). The
+    app's import route rejects a card that breaks this lockstep
+    (PersonaCardQuirkRulesValidator, app SPEC F218.5), so catching it here
+    keeps a broken card off the shelf. Missing / non-list quirkRules, or an
+    item that is not an object with a string text, is skipped silently:
+    shape law belongs to validate.py."""
+    if not isinstance(quirk_rules, list):
+        return []
+    findings: list[Finding] = []
+    for i, rule in enumerate(quirk_rules):
+        if not isinstance(rule, dict):
+            continue
+        text = rule.get("text")
+        if isinstance(text, str) and text not in quirks:
+            findings.append((HARD, "quirk-rule-lockstep", f"quirkRules[{i}].text is not one of the card's quirks: {text!r}"))
+    return findings
+
+
 def check_quirk_count(quirks: list[str]) -> list[Finding]:
     count = len(quirks)
     if count < QUIRK_COUNT_MIN or count > QUIRK_COUNT_MAX:
@@ -541,11 +563,14 @@ def check_pronunciation_rules(pronunciations: object) -> list[Finding]:
     return findings
 
 
-def lint_card(soul: str, quirks: list[str], lore: list[str], name: str, pronunciations: object) -> list[Finding]:
+def lint_card(
+    soul: str, quirks: list[str], lore: list[str], name: str, pronunciations: object, quirk_rules: object
+) -> list[Finding]:
     findings: list[Finding] = []
     findings.extend(check_soul_budget(soul))
     findings.extend(check_quirk_budget(quirks))
     findings.extend(check_quirk_count(quirks))
+    findings.extend(check_quirk_rules(quirks, quirk_rules))
     findings.extend(check_lore_budget(lore))
     findings.extend(check_prompt_weight(soul, quirks, name))
     findings.extend(check_verbosity_phrases(soul, quirks))
@@ -589,9 +614,9 @@ def lint_entries(entries_dir: Path) -> list[tuple[str, str, str, str]]:
         card_path = entry_dir / f"{slug}.persona.json"
         fields = load_card_fields(card_path)
         if fields is not None:
-            soul, quirks, lore, name, pronunciations = fields
+            soul, quirks, lore, name, pronunciations, quirk_rules = fields
             label = rel(REPO_ROOT, card_path)
-            for tier, rule, message in lint_card(soul, quirks, lore, name, pronunciations):
+            for tier, rule, message in lint_card(soul, quirks, lore, name, pronunciations, quirk_rules):
                 results.append((tier, label, rule, message))
 
         show_path = entry_dir / f"{slug}.show.json"

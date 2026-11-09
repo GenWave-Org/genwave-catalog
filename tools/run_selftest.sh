@@ -18,8 +18,9 @@
 #      block your PR") — the shelf also happens to be warning-free as of
 #      2026-08-02, but that fact is not what the harness asserts
 #   8. tools/lint.py against tools/testdata/red/<variant>/ (oversize-soul,
-#      dead-pronunciation-rule) -> the specific HARD failure line(s), exact
-#      dead-rule count, and no dead-rule/word-repeat stacking
+#      dead-pronunciation-rule, quirk-rule-not-in-quirks) -> the specific HARD
+#      failure line(s), exact dead-rule count, and no dead-rule/word-repeat
+#      stacking
 #   9. tools/lint.py against tools/testdata/warn/heavy-card/          -> every
 #      WARN-tier rule fires exactly once and exit stays 0; the prompt-weight
 #      number is cross-checked against an independent soul+3-longest-quirks
@@ -397,6 +398,9 @@ check_red_variant one-sample "samplePatter"
 check_red_variant bad-json "json-parse"
 check_red_variant bad-date "bad-date"
 check_red_variant bad-pronunciations-type "schema: pronunciations/0/"
+check_red_variant quirk-rule-max-per-shift-zero "less than the minimum"
+check_red_variant quirk-rule-chance-zero "less than or equal to the minimum"
+check_red_variant quirk-rule-blank-text "does not match"
 
 echo "== validate.py: per-kind entries/ folder layout invariants (gh-33) =="
 
@@ -1549,6 +1553,32 @@ check_red_lint() {
 }
 
 check_red_lint oversize-soul "soul-budget"
+
+echo "-- red quirk-rule-not-in-quirks: lint.py fails a quirkRules text that is not one of the card's quirks (app SPEC F218.5 · T690) --"
+check_red_lint quirk-rule-not-in-quirks "quirk-rule-lockstep"
+
+echo "-- green valid-persona-with-quirk-rules: validate.py and lint.py both accept a card carrying quirkRules (app SPEC F218.5 · T690) --"
+TMP_QUIRK_RULES_TREE="$(mktemp -d)"
+mkdir -p "$TMP_QUIRK_RULES_TREE/entries/personas/valid-persona-with-quirk-rules"
+cp tools/testdata/green/valid-persona-with-quirk-rules/* "$TMP_QUIRK_RULES_TREE/entries/personas/valid-persona-with-quirk-rules/"
+output=$(python3 tools/validate.py --root "$TMP_QUIRK_RULES_TREE" 2>&1)
+status=$?
+echo "$output"
+if [[ $status -eq 0 ]]; then
+    pass "green valid-persona-with-quirk-rules validate.py exits 0"
+else
+    fail "green valid-persona-with-quirk-rules validate.py exited $status, expected 0"
+fi
+output=$(python3 tools/lint.py --root "$TMP_QUIRK_RULES_TREE" 2>&1)
+status=$?
+echo "$output"
+if [[ $status -eq 0 && "$output" != *quirk-rule-lockstep* ]]; then
+    pass "green valid-persona-with-quirk-rules lint.py exits 0 with no quirk-rule-lockstep finding"
+else
+    fail "green valid-persona-with-quirk-rules lint.py exited $status or named quirk-rule-lockstep"
+fi
+rm -rf "$TMP_QUIRK_RULES_TREE"
+echo
 
 echo "-- red dead-pronunciation-rule: lint.py names every dropped rule (SPEC F89.7 · T154) --"
 output=$(python3 tools/lint.py --root "$RED_DIR/dead-pronunciation-rule" 2>&1)

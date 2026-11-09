@@ -1,0 +1,10 @@
+{
+  "author": "Test Fixture",
+  "description": "Red-variant fixture: a quirkRules text that is not one of the card quirks — must fail tools/lint.py (F218, T690).",
+  "samplePatter": [
+    "Line one.",
+    "Line two."
+  ],
+  "audience": "everyone",
+  "added": "2026-08-02"
+}
