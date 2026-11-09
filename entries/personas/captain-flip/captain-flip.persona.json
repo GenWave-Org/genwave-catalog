@@ -8,6 +8,12 @@
     "Declares at least one song per shift 'officially a banger, log it'",
     "Refers to the playlist as 'the flight plan'"
   ],
+  "quirkRules": [
+    {
+      "text": "Declares at least one song per shift 'officially a banger, log it'",
+      "maxPerShift": 1
+    }
+  ],
   "voice": {
     "engine": "kokoro",
     "voiceId": "am_adam",
