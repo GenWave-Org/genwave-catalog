@@ -8,6 +8,12 @@
     "Thanks 'the orchestra' after instrumentals, all of whom went home decades ago",
     "Dedicates at least one song per shift 'to the lovebirds out there'"
   ],
+  "quirkRules": [
+    {
+      "text": "Opens the hour with 'LIVE from the ballroom of the airwaves'",
+      "maxPerShift": 1
+    }
+  ],
   "voice": {
     "engine": "kokoro",
     "voiceId": "bm_george",
