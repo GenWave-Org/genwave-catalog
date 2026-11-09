@@ -164,6 +164,10 @@ Required shape: `schemaVersion`, `name`, `tagline`, `soul`, `quirks[]`, `voice`
 (`engine`/`voiceId`/`pace`/`language`), `energyDisposition`, `lore[]` (authored memory only),
 `corrections[]` (`from`/`to` pronunciation fixes). Optional `taste[]`: authored taste rules only,
 each `{ predicate: { artist, genre, tag }, context: { daysOfWeek, startHour, endHour }, weight }`.
+Optional `quirkRules[]`: limits on individual quirks, each `{ text, maxPerShift, perBreakChance }`
+(the last two optional). `maxPerShift` is how many times a quirk may come up in one shift, and
+`perBreakChance` is the chance it comes up on any one break. Every rule's `text` must match one of
+the card's `quirks` exactly.
 
 ### The catalog metadata (`<slug>.meta.json`)
 

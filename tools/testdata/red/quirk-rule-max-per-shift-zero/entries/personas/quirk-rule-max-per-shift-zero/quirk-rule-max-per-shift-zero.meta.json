@@ -1,0 +1,10 @@
+{
+  "author": "Test Fixture",
+  "description": "Red-variant fixture: quirkRules quirk-rule-max-per-shift-zero — must fail tools/validate.py (F218, T690).",
+  "samplePatter": [
+    "Line one.",
+    "Line two."
+  ],
+  "audience": "everyone",
+  "added": "2026-08-02"
+}
